@@ -16,6 +16,7 @@
   --accent:#27b7c4; --accent-soft:rgba(39,183,196,.14); --accent-ink:#04252a;
   --good:#3fcf8f; --good-soft:rgba(63,207,143,.14); --bad:#f2637d; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15);
   --be:#f3b64b;
+  --court-a:#1d2a3f; --court-b:#152036; --court-line:rgba(255,255,255,.10);
   --display:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
   --r:12px;
@@ -26,13 +27,13 @@
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#0d8a97; --accent-soft:rgba(13,138,151,.10); --accent-ink:#ffffff;
   --good:#12935c; --good-soft:rgba(18,147,92,.10); --bad:#c8304d; --bad-soft:rgba(200,48,77,.09); --warn:#b7770a; --warn-soft:rgba(183,119,10,.11);
-  --be:#c07c08; color-scheme:light;}}
+  --be:#c07c08; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#0d8a97; --accent-soft:rgba(13,138,151,.10); --accent-ink:#ffffff;
   --good:#12935c; --good-soft:rgba(18,147,92,.10); --bad:#c8304d; --bad-soft:rgba(200,48,77,.09); --warn:#b7770a; --warn-soft:rgba(183,119,10,.11);
-  --be:#c07c08; color-scheme:light;}
+  --be:#c07c08; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); color-scheme:light;}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
@@ -50,7 +51,8 @@ h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.01e
 .brand h1{font-size:24px;font-weight:800;font-style:italic;line-height:1}
 .brand .eyebrow{font-size:11px}
 .top nav{display:flex;gap:4px;margin-left:auto;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:3px}
-.top nav a{text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;padding:6px 12px;border-radius:7px}
+.top nav a{text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;padding:6px 12px;border-radius:7px;white-space:nowrap}
+.top nav{overflow-x:auto;scrollbar-width:none;max-width:100%}.top nav::-webkit-scrollbar{display:none}
 .top nav a:hover{color:var(--fg)}
 .top nav a.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 0 var(--line)}
 
@@ -205,6 +207,60 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .ptag.warn{background:var(--warn-soft);color:var(--warn)} .ptag.accent{background:var(--accent-soft);color:var(--accent)}
 .bl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 #report .two{row-gap:20px}
+/* my team */
+.mt-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-primary{border:0;border-radius:10px;padding:10px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.mt-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
+.court{position:relative;border-radius:18px;padding:22px 14px 26px;display:flex;flex-direction:column;gap:14px;
+  background:linear-gradient(180deg,var(--court-a),var(--court-b));border:1px solid var(--line);overflow:hidden;min-height:330px;justify-content:space-around}
+.court-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.court-lines *{fill:none;stroke:var(--court-line);stroke-width:2}
+.crow{display:flex;justify-content:space-evenly;gap:10px;position:relative}
+.slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:104px;padding:10px 6px 8px;border-radius:14px;border:1px solid var(--line);background:var(--surface);cursor:pointer;color:inherit;font:inherit;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .15s,border-color .15s}
+.slot:hover{transform:translateY(-2px)}
+.slot b{font-size:13.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot small{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.slot .jersey{width:40px;height:40px;font-size:12px}
+.slot.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),0 4px 14px rgba(0,0,0,.2)}
+.slot.over{border-color:var(--warn);border-style:dashed}
+.slot.empty{border-style:dashed;background:color-mix(in srgb,var(--surface) 70%,transparent);box-shadow:none;min-height:96px;justify-content:center}
+.plus{font-family:var(--display);font-size:28px;line-height:1;color:var(--accent)}
+.capb{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--warn);color:#1d1300;font-weight:800;font-size:11px;display:grid;place-items:center}
+.mt-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbl{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.bench{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bench .slot{width:auto}
+.benchrow .slot{width:104px}
+.coachslot{width:100%;flex-direction:row;justify-content:space-between;padding:12px 14px}
+.coachslot.empty{flex-direction:row;justify-content:center;gap:8px;min-height:auto}
+.mt-money{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.tv{font-family:var(--display);font-size:30px;font-weight:800;line-height:1}.tv small{font-size:14px;color:var(--muted)}
+.selbar{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent)}
+.selbtns{display:flex;gap:6px;flex-wrap:wrap}
+.checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chk{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+.chk.ok{background:var(--good-soft);color:var(--good)}.chk.bad{background:var(--bad-soft);color:var(--bad)}
+.savehelp{margin-top:12px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--accent)}
+.savehelp a{color:var(--accent);font-weight:700}
+.savehelp textarea{width:100%;margin-top:10px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+/* picker */
+.pickbox{position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 24px));max-height:min(80vh,720px);display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.45);overflow:hidden}
+.pk-h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 6px;position:relative}
+.pk-h h3{font-size:22px;font-weight:800}
+.pk-h .dr-x{position:static}
+.pk-tools{display:flex;gap:8px;padding:6px 16px 10px;flex-wrap:wrap}
+.pk-head,.pk{display:grid;grid-template-columns:minmax(0,1fr) 54px 48px;gap:10px;align-items:center}
+.pk-head{padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.pk-list{overflow-y:auto;padding:4px 8px 10px}
+.pk{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:8px;border-radius:10px;cursor:pointer;grid-template-columns:34px minmax(0,1fr) 54px 48px}
+.pk:hover{background:var(--raise)}
+.pk .jersey{width:34px;height:34px;font-size:10.5px}
+.pk.dis{opacity:.4;cursor:not-allowed}
+.pk-n{min-width:0}.pk-n b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pk-n small{display:block;font-size:12px;color:var(--muted)}
+.pk-p,.pk-x{text-align:right;font-weight:700}.pk-x{font-family:var(--display);font-size:17px}
+button.pk[data-pk-coach]{grid-template-columns:minmax(0,1fr) 54px 48px}
+@media (max-width:760px){.mt-grid{grid-template-columns:1fr}.slot{width:96px}.slot.coachslot{width:100%}.bench .slot{padding:8px 4px}.bench .slot b{font-size:12px}}
+@media (max-width:420px){.slot{width:88px}.crow{gap:6px}}
 /* collapsible days */
 .day-h{width:100%;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .day-h:hover{background:var(--line-soft)}
@@ -286,7 +342,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .dr-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .detail{grid-template-columns:1fr}
   .top nav{margin-left:0;width:100%}
-  .top nav a{flex:1;text-align:center;padding-inline:6px}
+  .top nav a{flex:none;text-align:center;padding-inline:10px}
 }
 @media (prefers-reduced-motion:no-preference){.pc,.mrow{transition:background .2s}}
 </style>
@@ -301,6 +357,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
       <div class="eyebrow">EuroLeague Fantasy · round planner</div>
     </div>
     <nav aria-label="Sections">
+      <a href="#myteam">My team</a>
       <a href="#proposal" class="on">Proposal</a>
       <a href="#report">Report</a>
       <a href="#market">Players</a>
@@ -310,7 +367,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   </div>
 </header>
 
-<div id="drawer-root"></div>
+<div id="drawer-root"></div><div id="picker-root"></div>
 <main class="wrap" id="app">
   <div class="loading" id="loading">Loading player data…</div>
 </main>
@@ -321,7 +378,7 @@ const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","
 const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
-let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig;const capOpt=new Set();const MIN_GAIN=3;
+let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let sel=null,pick=null;const capOpt=new Set();const MIN_GAIN=3;
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[]};
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
 if(state.maxT!==4&&state.maxT!==99)state.maxT=state.maxT>=10?99:4;
@@ -332,8 +389,9 @@ const fmt=(v,d=1)=>(v>0?"+":"")+v.toFixed(d);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const jersey=(t,pos)=>`<span class="jersey" data-pos="${pos}" style="background:${(TEAMS[t]||["","#445"])[1]}">${t}</span>`;
 
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.open){state.open=null;save();render();}});
-fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(init).catch(e=>{
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
+let SQUAD=null;
+fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>fetch("squad.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(sq=>{SQUAD=sq;init(d);})).catch(e=>{
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
 });
 
@@ -368,14 +426,118 @@ function init(data){
     return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:rec[c.team]};
   });
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
-  orig={players:D.squad.players.slice(),coach:D.squad.coach};
+  savedTeam=teamFrom(SQUAD||D.squad);
+  const lt=state.team;
+  team=(lt&&lt.base===(savedTeam.updated||"")&&Array.isArray(lt.slots))?teamFrom(lt):teamFrom(savedTeam);
+  orig={players:teamIds(),coach:team.coach};
   // captain options: two best projections per day
   dayKeys.forEach(d=>P.filter(p=>p.day===d).sort((a,b)=>b.x-a.x).slice(0,2).forEach(p=>capOpt.add(p.id)));
   P.forEach(p=>{p.tags=tagsFor(p);});
-  if(state.budget==null)state.budget=D.budget;
+  if(state.budget==null||!state.budgetTouched)state.budget=teamValue();
   window.__planner={get result(){return result},get state(){return state},get byId(){return byId},get orig(){return orig},get coaches(){return coachByTeam},get days(){return dayKeys}};
   render();
 }
+
+/* ---------- my team ---------- */
+const POSMAX={G:4,F:4,C:2};
+const REPO_EDIT="https://github.com/Malteras/euroleague-fantasy/edit/main/squad.json";
+function teamFrom(src){
+  src=src||{};
+  let slots=Array.isArray(src.slots)&&src.slots.length===10?src.slots.map(i=>i&&byId[i]?i:null):autoSlots((src.players||[]).filter(i=>byId[i]));
+  return {slots,coach:src.coach||null,bank:+(src.bank||0),cap:src.cap&&slots.slice(0,5).includes(src.cap)?src.cap:null,updated:src.updated||"",base:src.base||""};
+}
+function autoSlots(ids){
+  if(ids.length===10){const L=lineup(ids);if(L){const st=L.st.map(p=>p.id),six=L.six?L.six.id:null;const rest=ids.filter(i=>!st.includes(i)&&i!==six);return [...st,six,...rest];}}
+  const a=ids.slice(0,10);while(a.length<10)a.push(null);return a;
+}
+const teamIds=()=>team.slots.filter(Boolean);
+const teamCost=()=>teamIds().reduce((a,i)=>a+byId[i].price,0)+(team.coach&&coachByTeam[team.coach]?coachByTeam[team.coach].price:0);
+const teamValue=()=>r1(teamCost()+team.bank);
+function posCount(ids){const c={G:0,F:0,C:0};ids.forEach(i=>c[byId[i].pos]++);return c;}
+function starterForm(){const st=team.slots.slice(0,5).filter(Boolean);if(st.length<5)return null;const c=posCount(st);return FORMS.find(([g,f,cc])=>g===c.G&&f===c.F&&cc===c.C)?[c.G,c.F,c.C]:false;}
+function teamChecks(){
+  const ids=teamIds(),c=posCount(ids),club={};ids.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
+  const maxClub=Math.max(0,...Object.values(club));const form=starterForm();
+  return [
+    {ok:c.G===4,t:`${c.G}/4 guards`},{ok:c.F===4,t:`${c.F}/4 forwards`},{ok:c.C===2,t:`${c.C}/2 centres`},
+    {ok:!!team.coach,t:team.coach?"Coach set":"No coach"},
+    {ok:maxClub<=6,t:`Max ${maxClub} from one club`},
+    {ok:!!form,t:form?`Formation ${form.join("-")}`:form===null?"Starting five not full":"Starting five: invalid formation"},
+    {ok:!!team.cap,t:team.cap?`Captain ${byId[team.cap].short}`:"No captain"},
+  ];
+}
+const teamValid=()=>{const ids=teamIds(),c=posCount(ids);return ids.length===10&&c.G===4&&c.F===4&&c.C===2&&!!team.coach;};
+function teamJSON(){return {updated:new Date().toISOString().slice(0,10),players:teamIds(),coach:team.coach,bank:r1(team.bank),slots:team.slots,cap:team.cap,
+  names:team.slots.map(i=>i?byId[i].name:null),coachName:team.coach&&coachByTeam[team.coach]?coachByTeam[team.coach].name:null};}
+const sameTeam=(a,b)=>JSON.stringify([a.slots,a.coach,r1(a.bank),a.cap])===JSON.stringify([b.slots,b.coach,r1(b.bank),b.cap]);
+function teamChanged(){
+  state.team={slots:team.slots,coach:team.coach,bank:team.bank,cap:team.cap,base:savedTeam.updated||""};
+  orig={players:teamIds(),coach:team.coach};
+  P.forEach(p=>{p.tags=tagsFor(p);});
+  state.budgetTouched=false;state.budget=teamValue();
+}
+function slotHtml(i){
+  const id=team.slots[i],p=id?byId[id]:null,role=i<5?"Starter":i===5?"6th man":"Bench";
+  const cls=`slot${p?"":" empty"}${sel===i?" sel":""}`;
+  if(!p)return `<button type="button" class="${cls}" data-slot="${i}" aria-label="${role}: add a player"><span class="plus">+</span><small>${role}</small></button>`;
+  return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}">${team.cap===id?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr · ${esc(dayShort(p.day))}</small></button>`;
+}
+function myteam(){
+  const saved=sameTeam(team,savedTeam);
+  const checks=teamChecks().map(c=>`<span class="chk ${c.ok?"ok":"bad"}">${c.ok?"✓":"!"} ${esc(c.t)}</span>`).join("");
+  const sp=sel!=null&&team.slots[sel]?byId[team.slots[sel]]:null;
+  const bar=sp?`<div class="selbar"><span><b>${esc(sp.name)}</b> selected. Tap another spot to swap.</span><span class="selbtns">${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
+  const coach=team.coach&&coachByTeam[team.coach];
+  return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?`Saved team${savedTeam.updated?` · ${esc(fmtDate(savedTeam.updated))}`:""} · the daily report uses this`:`Changed in this browser only · not saved for the daily report yet`}</div><h2>My team</h2></div>
+   <div class="mt-actions">${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div></div>
+   <div class="mt-grid">
+    <div class="court" aria-label="Starting five">
+      <svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>
+      <div class="crow one">${slotHtml(0)}</div><div class="crow">${slotHtml(1)}${slotHtml(2)}</div><div class="crow">${slotHtml(3)}${slotHtml(4)}</div>
+    </div>
+    <div class="mt-side">
+      <div class="benchrow"><div class="lbl">6th man · 100%</div>${slotHtml(5)}</div>
+      <div><div class="lbl">Bench · 50%</div><div class="bench">${[6,7,8,9].map(slotHtml).join("")}</div></div>
+      <div class="mt-coach"><div class="lbl">Head coach</div><button type="button" class="slot coachslot${coach?"":" empty"}" data-coach-slot>${coach?`<b>${esc(coach.name)}</b><small>${TEAMS[coach.team][0]} · ${coach.price.toFixed(1)} cr</small>`:'<span class="plus">+</span><small>Add coach</small>'}</button></div>
+      <div class="mt-money"><div><div class="lbl"><label for="bank">Bank (credits left)</label></div><input id="bank" class="num-input" type="number" step="0.1" min="0" max="30" value="${team.bank}"></div><div><div class="lbl">Team value</div><div class="tv">${teamValue().toFixed(1)}<small> cr</small></div></div></div>
+    </div>
+   </div>
+   ${bar}
+   <div class="checks">${checks}</div>
+   <div id="saveHelp" class="savehelp" hidden>
+     <ol class="steps">
+       <li><span>Your team is copied. If copying did not work, select the text below and copy it.</span></li>
+       <li><span><a href="${REPO_EDIT}" target="_blank" rel="noopener">Open squad.json on GitHub</a>, select everything there and paste.</span></li>
+       <li><span>Press <b>Commit changes</b>. Tomorrow's report and this page will use the new team.</span></li>
+     </ol>
+     <textarea id="teamJson" readonly rows="6" aria-label="Team data">${esc(JSON.stringify(teamJSON(),null,1))}</textarea>
+   </div>
+  </section>`;
+}
+function picker(){
+  if(!pick)return "";
+  const isCoach=pick.slot==="coach";
+  const cur=isCoach?null:team.slots[pick.slot];
+  const others=teamIds().filter(i=>i!==cur);
+  const cnt=posCount(others),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
+  let list;
+  if(isCoach){
+    list=C.slice().sort((a,b)=>b.x-a.x).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${c.x}</span></button>`).join("");
+  }else{
+    const need=Object.keys(POSMAX).filter(k=>cnt[k]<POSMAX[k]);
+    const pos=pick.pos==="ALL"?null:pick.pos;
+    list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort((a,b)=>b.x-a.x).slice(0,80).map(p=>{
+      const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${p.x}</span></button>`;}).join("");
+  }
+  const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
+  return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
+    <div class="pk-h"><h3>${isCoach?"Pick a coach":cur?"Replace "+esc(byId[cur].short):"Add a player"}</h3><button type="button" class="dr-x" data-pk-close aria-label="Close">✕</button></div>
+    <div class="pk-tools"><input id="pkq" class="search" type="search" placeholder="Search name or club" value="${esc(pick.q)}" aria-label="Search">${posSeg}</div>
+    <div class="pk-head"><span>${isCoach?"Coach":"Player"}</span><span>Price</span><span>Proj.</span></div>
+    <div class="pk-list" id="pklist">${list||'<p class="note" style="padding:12px">Nothing matches.</p>'}</div></div>`;
+}
+function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
 
 /* ---------- tags ---------- */
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
@@ -420,6 +582,7 @@ function lineup(ids){
     const s=st.reduce((a,p)=>a+p.x,0)+(six?six.x:0);
     if(!best||s>best.s)best={s,st,six,form:[g,f,c],bench:rest.slice(1)};
   }
+  if(!best)return null;
   best.cap=best.st.reduce((a,p)=>p.x>a.x?p:a,best.st[0]);
   return best;
 }
@@ -546,7 +709,7 @@ function dayLabel(d){return (D.turns&&D.turns[d])||d;}
 function dayShort(d){return dayLabel(d).split(" ")[0];}
 let result;
 function render(){
-  result=optimise();
+  result=teamValid()?optimise():null;
   const app=document.getElementById("app");
   const dr=document.getElementById("drawer-root");
   const ex=dr.querySelector(".drawer");
@@ -554,8 +717,9 @@ function render(){
     const d=drawer();
     if(ex&&+ex.dataset.id===state.open)ex.innerHTML=d.inner;   // same player: swap content only, no re-open
     else dr.innerHTML=d.wrap;
-  }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open);
-  app.innerHTML=hero()+proposal()+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick);
+  document.getElementById("picker-root").innerHTML=picker();
+  app.innerHTML=hero()+myteam()+(result?proposal():`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`)+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
 }
 function hero(){
@@ -755,7 +919,7 @@ function detail(p){
   return `<div class="detail"><div><div class="eyebrow" style="margin-bottom:6px">Fantasy points, last ${g.length} games · bars in colour beat break-even</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fantasy points by game against break-even ${p.be}">${grid}${bars}<line x1="${pad}" x2="${W-6}" y1="${by}" y2="${by}" stroke="var(--be)" stroke-width="1.5" stroke-dasharray="5 4"></line><text class="bel" x="${W-8}" y="${by-5}" text-anchor="end">break-even ${p.be}</text></svg></div><div><div class="kv">${m.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("")}</div><p class="note" style="margin:10px 0 0">${p.price.toFixed(1)} cr (${fmt(p.chg??0)} last round). Next: ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}, ${esc(dayLabel(p.day))}. Expected change ${fmt(r1(p.exp))} cr. Projection: ${p.src==="FantaSheet"?`half FantaSheet xPTS (${p.xpts}), half recent form (${p.own})`:"his recent form"}.${mu!=null?` ${p.opp?TEAMS[p.opp.opp][0]:""} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s vs league average.`:""}</p><div class="ptags" style="margin-top:8px">${tagHtml(p,10)}</div></div>${domRows?`<div style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Domestic games · PIR estimated (fouls drawn and blocks against not published)</div><div class="panel list">${domRows}</div></div>`:""}</div>`;
 }
 function market(){
-  const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result.S),mine=new Set(orig.players);
+  const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>p.x,exp:p=>p.exp,val:p=>p.val,price:p=>p.price,min:p=>p.min||0}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
@@ -814,11 +978,58 @@ function results(){
   const news=D.news.map(n=>`<div class="lrow"><div><span class="tag ${esc(n.tag)}">${esc(n.tag)}</span>${esc(n.txt)}</div></div>`).join("");
   return `<section id="results"><div class="sec-head"><div><div class="eyebrow">All competitions</div><h2>Results &amp; news</h2></div></div><div class="two"><div class="panel list">${res}</div><div class="panel list">${news}</div></div></section>`;
 }
+function bindTeam(rerender){
+  const $=s=>document.querySelector(s);
+  const setPick=p=>{pick=p;rerender();setTimeout(()=>{const q=$("#pkq");if(q)q.focus();},0);};
+  document.querySelectorAll("[data-slot]").forEach(b=>{
+    const i=+b.dataset.slot;
+    b.onclick=()=>{
+      if(sel==null){ if(!team.slots[i])setPick({slot:i,q:"",pos:"ALL"}); else {sel=i;rerender();} return; }
+      if(sel===i){sel=null;rerender();return;}
+      swapSlots(sel,i);sel=null;teamChanged();rerender();
+    };
+    b.ondragstart=e=>{e.dataTransfer.setData("text/plain",String(i));e.dataTransfer.effectAllowed="move";};
+    b.ondragover=e=>{e.preventDefault();b.classList.add("over");};
+    b.ondragleave=()=>b.classList.remove("over");
+    b.ondrop=e=>{e.preventDefault();const a=+e.dataTransfer.getData("text/plain");if(!isNaN(a)&&a!==i){swapSlots(a,i);sel=null;teamChanged();rerender();}};
+  });
+  const cs=$("[data-coach-slot]");if(cs)cs.onclick=()=>setPick({slot:"coach",q:"",pos:"ALL"});
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.act,id=team.slots[sel];
+    if(a==="cap"){team.cap=id;sel=null;teamChanged();}
+    else if(a==="remove"){const s2=team.slots.slice();s2[sel]=null;team.slots=s2;if(team.cap===id)team.cap=null;sel=null;teamChanged();}
+    else if(a==="replace"){const i=sel;sel=null;setPick({slot:i,q:"",pos:byId[id].pos});return;}
+    else sel=null;
+    rerender();
+  });
+  const bank=$("#bank");if(bank)bank.onchange=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){team.bank=v;teamChanged();rerender();}};
+  const rs=$("#resetTeam");if(rs)rs.onclick=()=>{team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=teamValue();rerender();};
+  const sv=$("#saveTeam");if(sv)sv.onclick=()=>{
+    const ta=$("#teamJson"),box=$("#saveHelp");ta.value=JSON.stringify(teamJSON(),null,1);box.hidden=false;
+    const fallback=()=>{ta.focus();ta.select();};
+    try{navigator.clipboard.writeText(ta.value).then(()=>{sv.textContent="Copied ✓ now open GitHub";},fallback);}catch(e){fallback();}
+    box.scrollIntoView({block:"nearest",behavior:"smooth"});
+  };
+  // picker
+  document.querySelectorAll("[data-pk-close]").forEach(b=>b.onclick=()=>{pick=null;rerender();});
+  document.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{
+    if(b.classList.contains("dis"))return;
+    const id=+b.dataset.pk,s2=team.slots.slice(),old=s2[pick.slot];s2[pick.slot]=id;team.slots=s2;
+    if(team.cap===old)team.cap=pick.slot<5?id:null;
+    if(!team.cap&&pick.slot<5&&team.slots.slice(0,5).filter(Boolean).length===5){}
+    pick=null;teamChanged();rerender();
+  });
+  document.querySelectorAll("[data-pk-coach]").forEach(b=>b.onclick=()=>{team.coach=b.dataset.pkCoach;pick=null;teamChanged();rerender();});
+  document.querySelectorAll("#pkpos button").forEach(b=>b.onclick=()=>{pick.pos=b.dataset.v;const q=$("#pkq");pick.q=q?q.value:pick.q;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);});
+  const q=$("#pkq");let t;
+  if(q)q.oninput=e=>{clearTimeout(t);t=setTimeout(()=>{pick.q=e.target.value;const pos=q.selectionStart;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);const n=$("#pkq");n.focus();n.setSelectionRange(pos,pos);},200);};
+}
 function bind(){
   const $=s=>document.querySelector(s);
   const rerender=()=>{save();const y=window.scrollY;const db=document.querySelector(".drawer");const dy=db?db.scrollTop:0;render();window.scrollTo(0,y);const nb=document.querySelector(".drawer");if(nb)nb.scrollTop=dy;};
-  $("#budget").addEventListener("change",e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.budget=v;rerender();}});
-  $("#lam").addEventListener("change",e=>{state.lam=+e.target.value;rerender();});
+  bindTeam(rerender);
+  $("#budget")&&$("#budget").addEventListener("change",e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.budget=v;state.budgetTouched=true;rerender();}});
+  $("#lam")&&$("#lam").addEventListener("change",e=>{state.lam=+e.target.value;rerender();});
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});

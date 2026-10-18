@@ -1,0 +1,43 @@
+{
+ "updated": "2026-10-18",
+ "players": [
+  118,
+  174,
+  103,
+  73,
+  38,
+  355,
+  56,
+  8,
+  185,
+  361
+ ],
+ "coach": "ZAL",
+ "bank": 0.0,
+ "slots": [
+  118,
+  174,
+  103,
+  73,
+  38,
+  355,
+  56,
+  8,
+  185,
+  361
+ ],
+ "cap": 73,
+ "names": [
+  "Aliou Diarra",
+  "Vladimir Lucic",
+  "Matthew Strazel",
+  "Elijah Bryant",
+  "Andrés Feliz",
+  "Nikola Djurisic",
+  "Jonas Valančiūnas",
+  "Mbaye Ndiaye",
+  "Edwin Jackson",
+  "Dejan Davidovac"
+ ],
+ "coachName": "Tomas Masiulis"
+}

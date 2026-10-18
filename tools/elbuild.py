@@ -298,10 +298,22 @@ def main():
     for f_ in fixtures:
         t_ = times.get(f_[0] + '|' + f_[1]) or times.get(f_[0] + '|' + f_[2])
         if t_ and len(f_) == 3: f_.append(t_)
+    # his team: squad.json next to data.json (written from the site's My team editor)
+    squad, budget, lineup = old.get('squad'), old.get('budget', 99.6), old.get('lineup')
+    sqp = os.path.join(os.path.dirname(os.path.abspath(oldp)) if oldp != '-' else '.', 'squad.json')
+    if os.path.exists(sqp):
+        sq = json.load(open(sqp, encoding='utf-8'))
+        byid = {p['id']: p for p in players}
+        squad = {'players': sq['players'], 'coach': sq['coach']}
+        missing = [i for i in sq['players'] if i not in byid]
+        cprice = next((c['price'] for c in coaches if c['team'] == sq['coach']), 0)
+        budget = round(sum(byid[i]['price'] for i in sq['players'] if i in byid) + cprice + float(sq.get('bank', 0)), 1)
+        lineup = {'slots': sq.get('slots'), 'cap': sq.get('cap'), 'bank': sq.get('bank', 0), 'updated': sq.get('updated')}
+        print(f"squad.json from {sq.get('updated')}: value {budget}" + (f" missing ids {missing}" if missing else ''))
     data = {
         'updated': datetime.date.today().isoformat(), 'round': nxt_round, 'roundLabel': f'Round {nxt_round}',
         'deadline': days[0] if days else old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
-        'budget': old.get('budget', 99.6), 'squad': old.get('squad'), 'squadNote': old.get('squadNote',''),
+        'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
         'coachRound': old.get('coachRound'), 'results': old.get('results', []), 'news': old.get('news', []),
         'report': old.get('report', {}), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
