@@ -367,12 +367,11 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
       <div class="eyebrow">EuroLeague Fantasy · round planner</div>
     </div>
     <nav aria-label="Sections">
-      <a href="#myteam">My team</a>
-      <a href="#proposal" class="on">Proposal</a>
-      <a href="#report">Report</a>
-      <a href="#market">Players</a>
-      <a href="#coaches">Coaches</a>
-      <a href="#results">Results</a>
+      <a href="#team" data-page="team" class="on">My team</a>
+      <a href="#report" data-page="report">Report</a>
+      <a href="#players" data-page="players">Players</a>
+      <a href="#coaches" data-page="coaches">Coaches</a>
+      <a href="#results" data-page="results">Results</a>
     </nav>
   </div>
 </header>
@@ -396,6 +395,10 @@ if(state.maxT!==4&&state.maxT!==99)state.maxT=state.maxT>=10?99:4;
 const PASSK="fazani-pass";
 const SYNC={mode:"off",pass:"",status:"",timer:null};
 try{SYNC.pass=localStorage.getItem(PASSK)||"";}catch(e){}
+const PAGES=["team","report","players","coaches","results"];
+const PAGE_ALIAS={myteam:"team",proposal:"team",market:"players"};
+function pageFromHash(){const h=(location.hash||"").slice(1);const p=PAGE_ALIAS[h]||h;return PAGES.includes(p)?p:null;}
+let page=pageFromHash()||"team";
 function prefsOut(){const {open,q,...rest}=state;return rest;}
 function save(){try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}
   if(SYNC.mode!=="on")return;
@@ -767,6 +770,16 @@ function fmtDate(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB
 function dayLabel(d){return (D.turns&&D.turns[d])||d;}
 function dayShort(d){return dayLabel(d).split(" ")[0];}
 let result;
+function goPage(p,anchor){
+  if(!PAGES.includes(p))return;
+  const changed=p!==page;page=p;
+  if(location.hash!=="#"+p)history.pushState(null,"","#"+p);
+  if(changed)render();
+  const el=anchor&&document.getElementById(anchor);
+  if(el)el.scrollIntoView({behavior:"smooth",block:"start"});else if(changed)window.scrollTo(0,0);
+}
+document.querySelectorAll(".top nav a[data-page]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();goPage(a.dataset.page);}));
+window.addEventListener("popstate",()=>{const p=pageFromHash()||"team";if(p!==page){page=p;if(D)render();window.scrollTo(0,0);}});
 function render(){
   result=teamValid()?optimise():null;
   const app=document.getElementById("app");
@@ -778,7 +791,11 @@ function render(){
     else dr.innerHTML=d.wrap;
   }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick);
   document.getElementById("picker-root").innerHTML=picker();
-  app.innerHTML=hero()+myteam()+(result?proposal():`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`)+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
+  const body={
+    team:()=>myteam()+hero()+(result?proposal():`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
+    report:report,players:market,coaches:coaches,results:results}[page];
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
 }
 function hero(){
@@ -1141,11 +1158,11 @@ function bind(){
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
-  $("#sort").onchange=e=>{state.sort=e.target.value;rerender();};
+  const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
   document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{state.sort=b.dataset.sort;rerender();});
-  $("#only").onclick=()=>{state.only=!state.only;rerender();};
+  const on1=$("#only");if(on1)on1.onclick=()=>{state.only=!state.only;rerender();};
   const cl=$("#clear");if(cl)cl.onclick=()=>{state.pins=[];state.avoids=[];state.coachPin=null;rerender();};
-  const q=$("#q");let t;q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
+  const q=$("#q");let t;if(q)q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const id=+b.dataset.pin;state.avoids=state.avoids.filter(i=>i!==id);state.pins=state.pins.includes(id)?state.pins.filter(i=>i!==id):[...state.pins,id];rerender();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=state.avoids.includes(id)?state.avoids.filter(i=>i!==id):[...state.avoids,id];rerender();});
   document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=go;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}};});
@@ -1154,8 +1171,7 @@ function bind(){
   document.querySelectorAll("#allg button").forEach(b=>b.onclick=()=>{state.allGames=b.dataset.v==="1";rerender();});
   document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const d=b.dataset.day;state.collapsed=state.collapsed.includes(d)?state.collapsed.filter(x=>x!==d):[...state.collapsed,d];rerender();});
   document.querySelectorAll("[data-coach]").forEach(b=>b.onclick=()=>{const t=b.dataset.coach;state.coachPin=state.coachPin===t?null:t;rerender();});
-  const links=[...document.querySelectorAll(".top nav a")];
-  links.forEach(a=>a.onclick=()=>{links.forEach(x=>x.classList.toggle("on",x===a));});
+  document.querySelectorAll('a[href="#myteam"],a[href="#team"]').forEach(a=>{if(!a.dataset.page)a.onclick=e=>{e.preventDefault();goPage("team","myteam");};});
 }
 })();
 </script>
