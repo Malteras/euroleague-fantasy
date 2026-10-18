@@ -102,7 +102,7 @@ section{padding-block:28px 8px}
 .field label{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .num-input{background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%;font-weight:700;font-size:18px}
 .seg{display:flex;background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
-.seg button{flex:1;border:0;background:none;border-radius:6px;padding:6px 8px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;min-width:34px}
+.seg button{flex:1;border:0;background:none;border-radius:6px;padding:6px 8px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;min-width:34px;white-space:nowrap}
 .seg button.on{background:var(--accent);color:var(--accent-ink)}
 input[type=range]{width:100%;accent-color:var(--accent)}
 .range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
@@ -201,7 +201,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 /* coaches + results */
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
 .res-two{align-items:start}
-.res-col{display:flex;flex-direction:column;gap:10px;min-width:0}.res-col>.seg{align-self:flex-start;flex-wrap:wrap}
+.res-col{display:flex;flex-direction:column;gap:10px;min-width:0}.res-col>.seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.res-col>.seg::-webkit-scrollbar{display:none}.res-col>.seg button{flex:1 0 auto;padding:7px 14px}
 .rg-day{padding:10px 14px 4px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--raise);border-top:1px solid var(--line-soft)}
 .rg-day:first-child{border-top:0;border-radius:16px 16px 0 0}
 .rg{border-top:1px solid var(--line-soft)}
@@ -396,6 +396,7 @@ html.locked,html.locked body{overflow:hidden}
 .dsec h4{font-family:var(--display);font-size:18px;font-weight:800;text-transform:uppercase;margin:0}
 .dsec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .seg.sm button{padding:4px 10px;font-size:13px}
+#day button,#pos button{flex:1 0 auto}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
 .chart{display:block;max-width:none}
 .chart .g{stroke:var(--line-soft)}.chart .z{stroke:var(--line);stroke-width:1.2}
