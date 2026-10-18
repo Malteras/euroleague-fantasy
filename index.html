@@ -220,6 +220,36 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .mt-actions{display:flex;gap:8px;flex-wrap:wrap}
 .plink{all:unset;cursor:pointer;color:inherit;font:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:2px}
 .plink:hover{color:var(--accent);text-decoration-color:currentColor}.plink:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.plan{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px}.pc-h .muted{font-size:13px}
+.pcourt .court{min-height:300px}
+.slot.static{cursor:default}.slot.static:hover{transform:none}
+.slot.static .plink{font-weight:700;font-size:13.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.newp{border-color:var(--good);box-shadow:0 0 0 2px var(--good-soft),0 4px 14px rgba(0,0,0,.12)}
+.b-new,.b-six{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:999px;white-space:nowrap}
+.b-new{background:var(--good);color:#fff}.b-six{background:var(--good-soft);color:var(--good);border:1px solid var(--good-soft)}
+.pbench{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-top:6px}
+.pbench .slot{width:auto;box-shadow:none;padding:9px 3px 7px}.pbench .slot small{font-size:11px}
+.pbench .jersey{width:34px;height:34px;font-size:11px}
+.ptl h3{margin-bottom:12px}
+.tl{list-style:none;margin:0;padding:0}
+.tl>li{position:relative;margin-left:7px;padding:0 0 20px 22px;border-left:2px solid var(--line)}
+.tl>li:last-child{border-left-color:transparent;padding-bottom:4px}
+.tl>li::before{content:"";position:absolute;left:-8px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:3px solid var(--accent)}
+.tl>li.now::before{background:var(--accent)}
+.tl-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.tl-h b{font-family:var(--display);font-size:21px;font-weight:800;text-transform:uppercase;line-height:1}
+.tl-h small{color:var(--muted);font-size:13px}
+.tl-lbl{margin:12px 0 4px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tl-txt{margin:0 0 4px;font-size:14.5px}
+.tl-trades .trade{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:6px;background:var(--surface)}
+.tl-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}.tl-act .note{font-size:12.5px;max-width:46ch;margin:0}
+.tl-who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tl-p{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--line-soft)}
+.tl-p small{color:var(--muted)}.tl-p.r-cap{background:var(--warn-soft);border-color:var(--warn)}.tl-p.r-start{background:var(--accent-soft)}.tl-p.r-bench{opacity:.75}
+.tl-warn{margin-top:8px;padding:7px 11px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:13.5px}
+@media (max-width:900px){.plan{grid-template-columns:1fr}}
+@media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
 @media (max-width:760px){.mt-save{justify-content:stretch}.mt-save .btn-primary{flex:1}}
 .btn-primary{border:0;border-radius:10px;padding:10px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);cursor:pointer}
@@ -952,19 +982,7 @@ function proposal(){
   const tr=pairs.map(([o,i])=>{const a=byId[o],b=byId[i];return `<div class="trade"><div class="o"><b>${a?plink(a):"—"}</b><small>${a?`${a.team} · ${a.price.toFixed(1)} cr · proj ${a.x}`:""}</small></div><div class="arrow">→</div><div class="i"><b>${plink(b)}</b><small>${b.team} · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`}).join("")
    +(coachChanged?(()=>{const a=coachByTeam[orig.coach],b=coachByTeam[R.coach];return `<div class="trade"><div class="o"><b>${esc(a.name)}</b><small>Coach · ${a.price.toFixed(1)} cr</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>Coach · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`})():"");
   const noTrades=!pairs.length&&!coachChanged;
-  const applyBtn=noTrades?"":`<button type="button" class="btn-primary" id="applyTrades" style="margin-top:12px;width:100%">Apply all trades to My team</button><p class="note" style="margin:8px 0 0">Puts the new players, the day-one lineup and captain into My team. Nothing changes in the game or the daily report until you press Save there.</p>`;
-  // turn plan
-  const finalDay=dayKeys[dayKeys.length-1];
-  const early=R.S.filter(i=>byId[i].day!==finalDay);
-  const role={};
-  L.st.forEach(p=>role[p.id]="start");if(L.six)role[L.six.id]="six";role[L.cap.id]="cap";
-  const coach=coachByTeam[R.coach];
-  const cols=dayKeys.map(d=>{
-    const ps=R.S.map(i=>byId[i]).filter(p=>p.day===d).sort((a,b)=>b.x-a.x);
-    const cc=coach.day===d?`<div class="coachline"><span>Coach <b>${esc(coach.name)}</b></span><span class="muted">${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+coach.opp.opp:""} · proj ${coach.x}</span></div>`:"";
-    return `<div class="col"><div class="col-h"><b>${esc(dayLabel(d))}</b><span>${ps.length} player${ps.length===1?"":"s"}</span></div>${ps.map(p=>pcard(p,role[p.id],!orig.players.includes(p.id))).join("")||'<div class="note">No players on this day.</div>'}${cc}</div>`;
-  }).join("");
-  const plan=planSteps(R,L);
+  const plan=planView(R,L,{tr,noTrades,pairs,coachChanged});
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
     <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points. Unlimited = one of the 6 free-trade windows.</div></div>
@@ -977,11 +995,53 @@ function proposal(){
     <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>
   </div></div>
   ${R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:""}
-  <div class="split"><div style="min-width:0;display:flex;flex-direction:column;gap:8px"><p class="note" style="margin:0">Players grouped by the day they play. Badges show where each one should finish the round; the plan on the right says when to make each move.</p><div class="board">${cols}</div></div>
-  <div class="side">
-    <div class="card"><h3>Trades</h3>${noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>'):tr+applyBtn}</div>
-    <div class="card"><h3>Lineup &amp; captain plan</h3><ol class="steps">${plan}</ol><p class="note" style="margin:10px 0 0">Formation ${L.form.join("-")} (G-F-C). ${linkify(D.squadNote||"")}</p></div>
-  </div></div></section>`;
+  ${plan}</section>`;
+}
+function planView(R,L,{tr,noTrades,pairs,coachChanged}){
+  const {ps,finalDay,init,cap0,capByDay,reserves}=initPlan(R,L);
+  const isNew=p=>!orig.players.includes(p.id);
+  const T=d=>turnOf2(d).replace("Turn ","T");
+  const name=p=>`<b>${plink(p,p.short)}</b>`;
+  const st=init.st,six=init.six;
+  const cnt={G:0,F:0,C:0};st.forEach(p=>cnt[p.pos]++);const form=`${cnt.G}-${cnt.F}-${cnt.C}`;
+  // court
+  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===cap0?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${p.x} · ${esc(turnOf2(p.day))}</small></div>`;
+  const rows=["C","F","G"].map(k=>`<div class="crow">${st.filter(p=>p.pos===k).map(p=>ps1(p,isNew(p)?'<span class="b-new">New</span>':"")).join("")}</div>`).join("");
+  const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${p.x} · ${esc(T(p.day))}</small></div>`;}).join("");
+  const court=`<div class="card pcourt"><div class="pc-h"><h3>Proposed lineup</h3><span class="muted">${form} · day-one start</span></div>
+    <div class="court"><svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>${rows}</div>
+    <div class="lbl" style="margin-top:12px">6th man · bench</div><div class="pbench">${bench}</div></div>`;
+  // timeline
+  const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+  const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
+  const applyBtn=`<button type="button" class="btn-primary" id="applyTrades">${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
+  const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
+    +`<p class="tl-lbl">Set the lineup · ${form}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
+    <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
+  const later=capByDay.filter(p=>p.day>cap0.day);
+  const keepAt=later.length?Math.round(Math.max(...later.map(p=>p.x))*1.15):null;
+  const lateRes=reserves.filter(p=>p.day===finalDay);
+  const secondLast=dayKeys[dayKeys.length-2];
+  const coach=coachByTeam[R.coach];
+  const risky=ps.filter(p=>p.log&&p.log[0]&&p.log[0].min<12);
+  const turns=dayKeys.map((d,k)=>{
+    const games=D.fixtures.filter(f=>f[0]===d).length;
+    const mine=ps.filter(p=>p.day===d).sort((a,b)=>b.x-a.x);
+    const role=p=>p===cap0?"cap":st.includes(p)?"start":p===six?"six":"bench";
+    const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${p.x}${role(p)==="cap"?" · C":role(p)==="bench"?" · bench":role(p)==="six"?" · 6th":""}</small></span>`).join("");
+    const acts=[];
+    if(d===cap0.day&&later.length)acts.push(`If ${name(cap0)} scores <b>${keepAt}+</b>, keep the armband. Otherwise move it to ${later.map(p=>`${name(p)} (${esc(turnOf2(p.day))}, ${p.x})`).join(", then ")}. Bring a bench player into the starting five first if needed.`);
+    if(d===secondLast&&lateRes.length)acts.push(`Swap in ${lateRes.map(p=>`${name(p)} ${p.x}`).join(", ")} for anyone who scored below his projection. Match positions or change the formation.`);
+    if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (proj ${coach.x}).</span>`);
+    const rk=risky.filter(p=>p.day===d);
+    const warn=rk.length?`<div class="tl-warn">Minutes watch: ${rk.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.</div>`:"";
+    const lbl=k===dayKeys.length-1?(acts.filter(a=>!a.startsWith('<span class="muted">')).length?"After these games":"Last turn"):`After ${esc(dayShort(d))}'s games`;
+    return `<li><div class="tl-h"><b>${esc(turnOf2(d))}</b><small>${esc(dayLabel(d))} · ${games} game${games===1?"":"s"}</small></div>
+      ${who?`<div class="tl-who">${who}</div>`:'<p class="note" style="margin:4px 0 0">None of your players.</p>'}
+      ${acts.length?`<p class="tl-lbl">${lbl}</p>${acts.map(a=>`<p class="tl-txt">${a}</p>`).join("")}`:`<p class="tl-txt muted" style="margin-top:6px">${k===dayKeys.length-1?"Nothing to do. The round ends after these games.":"Nothing to change."}</p>`}${warn}</li>`;
+  }).join("");
+  const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl"><li class="now"><div class="tl-h"><b>Now</b><small>before ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""} · trades close</small></div>${nowBody}</li>${turns}</ol></div>`;
+  return `<div class="plan">${court}${timeline}</div>`;
 }
 function initPlan(R,L){
   const ps=R.S.map(i=>byId[i]);
