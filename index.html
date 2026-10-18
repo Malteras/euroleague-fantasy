@@ -552,7 +552,7 @@ function myteam(){
    <div class="mt-grid">
     <div class="court" aria-label="Starting five">
       <svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>
-      ${["G","F","C"].map(k=>`<div class="crow" data-row="${k}">${cr.rows[k].map(i=>slotHtml(i,cr.epos[i])).join("")}</div>`).join("")}
+      ${["C","F","G"].map(k=>`<div class="crow" data-row="${k}">${cr.rows[k].map(i=>slotHtml(i,cr.epos[i])).join("")}</div>`).join("")}
     </div>
     <div class="mt-side">
       <div class="benchrow"><div class="lbl">6th man · 100%</div>${slotHtml(5)}</div>
