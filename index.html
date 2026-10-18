@@ -220,6 +220,15 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .mt-actions{display:flex;gap:8px;flex-wrap:wrap}
 .plink{all:unset;cursor:pointer;color:inherit;font:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:2px}
 .plink:hover{color:var(--accent);text-decoration-color:currentColor}.plink:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.btn-primary.sm{padding:7px 12px;font-size:13.5px}
+.sg-keep{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--good-soft);font-size:14px}
+.sg-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.sg-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.sg-top{display:flex;align-items:center;gap:12px}.sg-top .jersey{flex:none}
+.sg-n{flex:1;min-width:0;display:flex;flex-direction:column}.sg-n .plink{font-weight:700;font-size:15.5px}.sg-n small{color:var(--muted);font-size:12.5px}
+.sg-s{text-align:right}.sg-s b{font-family:var(--display);font-size:24px;line-height:1}.sg-s small{display:block;font-size:11px;color:var(--muted)}
+.sg-why{margin:10px 0 0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:3px}
+.sg-act{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}.sg-act .muted{font-size:12.5px}
 .plan{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
 .pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px}.pc-h .muted{font-size:13px}
 .pcourt .court{min-height:300px}
@@ -419,7 +428,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   </div>
 </header>
 
-<div id="drawer-root"></div><div id="picker-root"></div>
+<div id="picker-root"></div><div id="drawer-root"></div>
 <main class="wrap" id="app">
   <div class="loading" id="loading">Loading player data…</div>
 </main>
@@ -430,7 +439,7 @@ const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","
 const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
-let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let sel=null,pick=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
+let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let sel=null,pick=null,sug=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
 if(state.maxT!==4&&state.maxT!==99)state.maxT=state.maxT>=10?99:4;
@@ -480,7 +489,7 @@ function linkify(text){
 }
 const jersey=(t,pos)=>`<span class="jersey" data-pos="${pos}" style="background:${(TEAMS[t]||["","#445"])[1]}">${t}</span>`;
 
-document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(sug!=null&&!state.open){sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
 let SQUAD=null;
 fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>loadRemote().then(rsq=>rsq||fetch("squad.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)).then(sq=>{SQUAD=sq;init(d);})).catch(e=>{
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
@@ -555,6 +564,7 @@ function teamChecks(){
     {ok:maxClub<=6,t:`Max ${maxClub} from one club`},
     {ok:!!form,t:form?`Formation ${form.join("-")}`:form===null?"Starting five not full":"Starting five: invalid formation"},
     {ok:!!team.cap,t:team.cap?`Captain ${byId[team.cap].short}`:"No captain"},
+    {ok:team.bank>=0,t:team.bank>=0?`Bank ${team.bank.toFixed(1)}`:`Over budget by ${(-team.bank).toFixed(1)}`},
   ];
 }
 const teamValid=()=>{const ids=teamIds(),c=posCount(ids);return ids.length===10&&c.G===4&&c.F===4&&c.C===2&&!!team.coach;};
@@ -601,7 +611,7 @@ function myteam(){
   const saved=sameTeam(team,savedTeam);
   const checks=teamChecks().map(c=>`<span class="chk ${c.ok?"ok":"bad"}">${c.ok?"✓":"!"} ${esc(c.t)}</span>`).join("");
   const sp=sel!=null&&team.slots[sel]?byId[team.slots[sel]]:null;
-  const bar=sp?`<div class="selbar"><span><b>${plink(sp)}</b> selected. Tap another spot to swap.</span><span class="selbtns">${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
+  const bar=sp?`<div class="selbar"><span><b>${plink(sp)}</b> selected. Tap another spot to swap.</span><span class="selbtns"><button type="button" class="btn-primary sm" data-act="suggest">Suggest replacements</button>${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
   const coach=team.coach&&coachByTeam[team.coach];
   const cr=courtRows(),fk=cr.f.join("-");
   const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="${k===fk?"on":""}" aria-pressed="${k===fk}" title="${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""}, ${f[2]} centre${f[2]>1?"s":""}">${f[0]}G ${f[1]}F ${f[2]}C</button>`}).join("")}</div></div>`;
@@ -656,6 +666,53 @@ function picker(){
     <div class="pk-tools"><input id="pkq" class="search" type="search" placeholder="Search name or club" value="${esc(pick.q)}" aria-label="Search">${posSeg}</div>
     <div class="pk-head"><span>${isCoach?"Coach":"Player"}</span><span>Price</span><span>Proj.</span></div>
     <div class="pk-list" id="pklist">${list||'<p class="note" style="padding:12px">Nothing matches.</p>'}</div></div>`;
+}
+/* ---------- replacement suggestions (rule-based, works offline) ---------- */
+function suggestFor(slot){
+  const oid=team.slots[slot],o=byId[oid];if(!o)return {o:null,list:[]};
+  const others=teamIds().filter(i=>i!==oid),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
+  const val=p=>p.x+state.lam*p.exp;
+  const list=P.filter(c=>c.pos===o.pos&&c.id!==oid&&!others.includes(c.id)&&!c.out&&c.price<=r1(o.price+team.bank)+1e-9&&(club[c.team]||0)<6)
+    .map(c=>({c,score:r1(val(c)-val(o))})).sort((a,b)=>b.score-a.score).slice(0,6)
+    .map(x=>({...x,why:reasons(x.c,o)}));
+  return {o,list};
+}
+function reasons(c,o){
+  const R=[];const l3=avg(c.log.slice(0,3).map(g=>g.fpt));const gain=r1(c.x-o.x);
+  R.push(`Projected <b>${c.x}</b> this round vs ${o.x} for ${esc(o.short)} (${gain>=0?"+":""}${gain}).`);
+  const m=matchup(c);const opp=c.opp?(c.opp.ha==="H"?"vs ":"@ ")+c.opp.opp:"";
+  if(m!=null&&m>=15)R.push(`Easy matchup ${esc(opp)}: they give ${POSN[c.pos].toLowerCase()}s ${m} PIR more than average.`);
+  else if(m!=null&&m<=-15)R.push(`Hard matchup ${esc(opp)}: they give ${POSN[c.pos].toLowerCase()}s ${-m} PIR less than average.`);
+  if(l3!=null&&c.fpt!=null&&l3>=c.fpt+3)R.push(`In form: last 3 games ${r1(l3)} FPT on average (season ${c.fpt}).`);
+  else if(l3!=null&&c.fpt!=null&&l3<=c.fpt-4)R.push(`Out of form: last 3 games ${r1(l3)} FPT (season ${c.fpt}).`);
+  if(c.exp>=0.15)R.push(`Price should rise about ${fmt(r1(c.exp),1)} cr (break-even ${c.be}).`);
+  else if(c.exp<=-0.15)R.push(`Price may drop about ${r1(c.exp)} cr (break-even ${c.be}).`);
+  if(c.rise!=null&&c.rise>=50)R.push(`FantaSheet gives him a ${Math.round(c.rise)}% chance to rise.`);
+  const dA=avg(domRecent(c).map(g=>g.pir));if(dA!=null&&dA>=1.1*c.price+3)R.push(`Strong in his domestic league lately (PIR about ${r1(dA)}).`);
+  const ko=dayKeys.indexOf(o.day),kc=dayKeys.indexOf(c.day);
+  if(kc>ko&&ko>=0)R.push(`Plays later (${turnOf2(c.day)}), so you see more scores before you decide.`);
+  else if(kc<ko&&kc>=0)R.push(`Plays earlier (${turnOf2(c.day)}): a possible early captain.`);
+  if(c.log[0]&&c.log[0].min<15)R.push(`Risk: only ${c.log[0].min} min last game.`);
+  if(c.status)R.push(`Status: ${esc(c.status)}.`);
+  return R;
+}
+function suggestPanel(){
+  if(sug==null)return "";
+  const {o,list}=suggestFor(sug);if(!o){sug=null;return "";}
+  const best=list[0];
+  const row=({c,score,why})=>{const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
+    return `<li class="sg-item"><div class="sg-top">${jersey(c.team,c.pos)}<div class="sg-n">${plink(c)}<small>${esc(TEAMS[c.team][0])} · ${c.price.toFixed(1)} cr · ${esc(turnOf2(c.day))} · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+esc(c.opp.opp):""}</small></div><div class="sg-s"><b class="${score>=0?"pos":"neg"}">${score>=0?"+":""}${score}</b><small>value</small></div></div>
+      <ul class="sg-why">${why.slice(0,4).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <div class="sg-act"><span class="muted">${diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price"} · bank after ${bankAfter.toFixed(1)}</span><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></li>`;};
+  return `<div class="scrim" data-sg-close></div><aside class="drawer sugg" role="dialog" aria-modal="true" aria-label="Replacements for ${esc(o.name)}">
+    <div class="dr-top" style="--tc:${(TEAMS[o.team]||["","#445"])[1]}"><button type="button" class="dr-x" data-sg-close aria-label="Close">✕</button>
+      <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${o.price.toFixed(1)} cr · proj ${o.x} · ${esc(turnOf2(o.day))} · bank ${team.bank.toFixed(1)}</div></div></div></div>
+    <div class="dr-body">
+      ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<MIN_GAIN?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${MIN_GAIN}+ value. Best options are below anyway.</div>`:""}
+      <p class="note" style="margin:10px 0">${POSN[o.pos]}s you can afford (up to ${r1(o.price+team.bank).toFixed(1)} cr), best first. "Value" = projected points + credit growth, compared with ${esc(o.short)}, using the planner's "What matters more" setting.</p>
+      <ol class="sg-list">${list.map(row).join("")}</ol>
+      <button type="button" class="chip-toggle" data-sg-all style="margin:6px 0 18px">Search all ${POSN[o.pos].toLowerCase()}s instead</button>
+    </div></aside>`;
 }
 function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
 
@@ -847,8 +904,8 @@ function render(){
     const d=drawer();
     if(ex&&+ex.dataset.id===state.open)ex.innerHTML=d.inner;   // same player: swap content only, no re-open
     else dr.innerHTML=d.wrap;
-  }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick);
-  document.getElementById("picker-root").innerHTML=picker();
+  }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick||sug!=null);
+  document.getElementById("picker-root").innerHTML=picker()+suggestPanel();
   document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
   const body={
     team:()=>hero()+myteam()+proposalHead()+(result?proposal():`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
@@ -1205,6 +1262,7 @@ function bindTeam(rerender){
     if(a==="cap"){team.cap=id;sel=null;teamChanged();}
     else if(a==="remove"){const s2=team.slots.slice();s2[sel]=null;team.slots=s2;if(team.cap===id)team.cap=null;sel=null;teamChanged();}
     else if(a==="replace"){const i=sel;sel=null;setPick({slot:i,q:"",pos:byId[id].pos});return;}
+    else if(a==="suggest"){sug=sel;sel=null;rerender();setTimeout(()=>{const x=document.querySelector(".sugg .dr-x");if(x)x.focus();},0);return;}
     else sel=null;
     rerender();
   });
@@ -1230,11 +1288,19 @@ function bindTeam(rerender){
     try{navigator.clipboard.writeText(ta.value).then(()=>{sv.textContent="Copied ✓ now open GitHub";},fallback);}catch(e){fallback();}
     box.scrollIntoView({block:"nearest",behavior:"smooth"});
   };
+  // suggestions
+  document.querySelectorAll("[data-sg-close]").forEach(b=>b.onclick=()=>{sug=null;rerender();});
+  document.querySelectorAll("[data-sg-pick]").forEach(b=>b.onclick=()=>{
+    const id=+b.dataset.sgPick,slot=sug,old=team.slots[slot],s2=team.slots.slice();s2[slot]=id;team.slots=s2;
+    team.bank=r1(team.bank+byId[old].price-byId[id].price);if(team.cap===old)team.cap=slot<5?id:null;
+    sug=null;teamChanged();rerender();});
+  const sa=$("[data-sg-all]");if(sa)sa.onclick=()=>{const slot=sug,pos=byId[team.slots[slot]].pos;sug=null;setPick({slot,q:"",pos});};
   // picker
   document.querySelectorAll("[data-pk-close]").forEach(b=>b.onclick=()=>{pick=null;rerender();});
   document.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{
     if(b.classList.contains("dis"))return;
     const id=+b.dataset.pk,s2=team.slots.slice(),old=s2[pick.slot];s2[pick.slot]=id;team.slots=s2;
+    if(old&&byId[old])team.bank=r1(team.bank+byId[old].price-byId[id].price);
     if(team.cap===old)team.cap=pick.slot<5?id:null;
     if(!team.cap&&pick.slot<5&&team.slots.slice(0,5).filter(Boolean).length===5){}
     pick=null;teamChanged();rerender();
