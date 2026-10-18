@@ -402,14 +402,16 @@ function save(){try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e
   clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,1200);}
 function setSync(st){SYNC.status=st;const el=document.getElementById("syncPill");if(el){el.textContent=syncLabel();el.className="syncpill "+(st==="fail"?"bad":st==="saving"?"busy":"ok");}}
 function syncLabel(){return SYNC.status==="saving"?"Syncing…":SYNC.status==="fail"?"Sync failed · will retry":"Synced on all devices";}
-function api(path,opt={}){return fetch("api/"+path,{...opt,cache:"no-store",headers:{"Content-Type":"application/json","x-pass":SYNC.pass,...(opt.headers||{})}});}
+function api(path,opt={}){const ac=typeof AbortController!=="undefined"?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),15000):null;
+  return fetch("api/"+path,{...opt,cache:"no-store",signal:ac?ac.signal:undefined,headers:{"Content-Type":"application/json","x-pass":SYNC.pass,...(opt.headers||{})}}).finally(()=>t&&clearTimeout(t));}
+function applyRemote(j){SYNC.mode="on";SYNC.status="ok";if(j.prefs){const {savedAt,...p}=j.prefs;Object.assign(state,p,{open:null,q:""});try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}}return j.squad||null;}
 function pushPrefs(){setSync("saving");api("state",{method:"PUT",body:JSON.stringify({prefs:prefsOut()})}).then(r=>{if(!r.ok)throw 0;setSync("ok");}).catch(()=>{setSync("fail");clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,15000);});}
 function loadRemote(){
   if(location.protocol==="file:")return Promise.resolve(null);
   return api("state").then(r=>{
     if(r.status===401){SYNC.mode="locked";return null;}
     if(!r.ok||!(r.headers.get("content-type")||"").includes("json")){SYNC.mode="off";return null;}
-    return r.json().then(j=>{SYNC.mode="on";SYNC.status="ok";if(j.prefs){const {savedAt,...p}=j.prefs;Object.assign(state,p,{open:null,q:""});try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}}return j.squad||null;});
+    return r.json().then(applyRemote);
   }).catch(()=>{SYNC.mode="off";return null;});
 }
 
@@ -1096,8 +1098,12 @@ function bindTeam(rerender){
   });
   const bank=$("#bank");if(bank)bank.onchange=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){team.bank=v;teamChanged();rerender();}};
   const rs=$("#resetTeam");if(rs)rs.onclick=()=>{justApplied=0;team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=teamValue();rerender();};
-  const cf=$("#connectForm");if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#passIn").value.trim();if(!v)return;SYNC.pass=v;const m=$("#passMsg");m.textContent="Checking…";
-    api("state").then(r=>{if(r.status===401){m.textContent="Wrong passcode.";return;}if(!r.ok)throw 0;try{localStorage.setItem(PASSK,v);}catch(e){}location.reload();}).catch(()=>{m.textContent="Could not reach the server. Try again.";});};
+  const cf=$("#connectForm");if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#passIn").value.trim();if(!v)return;SYNC.pass=v;const m=$("#passMsg"),btn=cf.querySelector("button");m.textContent="Checking…";btn.disabled=true;
+    api("state").then(r=>{
+      if(r.status===401){m.textContent="Wrong passcode. Check capital letters (phones often capitalise the first letter).";btn.disabled=false;return;}
+      if(!r.ok)throw new Error("server "+r.status);
+      return r.json().then(j=>{try{localStorage.setItem(PASSK,v);}catch(e){}const sq=applyRemote(j);if(sq)SQUAD=sq;init(D);});
+    }).catch(err=>{btn.disabled=false;m.textContent=(err&&err.name==="AbortError")?"The server took too long. Try again.":"Could not connect ("+((err&&err.message)||"network")+"). Try again.";});};
   const sv=$("#saveTeam");if(sv&&SYNC.mode==="on")sv.onclick=()=>{
     if(!teamValid()){sv.textContent="Finish the team first";return;}
     const tj=teamJSON();sv.disabled=true;sv.textContent="Saving…";
