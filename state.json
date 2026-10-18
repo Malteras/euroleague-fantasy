@@ -4,7 +4,7 @@
  "coachPin": null,
  "budget": 99.6,
  "maxT": 99,
- "lam": 20,
+ "lam": 50,
  "pos": "ALL",
  "day": "ALL",
  "sort": "x",
@@ -13,5 +13,5 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
- "savedAt": "2026-10-18T17:32:39.117Z"
+ "savedAt": "2026-10-18T17:32:41.507Z"
 }
