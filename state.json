@@ -1,0 +1,17 @@
+{
+ "pins": [],
+ "avoids": [],
+ "coachPin": null,
+ "budget": 99.6,
+ "maxT": 99,
+ "lam": 20,
+ "pos": "ALL",
+ "day": "ALL",
+ "sort": "x",
+ "only": false,
+ "dtab": "overview",
+ "allGames": false,
+ "collapsed": [],
+ "form": null,
+ "savedAt": "2026-10-18T17:32:39.117Z"
+}
