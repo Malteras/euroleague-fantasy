@@ -216,6 +216,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .court-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .court-lines *{fill:none;stroke:var(--court-line);stroke-width:2}
 .crow{display:flex;justify-content:space-evenly;gap:10px;position:relative;flex-wrap:wrap}
+.syncpill{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:999px;align-self:center;white-space:nowrap}
+.syncpill.ok{background:var(--good-soft);color:var(--good)}.syncpill.busy{background:var(--accent-soft);color:var(--accent)}.syncpill.bad{background:var(--bad-soft);color:var(--bad)}
+.connect{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;margin:0 0 12px;border:1px solid var(--accent);border-radius:var(--r);background:var(--accent-soft)}
+.connect>div{flex:1 1 260px;display:flex;flex-direction:column;gap:2px}.connect small{color:var(--muted);font-size:13px}
+.connect input{flex:0 1 180px;min-width:0;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit}
 .formbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .formbar .seg{flex-wrap:wrap}
 .formbar .seg button{white-space:nowrap;padding-left:10px;padding-right:10px}
@@ -387,7 +392,26 @@ let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
 if(state.maxT!==4&&state.maxT!==99)state.maxT=state.maxT>=10?99:4;
-function save(){try{const {open,q,...rest}=state;localStorage.setItem(LS,JSON.stringify(rest));}catch(e){}}
+/* sync across devices: only on the Vercel site, which has /api. GitHub Pages has no /api, so it stays local. */
+const PASSK="fazani-pass";
+const SYNC={mode:"off",pass:"",status:"",timer:null};
+try{SYNC.pass=localStorage.getItem(PASSK)||"";}catch(e){}
+function prefsOut(){const {open,q,...rest}=state;return rest;}
+function save(){try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}
+  if(SYNC.mode!=="on")return;
+  clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,1200);}
+function setSync(st){SYNC.status=st;const el=document.getElementById("syncPill");if(el){el.textContent=syncLabel();el.className="syncpill "+(st==="fail"?"bad":st==="saving"?"busy":"ok");}}
+function syncLabel(){return SYNC.status==="saving"?"Syncing…":SYNC.status==="fail"?"Sync failed · will retry":"Synced on all devices";}
+function api(path,opt={}){return fetch("api/"+path,{...opt,cache:"no-store",headers:{"Content-Type":"application/json","x-pass":SYNC.pass,...(opt.headers||{})}});}
+function pushPrefs(){setSync("saving");api("state",{method:"PUT",body:JSON.stringify({prefs:prefsOut()})}).then(r=>{if(!r.ok)throw 0;setSync("ok");}).catch(()=>{setSync("fail");clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,15000);});}
+function loadRemote(){
+  if(location.protocol==="file:")return Promise.resolve(null);
+  return api("state").then(r=>{
+    if(r.status===401){SYNC.mode="locked";return null;}
+    if(!r.ok||!(r.headers.get("content-type")||"").includes("json")){SYNC.mode="off";return null;}
+    return r.json().then(j=>{SYNC.mode="on";SYNC.status="ok";if(j.prefs){const {savedAt,...p}=j.prefs;Object.assign(state,p,{open:null,q:""});try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}}return j.squad||null;});
+  }).catch(()=>{SYNC.mode="off";return null;});
+}
 
 const r1=v=>Math.round(v*10)/10;
 const fmt=(v,d=1)=>(v>0?"+":"")+v.toFixed(d);
@@ -396,7 +420,7 @@ const jersey=(t,pos)=>`<span class="jersey" data-pos="${pos}" style="background:
 
 document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
 let SQUAD=null;
-fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>fetch("squad.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null).then(sq=>{SQUAD=sq;init(d);})).catch(e=>{
+fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>loadRemote().then(rsq=>rsq||fetch("squad.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)).then(sq=>{SQUAD=sq;init(d);})).catch(e=>{
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
 });
 
@@ -520,7 +544,8 @@ function myteam(){
   const cr=courtRows(),fk=cr.f.join("-");
   const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="${k===fk?"on":""}" aria-pressed="${k===fk}" title="${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""}, ${f[2]} centre${f[2]>1?"s":""}">${f[0]}G ${f[1]}F ${f[2]}C</button>`}).join("")}</div></div>`;
   return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?`Saved team${savedTeam.updated?` · ${esc(fmtDate(savedTeam.updated))}`:""} · the daily report uses this`:`Changed in this browser only · not saved for the daily report yet`}</div><h2>My team</h2></div>
-   <div class="mt-actions">${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div></div>
+   <div class="mt-actions">${SYNC.mode==="on"?`<span id="syncPill" class="syncpill ${SYNC.status==="fail"?"bad":SYNC.status==="saving"?"busy":"ok"}">${syncLabel()}</span>`:""}${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div></div>
+   ${SYNC.mode==="locked"?`<form class="connect" id="connectForm"><div><b>Connect this device</b><small>Enter your passcode once. Your team, picks and settings then stay the same on every device, and Save goes straight to the daily report.</small></div><input id="passIn" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode"><button class="btn-primary" type="submit">Connect</button><span class="note" id="passMsg" role="status"></span></form>`:""}
    ${formSeg}
    <div class="mt-grid">
     <div class="court" aria-label="Starting five">
@@ -1071,7 +1096,17 @@ function bindTeam(rerender){
   });
   const bank=$("#bank");if(bank)bank.onchange=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){team.bank=v;teamChanged();rerender();}};
   const rs=$("#resetTeam");if(rs)rs.onclick=()=>{justApplied=0;team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=teamValue();rerender();};
-  const sv=$("#saveTeam");if(sv)sv.onclick=()=>{
+  const cf=$("#connectForm");if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#passIn").value.trim();if(!v)return;SYNC.pass=v;const m=$("#passMsg");m.textContent="Checking…";
+    api("state").then(r=>{if(r.status===401){m.textContent="Wrong passcode.";return;}if(!r.ok)throw 0;try{localStorage.setItem(PASSK,v);}catch(e){}location.reload();}).catch(()=>{m.textContent="Could not reach the server. Try again.";});};
+  const sv=$("#saveTeam");if(sv&&SYNC.mode==="on")sv.onclick=()=>{
+    if(!teamValid()){sv.textContent="Finish the team first";return;}
+    const tj=teamJSON();sv.disabled=true;sv.textContent="Saving…";
+    api("team",{method:"POST",body:JSON.stringify({team:tj})}).then(r=>r.json().then(j=>{if(!r.ok)throw new Error(j.error||r.status);
+      savedTeam=teamFrom(tj);team=teamFrom(tj);state.team=null;justApplied=0;teamChanged();state.team=null;rerender();
+      const b=document.getElementById("saveTeam");if(b){b.textContent="Saved ✓ the daily report will use it";}
+    })).catch(e=>{sv.disabled=false;sv.textContent="Save failed: "+(e.message||"try again");});
+  };
+  else if(sv)sv.onclick=()=>{
     const ta=$("#teamJson"),box=$("#saveHelp");ta.value=JSON.stringify(teamJSON(),null,1);box.hidden=false;
     const fallback=()=>{ta.focus();ta.select();};
     try{navigator.clipboard.writeText(ta.value).then(()=>{sv.textContent="Copied ✓ now open GitHub";},fallback);}catch(e){fallback();}

@@ -12,6 +12,20 @@ Live site: https://malteras.github.io/euroleague-fantasy/
 | `data.json` | Everything the page shows. Rebuilt every morning. |
 | `tools/elbuild.py` | Builds `data.json` from FantaSheet (prices, EuroLeague game logs, projections, injuries, PIR allowed by position, coaches) and Sofascore (domestic league box scores for all 20 clubs). |
 
+## Sync across devices (Vercel)
+
+The same site also runs on Vercel, which adds a tiny API in `api/`:
+
+| Route | What it does |
+|---|---|
+| `GET /api/state` | Returns your planner settings (from the `state` branch) and `squad.json` (from `main`). |
+| `PUT /api/state` | Saves settings, picks and the unsaved team draft to `state.json` on the `state` branch. |
+| `POST /api/team` | "Save for daily report": commits `squad.json` to `main`. |
+
+Every request needs the passcode (header `x-pass`). Each device asks for it once.
+Vercel environment variables: `APP_PASS` (the passcode) and `GITHUB_TOKEN` (fine-grained token, this repo only, Contents: read and write).
+`vercel.json` turns off Vercel deployments for the `state` branch. GitHub Pages keeps working without sync.
+
 ## Daily update
 
 A scheduled Claude task runs every day at 08:58 (Europe/Sarajevo). It:
