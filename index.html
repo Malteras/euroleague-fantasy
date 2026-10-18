@@ -840,7 +840,7 @@ function teamPanel(){
   const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"}" title="${esc(g.d)}">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small></span>`).join("");
   const next=((D.teamNext||{})[tp]||[]).filter(x=>x.el).slice(0,3).map(x=>`<li><span>${esc(fmtShort(x.d))}</span><span>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</span></li>`).join("");
   const coach=coachByTeam[tp];
-  return `<div class="scrim" data-tp-close></div><aside class="drawer tpanel" data-team="${tp}" role="dialog" aria-modal="true" aria-label="${esc(n)} team analysis">
+  return `<div class="scrim" data-tp-close></div><aside class="drawer tpanel" data-tpid="${tp}" role="dialog" aria-modal="true" aria-label="${esc(n)} team analysis">
    <div class="dr-top" style="--tc:${col}"><button type="button" class="dr-x" data-tp-close aria-label="Close">✕</button>
     <div class="dr-id"><span class="tb big" style="--tc:${col}">${tp}</span><div><div class="eyebrow" style="margin:0">Team analysis</div><h3>${esc(n)}</h3><div class="muted">${I.games.length?`${I.w}–${I.l} in EuroLeague`:""}${coach?` · coach ${esc(coach.name)}`:""}${I.opp?` · this round ${I.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[I.opp.opp][0])} (${esc(turnOf2(turnOf[tp]))})`:""}</div></div></div></div>
    <div class="dr-body tp-body">
@@ -1052,7 +1052,7 @@ function render(){
   }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick||sug!=null||!!tp);
   document.getElementById("picker-root").innerHTML=picker()+suggestPanel();
   {const tr=document.getElementById("team-root"),ex2=tr.querySelector(".tpanel");const html=teamPanel();
-   if(tp&&ex2&&ex2.dataset.team===tp){/* keep open, no re-animation */}else tr.innerHTML=html;}
+   if(tp&&ex2&&ex2.dataset.tpid===tp){/* keep open, no re-animation */}else tr.innerHTML=html;}
   document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
   const body={
     team:()=>hero()+myteam()+proposalHead()+(result?proposal():`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
