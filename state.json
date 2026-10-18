@@ -9,7 +9,7 @@
  "day": "ALL",
  "sort": "x",
  "only": false,
- "dtab": "fixtures",
+ "dtab": "overview",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -36,5 +36,5 @@
  "rf": "mine",
  "rg": null,
  "pmode": "m",
- "savedAt": "2026-10-18T22:06:05.236Z"
+ "savedAt": "2026-10-18T22:06:06.731Z"
 }
