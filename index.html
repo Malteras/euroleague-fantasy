@@ -200,6 +200,23 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
 /* coaches + results */
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.res-two{align-items:start}
+.news-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.news-card{padding:16px}
+.nc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.nc-h h3{font-size:22px;margin:2px 0 0}
+.nc-mine{font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px}
+.nc-mine.ok{background:var(--good-soft);color:var(--good)}.nc-mine.bad{background:var(--bad-soft);color:var(--bad)}
+.ab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.ab-club{border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px;background:var(--raise)}
+.ab-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}.ab-h b{flex:1;font-size:14px}.ab-h>span:last-child{font-size:12px;font-weight:700;color:var(--bad);background:var(--bad-soft);border-radius:999px;padding:1px 8px}
+.ab-club ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.ab{display:flex;align-items:center;gap:8px;font-size:14px}
+.ab small{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.ab-pos{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800;background:var(--surface);border:1px solid var(--line);color:var(--muted);flex:none}
+.ab.mine-ab{color:var(--bad);font-weight:700}
+.news-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.news-list li{display:flex;gap:8px;align-items:baseline;font-size:14.5px}
 .list{display:flex;flex-direction:column}
 .lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 14px;border-top:1px solid var(--line-soft);align-items:center}
 .lrow:first-child{border-top:0}
@@ -1236,8 +1253,33 @@ function report(){
 function results(){
   const dom=(D.domGames||[]).map(g=>({d:g.d,comp:g.comp,home:g.ha==="H"?g.team:null,away:g.ha==="A"?g.team:null,opp:g.opp,score:g.score,note:""}));
   const res=D.results.concat(dom).sort((a,b)=>b.d.localeCompare(a.d)).map(r=>r.opp!==undefined?`<div class="lrow"><div><b>${r.home?TEAMS[r.home][0]+" – "+esc(r.opp):esc(r.opp)+" – "+TEAMS[r.away][0]}</b><small>${esc(r.comp)} · ${esc(r.d)} · domestic, doesn't score</small></div><span class="score">${esc(r.score)}</span></div>`:`<div class="lrow"><div><b>${TEAMS[r.home][0]} – ${TEAMS[r.away][0]}</b><small>${esc(r.comp)} · ${esc(r.d)} · ${esc(r.note||"")}</small></div><span class="score">${esc(r.score)}</span></div>`).join("");
-  const news=D.news.map(n=>`<div class="lrow"><div><span class="tag ${esc(n.tag)}">${esc(n.tag)}</span>${linkify(n.txt)}</div></div>`).join("");
-  return `<section id="results"><div class="sec-head"><div><div class="eyebrow">All competitions</div><h2>Results &amp; news</h2></div></div><div class="two"><div class="panel list">${res}</div><div class="panel list">${news}</div></div></section>`;
+  const news=newsPanel();
+  return `<section id="results"><div class="sec-head"><div><div class="eyebrow">All competitions</div><h2>Results &amp; news</h2></div></div><div class="two res-two"><div class="panel list">${res}</div><div class="news-col">${news}</div></div></section>`;
+}
+function newsPanel(){
+  // absences: player statuses + names in "Out"/"Doubtful" news lines, grouped by club
+  const out=new Map();
+  P.forEach(p=>{if(p.status)out.set(p.id,{p,st:p.status});});
+  const byNameTeam=(n,t)=>P.find(p=>p.name===n&&(!t||p.team===t));
+  const extra=[];
+  (D.news||[]).filter(n=>/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag)).forEach(n=>{
+    n.txt.split(/,\s*/).forEach(part=>{const m=part.trim().match(/^(.+?)\s*\(([A-Z]{3})\)$/);if(!m)return;
+      const p=byNameTeam(m[1].trim(),m[2]);if(p){if(!out.has(p.id))out.set(p.id,{p,st:n.tag});}else extra.push({name:m[1].trim(),team:m[2],st:n.tag});});
+  });
+  const list=[...out.values()].map(x=>({name:x.p.name,team:x.p.team,st:x.st,p:x.p})).concat(extra);
+  const mineOut=list.filter(x=>x.p&&orig.players.includes(x.p.id));
+  const clubs={};list.forEach(x=>{(clubs[x.team]=clubs[x.team]||[]).push(x);});
+  const order=Object.keys(clubs).sort((a,b)=>clubs[b].length-clubs[a].length||(TEAMS[a]||[a])[0].localeCompare((TEAMS[b]||[b])[0]));
+  const chip=x=>{const p=x.p,mine=p&&orig.players.includes(p.id),st=String(x.st);
+    return `<li class="ab${mine?" mine-ab":""}"><span class="ab-pos">${p?p.pos:"–"}</span>${p?plink(p):esc(x.name)}${p?`<small>${p.price.toFixed(1)}</small>`:""}${/^out$/i.test(st)?"":`<span class="tag ${esc(st)}">${esc(st)}</span>`}</li>`;};
+  const groups=order.map(t=>`<div class="ab-club"><div class="ab-h">${badge(t)}<b>${esc((TEAMS[t]||[t])[0])}</b><span>${clubs[t].length}</span></div><ul>${clubs[t].map(chip).join("")}</ul></div>`).join("");
+  const other=(D.news||[]).filter(n=>!/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag));
+  return `<div class="panel news-card">
+      <div class="nc-h"><div><div class="eyebrow" style="margin:0">Injuries &amp; absences</div><h3>${list.length} players out</h3></div>
+      <span class="nc-mine ${mineOut.length?"bad":"ok"}">${mineOut.length?`${mineOut.length} in your team: ${mineOut.map(x=>plink(x.p,x.p.short)).join(", ")}`:"✓ None of your players"}</span></div>
+      <div class="ab-grid">${groups||'<p class="note">No absences reported.</p>'}</div>
+    </div>
+    ${other.length?`<div class="panel news-card"><div class="nc-h"><div><div class="eyebrow" style="margin:0">Other news</div></div></div><ul class="news-list">${other.map(n=>`<li><span class="tag ${esc(n.tag)}">${esc(n.tag)}</span><span>${linkify(n.txt)}</span></li>`).join("")}</ul></div>`:""}`;
 }
 function bindTeam(rerender){
   const $=s=>document.querySelector(s);
