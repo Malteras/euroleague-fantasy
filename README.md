@@ -45,6 +45,13 @@ python3 -m http.server 8000   # then open http://localhost:8000
 `results`, `news`, `report`, `squad` and `budget` are carried over from the old `data.json`.
 Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the team changes.
 
+## Game rules the planner follows
+
+- Squad: 4 guards, 4 forwards, 2 centres + 1 coach, 100 credits, max 6 players from one club.
+- Starting five + 6th man score 100%, bench 50%, captain ×2. FPT = PIR, +10% on a win.
+- A round is played in turns (game days). **Trades are only possible before the round deadline (first tip-off). There are no trades between the turns of the same round** — between turns you can only change the lineup (bench ↔ court) and move the captain to a player who has not played yet.
+- Up to 4 trades per round, or unlimited in the 6 free-trade windows.
+
 ## Model notes
 
 - Projection = half FantaSheet's xPTS for the next game, half recent form (60% of the last three EuroLeague games + 40% of the season average).
