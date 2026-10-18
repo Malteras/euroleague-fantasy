@@ -61,6 +61,7 @@ section{padding-block:28px 8px}
 /* hero / round strip */
 .round{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;padding-block:22px 0}
 .round-title{display:flex;flex-direction:column;gap:6px}
+.datechip{align-self:flex-start;font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
 .round-title h2{font-size:clamp(34px,6vw,54px);font-weight:800;font-style:italic;line-height:.95}
 .round-title h2 span{color:var(--accent)}
 .days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -314,7 +315,7 @@ function tagsFor(p){
   if(p.out)T.push(["Out","bad"]);else if(p.status)T.push([p.status,"warn"]);
   if(mine){
     if(p.out||p.exp<=-0.25||(l2!=null&&l2<p.be-4&&p.exp<0))T.push(["Consider dropping","bad"]);
-    else if(p.exp>=0.15)T.push(["Keep · gaining","good"]);else T.push(["Hold","neutral"]);  /* projected near break-even: price should barely move */
+    else if(p.exp>=0.15)T.push(["Keep · gaining","good"]);else T.push(["Keep · price steady","neutral"]);  /* projected near break-even: price should barely move */
   }else if(!p.out){
     if(p.x>=18&&p.exp>=0.15)T.push(["Must have","accent"]);
     else if(p.exp>=0.12&&p.x>=9)T.push(["Consider for next round","accent"]);
@@ -433,6 +434,7 @@ function optimise(){
 }
 
 /* ---------- render ---------- */
+function fmtDate(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});}catch(e){return d;}}
 function dayLabel(d){return (D.turns&&D.turns[d])||d;}
 function dayShort(d){return dayLabel(d).split(" ")[0];}
 let result;
@@ -446,7 +448,7 @@ function hero(){
   const days=dayKeys.map(d=>{
     const fx=D.fixtures.filter(f=>f[0]===d).map(f=>`${f[1]}–${f[2]}`).join(" · ");
     return `<div class="day"><b>${esc(dayLabel(d))}</b><small>${fx}</small></div>`;}).join("");
-  return `<div class="round" id="proposal"><div class="round-title"><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2><p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things.</p></div><div class="days">${days}</div></div>`;
+  return `<div class="round" id="proposal"><div class="round-title"><div class="datechip">Report of ${esc(fmtDate((D.report&&D.report.date)||D.updated))} · data updated ${esc(fmtDate(D.updated))}</div><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2><p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things.</p></div><div class="days">${days}</div></div>`;
 }
 function proposal(){
   const R=result,E=R.ev,L=E.L;
@@ -538,7 +540,7 @@ function lineupPartial(early,all){
   if(!best)throw 0;return best;
 }
 function pcard(p,role,isNew){
-  const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Hold","Must have","Out"].includes(t[0]));
+  const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Keep · price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
   const o=p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"";
   return `<div class="pc${isNew?" new":""}">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${p.x}</span><span class="chg ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</span>${b}</div></div>`;
@@ -609,7 +611,7 @@ function report(){
   const rested=P.filter(p=>orig.players.includes(p.id)&&p.dom[0]&&(p.dom[0].dnp||p.dom[0].min<8)).map(p=>`${esc(p.short)} (${p.dom[0].absent?"not in the box score":p.dom[0].dnp?"did not play":p.dom[0].min+" min"} vs ${esc(p.dom[0].opp)})`);
   const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${esc(p.name)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
   const sum=(R.summary||[]).map(t=>`<li>${esc(t)}</li>`).join("");
-  return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(R.date||D.updated)}</div><h2>Round report</h2></div></div>
+  return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
   ${sum?`<div class="card" style="margin-bottom:16px"><h3>Bottom line</h3><ul class="bl">${sum}</ul></div>`:""}
   <div class="two">
     <div><div class="eyebrow" style="margin:0 0 6px">Top performers · last EuroLeague round</div><div class="panel list">${top}</div></div>
