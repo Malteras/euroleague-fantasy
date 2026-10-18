@@ -251,6 +251,7 @@ const LS="fazani-planner-v1";
 let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig;const capOpt=new Set();const MIN_GAIN=3;
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null};
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
+if(state.maxT!==4&&state.maxT!==99)state.maxT=state.maxT>=10?99:4;
 function save(){try{const {open,q,...rest}=state;localStorage.setItem(LS,JSON.stringify(rest));}catch(e){}}
 
 const r1=v=>Math.round(v*10)/10;
@@ -298,6 +299,7 @@ function init(data){
   dayKeys.forEach(d=>P.filter(p=>p.day===d).sort((a,b)=>b.x-a.x).slice(0,2).forEach(p=>capOpt.add(p.id)));
   P.forEach(p=>{p.tags=tagsFor(p);});
   if(state.budget==null)state.budget=D.budget;
+  window.__planner={get result(){return result},get state(){return state},get byId(){return byId},get orig(){return orig},get coaches(){return coachByTeam},get days(){return dayKeys}};
   render();
 }
 
@@ -427,8 +429,39 @@ function optimise(){
     }
     if(best){S=best.T;cur=best.e;return true;}return false;
   };
+  // Repair: if over budget (pins, lower budget), make the cheapest-in-points swaps until it fits.
+  let rep=0;
+  while(cost(S,coach)>B+1e-9&&rep++<12){
+    let best=null;const c0=cost(S,coach);
+    for(const out of S){
+      if(locked.has(out))continue;const po=byId[out];
+      for(const q of pool){
+        if(q.pos!==po.pos||S.includes(q.id)||q.price>=po.price||q.out)continue;
+        const T=S.map(i=>i===out?q.id:i);
+        if(!clubOk(T)||trades(T,coach)>lim)continue;
+        const e=evalSquad(T,coach).obj,saved=c0-cost(T,coach);
+        const fits=cost(T,coach)<=B+1e-9;
+        const score=(fits?1e6:0)+e+saved*2;
+        if(!best||score>best.score)best={score,T,e};
+      }
+    }
+    if(!state.coachPin)for(const cc of C){
+      if(cc.price>=coachByTeam[coach].price)continue;
+      if(trades(S,cc.team)>lim)continue;
+      const e=evalSquad(S,cc.team).obj,fits=cost(S,cc.team)<=B+1e-9;
+      const score=(fits?1e6:0)+e+(c0-cost(S,cc.team))*2;
+      if(!best||score>best.score)best={score,T:S,e,c:cc.team};
+    }
+    if(!best)break;
+    S=best.T;if(best.c)coach=best.c;
+  }
+  cur=evalSquad(S,coach).obj;
   let guard=0;
   while(guard++<40){ if(tryImprove())continue; if(trades(S,coach)<lim-1&&tryPair())continue; break; }
+  const over=cost(S,coach)-B;
+  if(over>1e-9)warnings.push(`Still ${over.toFixed(1)} credits over budget. Unpin a player or allow more trades.`);
+  const wi=warnings.findIndex(w=>w.includes("only fits if other moves free up credits"));
+  if(wi>=0&&over<=1e-9)warnings.splice(wi,1);
   const ev=evalSquad(S,coach);
   return {S,coach,ev,cost:cost(S,coach),trades:trades(S,coach),warnings};
 }
@@ -476,14 +509,14 @@ function proposal(){
   const plan=planSteps(R,L);
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
-    <div class="field"><label>Trades allowed</label><div class="seg" id="maxT">${[0,1,2,3,4,10].map(n=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}">${n===10?"All":n}</button>`).join("")}</div></div>
+    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points. Unlimited = one of the 6 free-trade windows.</div></div>
     <div class="field" style="grid-column:span 2"><label for="lam">What matters more</label><input id="lam" type="range" min="0" max="60" step="5" value="${state.lam}"><div class="range-labels"><span>Points this round</span><span>Credit growth</span></div></div>
   </div>
   <div class="tiles">
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
-    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT===10?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>
+    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>
   </div></div>
   ${R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(esc).join(" ")}</div>`:""}
   <div class="split"><div style="min-width:0;display:flex;flex-direction:column;gap:8px"><p class="note" style="margin:0">Players grouped by the day they play. Badges show where each one should finish the round; the plan on the right says when to make each move.</p><div class="board">${cols}</div></div>
