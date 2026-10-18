@@ -273,6 +273,22 @@ def main():
     fixtures = sorted([[d, h, a] for (d, h, a), r in fx.items() if r == nxt_round])
     days = sorted({f[0] for f in fixtures})
     turns = {d: datetime.date.fromisoformat(d).strftime('%a %-d %b') for d in days}
+    # tip-off times for the next round from Sofascore (Europe/Sarajevo)
+    times = {}
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo('Europe/Sarajevo')
+        for code, tid in cache.items():
+            for e in sget(f'/team/{tid}/events/next/0').get('events', [])[:4]:
+                if 'euroleague' not in e.get('tournament', {}).get('name', '').lower(): continue
+                dt = datetime.datetime.fromtimestamp(e['startTimestamp'], tz)
+                times.setdefault(dt.date().isoformat() + '|' + code, dt.strftime('%H:%M'))
+                break
+    except Exception as ex:
+        print('tip-off times failed', ex)
+    for f_ in fixtures:
+        t_ = times.get(f_[0] + '|' + f_[1]) or times.get(f_[0] + '|' + f_[2])
+        if t_ and len(f_) == 3: f_.append(t_)
     data = {
         'updated': datetime.date.today().isoformat(), 'round': nxt_round, 'roundLabel': f'Round {nxt_round}',
         'deadline': days[0] if days else old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
