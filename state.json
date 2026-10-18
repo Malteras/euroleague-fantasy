@@ -15,8 +15,8 @@
  "form": null,
  "team": null,
  "budgetTouched": false,
- "calOpen": true,
+ "calOpen": false,
  "rf": "mine",
  "rg": null,
- "savedAt": "2026-10-18T20:13:42.911Z"
+ "savedAt": "2026-10-18T20:13:46.127Z"
 }
