@@ -28,7 +28,7 @@ Vercel environment variables: `APP_PASS` (the passcode) and `GITHUB_TOKEN` (fine
 
 ## Daily update
 
-A scheduled Claude task runs every day at 08:58 (Europe/Sarajevo). It:
+A scheduled Claude task runs Monday–Friday at 08:58 (Europe/Sarajevo). Monday is always a full run (weekend domestic games + next-round trades); Tuesday–Friday it only does a full run when a EuroLeague game is played that day or the day before, otherwise it sends a one-line "no games" note. A full run:
 
 1. runs `python3 -I tools/elbuild.py <work_dir> data.json data.json.new`,
 2. adds the written bits the script can't produce: EuroLeague results, news and the bottom-line summary (`results`, `news`, `report` in `data.json`),
