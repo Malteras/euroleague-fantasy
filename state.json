@@ -11,7 +11,7 @@
  "day": "ALL",
  "sort": "x",
  "only": false,
- "dtab": "overview",
+ "dtab": "fixtures",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -20,5 +20,5 @@
  "calOpen": true,
  "rf": "dom",
  "rg": "2026-10-18||MIL|Napoli Basket",
- "savedAt": "2026-10-18T20:08:13.621Z"
+ "savedAt": "2026-10-18T20:08:18.162Z"
 }
