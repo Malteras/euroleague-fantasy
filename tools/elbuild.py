@@ -49,10 +49,12 @@ def get(url, path):
 def parse_log(t, domestic=False):
     gl = t[t.find('PIR pub. Box'):t.find('Totals (')]
     out = []
-    for g in re.finditer(r'(\d{1,2} \w+) (.+?) \1 · ([WL]) (\d+)–(\d+) (.+?) (✈️ )?[WL] \d+–\d+ '+N+' '+N+' '+N+r' (\S+) '+N+' ', gl):
+    for g in re.finditer(r'(\d{1,2} \w+) (.+?) \1 · ([WL]) (\d+)–(\d+) (.+?) (✈️ )?[WL] \d+–\d+ '+N+' '+N+' '+N+r' (\S+) '+N+r' (\S+) (\S+) (\S+) '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' ', gl):
         opp = g.group(2) if domestic else SHORT.get(g.group(2), g.group(2))
+        cr = num(g.group(11)) if g.group(11) not in ('-', '—') else None
         out.append({'d':date(g.group(1)),'opp':opp,'ha':'A' if g.group(7) else 'H','res':f'{g.group(3)} {g.group(4)}-{g.group(5)}',
-                    'min':num(g.group(8)),'pts':int(num(g.group(9))),'fpt':num(g.group(10)),'pir':num(g.group(12))})
+                    'min':num(g.group(8)),'pts':int(num(g.group(9))),'fpt':num(g.group(10)),'pir':num(g.group(12)),'cr':cr,
+                    'reb':num(g.group(16)),'stl':num(g.group(21)),'tov':num(g.group(22)),'ast':num(g.group(23)),'blk':num(g.group(24))})
     return out
 
 def parse_player(f, team_code):
@@ -84,7 +86,8 @@ def parse_player(f, team_code):
             'team':team_code,'pos':pos,'price':price,'chg':chg,'gp':gp,
             'fpt':num(fm.group(1)) if fm else None,'pir':num(pm.group(1)) if pm else None,
             'min':st('MIN'),'pts':st('PTS'),'reb':st('REB'),'ast':st('AST'),
-            'log':parse_log(t),'next':nxt,'pir2526':num(p25.group(1)) if p25 else None}
+            'log':parse_log(t),'next':nxt,'hist':[[int(r_),num(p_),num(c_)] for p_,c_,r_ in hist],
+            'start':num(re.search(r'([\d.]+) Start', t).group(1)) if re.search(r'([\d.]+) Start', t) else None,'pir2526':num(p25.group(1)) if p25 else None}
 
 def parse_domestic(f):
     t = flat(txt(f))
@@ -273,17 +276,23 @@ def main():
     fixtures = sorted([[d, h, a] for (d, h, a), r in fx.items() if r == nxt_round])
     days = sorted({f[0] for f in fixtures})
     turns = {d: datetime.date.fromisoformat(d).strftime('%a %-d %b') for d in days}
-    # tip-off times for the next round from Sofascore (Europe/Sarajevo)
-    times = {}
+    # tip-off times for the next round + each club's upcoming fixtures (Europe/Sarajevo)
+    times = {}; teamNext = {}
     try:
         from zoneinfo import ZoneInfo
         tz = ZoneInfo('Europe/Sarajevo')
         for code, tid in cache.items():
-            for e in sget(f'/team/{tid}/events/next/0').get('events', [])[:4]:
-                if 'euroleague' not in e.get('tournament', {}).get('name', '').lower(): continue
+            evs = sget(f'/team/{tid}/events/next/0').get('events', [])
+            lst = []
+            for e in evs[:10]:
+                tn = e.get('tournament', {}).get('name', '')
                 dt = datetime.datetime.fromtimestamp(e['startTimestamp'], tz)
-                times.setdefault(dt.date().isoformat() + '|' + code, dt.strftime('%H:%M'))
-                break
+                home = e['homeTeam']['id'] == tid
+                lst.append({'d': dt.date().isoformat(), 't': dt.strftime('%H:%M'), 'comp': re.sub(r',.*', '', tn),
+                            'el': 'euroleague' in tn.lower(), 'opp': e['awayTeam' if home else 'homeTeam']['name'], 'ha': 'H' if home else 'A'})
+                if 'euroleague' in tn.lower():
+                    times.setdefault(dt.date().isoformat() + '|' + code, dt.strftime('%H:%M'))
+            teamNext[code] = lst
     except Exception as ex:
         print('tip-off times failed', ex)
     for f_ in fixtures:
@@ -295,7 +304,7 @@ def main():
         'budget': old.get('budget', 99.6), 'squad': old.get('squad'), 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
         'coachRound': old.get('coachRound'), 'results': old.get('results', []), 'news': old.get('news', []),
-        'report': old.get('report', {}), 'domGames': domgames, 'sofaIds': cache,
+        'report': old.get('report', {}), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
     print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)}')
