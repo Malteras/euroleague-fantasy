@@ -2,7 +2,7 @@
  "pins": [],
  "avoids": [],
  "coachPin": null,
- "budget": 99.6,
+ "budget": 110.5,
  "maxT": 4,
  "lam": 20,
  "pos": "ALL",
@@ -25,7 +25,7 @@
    165,
    118,
    38,
-   361,
+   277,
    185,
    236,
    8
@@ -36,5 +36,5 @@
   "base": "2026-10-18"
  },
  "budgetTouched": false,
- "savedAt": "2026-10-18T18:44:14.274Z"
+ "savedAt": "2026-10-18T18:44:16.787Z"
 }
