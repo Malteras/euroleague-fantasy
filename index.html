@@ -222,6 +222,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .rg-tbl tr.mine-r td{background:var(--accent-soft)}
 .rg-p{display:flex;align-items:center;gap:8px;min-width:0}.rg-p .jersey{width:26px;height:26px;font-size:9px;flex:none}.rg-p .jersey::after{display:none}
 .rg-you{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.rg-tabs{display:flex;gap:6px;margin:8px 0}
+.rg-tabs button{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:5px 10px 5px 5px;font:600 13.5px var(--body);color:var(--muted);cursor:pointer}
+.rg-tabs button .tb{width:24px;height:24px;font-size:9px}.rg-tabs button span:last-child{font-size:11.5px;color:var(--faint)}
+.rg-tabs button.on{border-color:var(--accent);color:var(--fg);box-shadow:0 0 0 2px var(--accent-soft)}
 .rg-dnp{margin:8px 0 0;font-size:13px}
 @media (max-width:520px){.rg-tbl th:nth-child(4),.rg-tbl td:nth-child(4){display:none}.rg-tbl{font-size:12.5px}.rg-tbl td,.rg-tbl th{padding:6px 5px}}
 .news-col{display:flex;flex-direction:column;gap:16px;min-width:0}
@@ -397,6 +401,7 @@ html.locked,html.locked body{overflow:hidden}
 .dsec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .seg.sm button{padding:4px 10px;font-size:13px}
 #day button,#pos button{flex:1 0 auto}
+#maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
 .chart{display:block;max-width:none}
 .chart .g{stroke:var(--line-soft)}.chart .z{stroke:var(--line);stroke-width:1.2}
@@ -1275,17 +1280,24 @@ function report(){
   </div></section>`;
 }
 function results(){
-  const dom=(D.domGames||[]).map(g=>({d:g.d,comp:g.comp,dom:true,team:g.team,home:g.ha==="H"?g.team:null,away:g.ha==="A"?g.team:null,opp:g.opp,score:g.score,result:g.result,note:""}));
+  // domestic games; when two EuroLeague clubs met each other, merge both entries into one game
+  const raw=(D.domGames||[]).map(g=>({d:g.d,comp:g.comp,dom:true,team:g.team,home:g.ha==="H"?g.team:null,away:g.ha==="A"?g.team:null,opp:g.opp,score:g.score,result:g.result,note:""}));
+  const used=new Set(),dom=[];
+  raw.forEach((g,i)=>{if(used.has(i))return;
+    const j=raw.findIndex((h,k)=>k!==i&&!used.has(k)&&h.d===g.d&&h.comp===g.comp&&h.score===g.score&&h.team!==g.team);
+    if(j>=0){const h=raw[j];used.add(i);used.add(j);const H=g.home?g:h,A=g.home?h:g;
+      dom.push({d:g.d,comp:g.comp,dom:true,both:true,home:H.team,away:A.team,parts:[H,A],score:g.score,note:""});}
+    else{used.add(i);dom.push(g);}});
   const el=D.results.map(r=>({...r,dom:false}));
   const mineT=new Set(orig.players.map(i=>byId[i]&&byId[i].team));
   const f=state.rf||"all";
   const all=el.concat(dom).sort((a,b)=>b.d.localeCompare(a.d)||(a.dom-b.dom));
-  const shown=all.filter(r=>f==="all"||(f==="el"&&!r.dom)||(f==="dom"&&r.dom)||(f==="mine"&&(r.dom?mineT.has(r.team):(mineT.has(r.home)||mineT.has(r.away)))));
+  const shown=all.filter(r=>f==="all"||(f==="el"&&!r.dom)||(f==="dom"&&r.dom)||(f==="mine"&&((r.dom&&!r.both)?mineT.has(r.team):(mineT.has(r.home)||mineT.has(r.away)))));
   const key=r=>`${r.d}|${r.home||""}|${r.away||""}|${r.opp||""}`;
   let lastD="";
   const res=shown.map(r=>{
     const k=key(r),open=state.rg===k;
-    const title=r.dom?(r.home?`${badge(r.home)}<b>${esc(TEAMS[r.home][0])}</b><span class="vs">vs</span><span class="opp">${esc(r.opp)}</span>`:`<span class="opp">${esc(r.opp)}</span><span class="vs">vs</span>${badge(r.away)}<b>${esc(TEAMS[r.away][0])}</b>`)
+    const title=(r.dom&&!r.both)?(r.home?`${badge(r.home)}<b>${esc(TEAMS[r.home][0])}</b><span class="vs">vs</span><span class="opp">${esc(r.opp)}</span>`:`<span class="opp">${esc(r.opp)}</span><span class="vs">vs</span>${badge(r.away)}<b>${esc(TEAMS[r.away][0])}</b>`)
       :`${badge(r.home)}<b>${esc(TEAMS[r.home][0])}</b><span class="vs">vs</span>${badge(r.away)}<b>${esc(TEAMS[r.away][0])}</b>`;
     const head=r.d!==lastD?`<div class="rg-day">${esc(fmtShort(r.d))}</div>`:"";lastD=r.d;
     const stats=gameStats(r);
@@ -1301,7 +1313,10 @@ function results(){
 function gameStats(r){
   // EuroLeague fantasy players' lines from this game (EuroLeague: from game logs; domestic: from Sofascore box scores)
   const rows=[],dnp=[];
-  if(r.dom){
+  if(r.both){
+    r.parts.forEach(part=>P.filter(p=>p.team===part.team).forEach(p=>{const g=(p.dom||[]).find(x=>x.d===part.d&&x.opp===part.opp);if(!g)return;
+      if(g.dnp||g.absent)dnp.push({p,why:g.absent?"not in the box score":"did not play"});else rows.push({p,g,team:p.team});}));
+  }else if(r.dom){
     P.filter(p=>p.team===r.team).forEach(p=>{const g=(p.dom||[]).find(x=>x.d===r.d&&x.opp===r.opp);if(!g)return;
       if(g.dnp||g.absent)dnp.push({p,why:g.absent?"not in the box score":"did not play"});else rows.push({p,g,team:p.team});});
   }else{
@@ -1312,12 +1327,16 @@ function gameStats(r){
 }
 function gameBox(r,{rows,dnp}){
   if(!rows.length&&!dnp.length)return `<div class="rg-box"><p class="note" style="margin:0">No box score for EuroLeague fantasy players in this game.</p></div>`;
-  const teams=r.dom?[r.team]:[r.home,r.away];
+  const teams=(r.dom&&!r.both)?[r.team]:[r.home,r.away];
+  const two=teams.length>1;const k=`${r.d}|${r.home||""}|${r.away||""}|${r.opp||""}`;
+  const act=two?(state.rgt&&state.rgt.k===k&&teams.includes(state.rgt.t)?state.rgt.t:teams[0]):teams[0];
   const tbl=t=>{const rs=rows.filter(x=>x.team===t);if(!rs.length)return "";
-    return `<div class="rg-team">${teams.length>1?`<div class="rg-th">${badge(t)}<b>${esc(TEAMS[t][0])}</b></div>`:""}<table class="rg-tbl"><thead><tr><th>Player</th><th class="n">Min</th><th class="n">Pts</th><th class="n">Reb</th><th class="n">Ast</th><th class="n">${r.dom?"PIR≈":"PIR"}</th>${r.dom?"":'<th class="n">FPT</th>'}<th class="n" title="Break-even: score needed for the price to hold">B-even</th></tr></thead><tbody>
+    return `<div class="rg-team"><table class="rg-tbl"><thead><tr><th>Player</th><th class="n">Min</th><th class="n">Pts</th><th class="n">Reb</th><th class="n">Ast</th><th class="n">${r.dom?"PIR≈":"PIR"}</th>${r.dom?"":'<th class="n">FPT</th>'}<th class="n" title="Break-even: score needed for the price to hold">B-even</th></tr></thead><tbody>
       ${rs.map(({p,g})=>{const val=r.dom?g.pir:g.fpt,ok=val!=null&&val>=p.be;const mine=orig.players.includes(p.id);
         return `<tr class="${mine?"mine-r":""}"><td><span class="rg-p">${jersey(p.team,p.pos)}${plink(p,p.short)}${mine?'<span class="rg-you">yours</span>':""}</span></td><td class="n">${Math.round(g.min||0)}</td><td class="n">${g.pts??"–"}</td><td class="n">${g.reb!=null?Math.round(g.reb):"–"}</td><td class="n">${g.ast!=null?Math.round(g.ast):"–"}</td><td class="n"><b>${g.pir??"–"}</b></td>${r.dom?"":`<td class="n"><b>${g.fpt}</b></td>`}<td class="n ${ok?"pos":"neg"}">${p.be}</td></tr>`;}).join("")}</tbody></table></div>`;};
-  return `<div class="rg-box">${teams.map(tbl).join("")}${dnp.length?`<p class="rg-dnp">Did not play: ${dnp.map(x=>`${plink(x.p,x.p.short)} <span class="muted">(${x.why})</span>`).join(", ")}</p>`:""}
+  const tabs=two?`<div class="rg-tabs" role="tablist">${teams.map(t=>`<button type="button" role="tab" class="${t===act?"on":""}" aria-selected="${t===act}" data-rgt="${t}" data-rgk="${esc(k)}">${badge(t)}${esc(TEAMS[t][0])}<span>${rows.filter(x=>x.team===t).length}</span></button>`).join("")}</div>`:"";
+  const dn=dnp.filter(x=>!two||x.p.team===act);
+  return `<div class="rg-box">${tabs}${tbl(act)||'<p class="note" style="margin:8px 0 0">No box score for this team\'s fantasy players.</p>'}${dn.length?`<p class="rg-dnp">Did not play: ${dn.map(x=>`${plink(x.p,x.p.short)} <span class="muted">(${x.why})</span>`).join(", ")}</p>`:""}
     ${r.dom?'<p class="note" style="margin:8px 0 0">Domestic games don\'t score in fantasy. PIR≈ is estimated (fouls drawn and blocks against are not published). Green break-even = he played at a level that would raise his price.</p>':(r.note?`<p class="note" style="margin:8px 0 0">${linkify(r.note)}</p>`:"")}</div>`;
 }
 function newsPanel(){
@@ -1438,6 +1457,7 @@ function bind(){
   document.querySelectorAll("#allg button").forEach(b=>b.onclick=()=>{state.allGames=b.dataset.v==="1";rerender();});
   const ct=$("#calToggle");if(ct)ct.onclick=()=>{state.calOpen=!state.calOpen;rerender();};
   document.querySelectorAll("[data-game]").forEach(b=>b.onclick=e=>{if(e.target.closest(".plink"))return;const k=b.dataset.game;state.rg=state.rg===k?null:k;rerender();});
+  document.querySelectorAll("[data-rgt]").forEach(b=>b.onclick=()=>{state.rgt={k:b.dataset.rgk,t:b.dataset.rgt};rerender();});
   document.querySelectorAll("#rf button").forEach(b=>b.onclick=()=>{state.rf=b.dataset.v;rerender();});
   document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const d=b.dataset.day;state.collapsed=state.collapsed.includes(d)?state.collapsed.filter(x=>x!==d):[...state.collapsed,d];rerender();});
   document.querySelectorAll("[data-coach]").forEach(b=>b.onclick=()=>{const t=b.dataset.coach;state.coachPin=state.coachPin===t?null:t;rerender();});
