@@ -13,25 +13,8 @@
  "allGames": true,
  "collapsed": [],
  "form": null,
- "team": {
-  "slots": [
-   73,
-   23,
-   245,
-   165,
-   118,
-   38,
-   8,
-   236,
-   185,
-   233
-  ],
-  "coach": "ZAL",
-  "bank": 0.8,
-  "cap": 73,
-  "base": "2026-10-18"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
- "savedAt": "2026-10-18T19:52:32.276Z"
+ "savedAt": "2026-10-18T19:52:33.454Z"
 }
