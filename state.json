@@ -10,7 +10,7 @@
  "sort": "x",
  "only": false,
  "dtab": "overview",
- "allGames": false,
+ "allGames": true,
  "collapsed": [],
  "form": [
   3,
@@ -36,5 +36,5 @@
   "base": "2026-10-18"
  },
  "budgetTouched": false,
- "savedAt": "2026-10-18T17:50:41.047Z"
+ "savedAt": "2026-10-18T17:50:45.705Z"
 }
