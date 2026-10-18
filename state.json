@@ -1,5 +1,7 @@
 {
- "pins": [],
+ "pins": [
+  58
+ ],
  "avoids": [],
  "coachPin": null,
  "budget": 99.6,
@@ -18,5 +20,5 @@
  "calOpen": true,
  "rf": "dom",
  "rg": "2026-10-18||MIL|Napoli Basket",
- "savedAt": "2026-10-18T20:08:08.052Z"
+ "savedAt": "2026-10-18T20:08:13.621Z"
 }
