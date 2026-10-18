@@ -10,11 +10,11 @@
  "sort": "x",
  "only": false,
  "dtab": "overview",
- "allGames": true,
+ "allGames": false,
  "collapsed": [],
  "form": null,
  "team": null,
  "budgetTouched": false,
  "calOpen": true,
- "savedAt": "2026-10-18T19:57:27.429Z"
+ "savedAt": "2026-10-18T19:57:31.440Z"
 }
