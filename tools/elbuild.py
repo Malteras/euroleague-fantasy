@@ -281,6 +281,7 @@ def main():
     try:
         from zoneinfo import ZoneInfo
         tz = ZoneInfo('Europe/Sarajevo')
+        code_of = {tid: code for code, tid in cache.items()}  # Sofascore team id -> club code, for the opponent's code (oc)
         for code, tid in cache.items():
             evs = sget(f'/team/{tid}/events/next/0').get('events', [])
             lst = []
@@ -288,8 +289,11 @@ def main():
                 tn = e.get('tournament', {}).get('name', '')
                 dt = datetime.datetime.fromtimestamp(e['startTimestamp'], tz)
                 home = e['homeTeam']['id'] == tid
-                lst.append({'d': dt.date().isoformat(), 't': dt.strftime('%H:%M'), 'comp': re.sub(r',.*', '', tn),
-                            'el': 'euroleague' in tn.lower(), 'opp': e['awayTeam' if home else 'homeTeam']['name'], 'ha': 'H' if home else 'A'})
+                ot = e['awayTeam' if home else 'homeTeam']
+                g = {'d': dt.date().isoformat(), 't': dt.strftime('%H:%M'), 'comp': re.sub(r',.*', '', tn),
+                     'el': 'euroleague' in tn.lower(), 'opp': ot['name'], 'ha': 'H' if home else 'A'}
+                if ot.get('id') in code_of: g['oc'] = code_of[ot['id']]
+                lst.append(g)
                 if 'euroleague' in tn.lower():
                     times.setdefault(dt.date().isoformat() + '|' + code, dt.strftime('%H:%M'))
             teamNext[code] = lst
@@ -317,6 +321,8 @@ def main():
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
         'coachRound': old.get('coachRound'), 'results': old.get('results', []), 'news': old.get('news', []),
         'report': old.get('report', {}), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
+        # free-trade windows for this round and the next, written by the daily report; the planner sets its switch from it
+        'tradeWindow': old.get('tradeWindow'),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
     print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)}')
