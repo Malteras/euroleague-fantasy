@@ -185,6 +185,15 @@ section{padding-block:28px 8px}
 .tt th b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt th small{display:block;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt th.ar{text-align:center;color:var(--good);font-size:22px;font-weight:800;line-height:1}
+/* "Just missed": trades under the bar at this setting */
+.near{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.near-h{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.near-h span{text-transform:none;letter-spacing:0;font-weight:600}
+.near-r{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:13.5px}
+.near-r .nm{flex:1 1 220px;min-width:0}
+.near-r b.o{color:var(--bad)} .near-r b.i{color:var(--good)} .near-r .ar{color:var(--good);font-weight:800}
+.near-r .tp{color:var(--accent);font-weight:700} .near-r .tc{color:var(--credit);font-weight:700}
+.chip-toggle.sm{padding:4px 10px;font-size:12.5px}
 .tt td.d{font-weight:800} .tt .tp{color:var(--accent)} .tt .tc{color:var(--credit)} .tt td.neg{color:var(--bad)}
 @keyframes fresh{from{background:var(--accent-soft);box-shadow:0 0 0 6px var(--accent-soft)}to{background:transparent;box-shadow:0 0 0 6px transparent}}
 .coachline{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--raise);margin-top:6px;font-size:14px}
@@ -882,7 +891,7 @@ function suggestPanel(){
     <div class="dr-top" style="--tc:${(TEAMS[o.team]||["","#445"])[1]}"><button type="button" class="dr-x" data-sg-close aria-label="Close">✕</button>
       <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${o.price.toFixed(1)} cr · proj ${o.x} · ${esc(turnOf2(o.day))} · bank ${team.bank.toFixed(1)}</div></div></div></div>
     <div class="dr-body">${cmpP?compareTable(o,cmpP):`
-      ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<MIN_GAIN?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${MIN_GAIN}+ value. Best options are below anyway.</div>`:""}
+      ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<tradeBar()?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${tradeBar()}+ value. Best options are below anyway.</div>`:""}
       <p class="note" style="margin:10px 0">${POSN[o.pos]}s you can afford (up to ${r1(o.price+team.bank).toFixed(1)} cr), best first. "Value" = projected points + credit growth, compared with ${esc(o.short)}, using the planner's "What matters more" setting.</p>
       <ol class="sg-list">${list.map(row).join("")}</ol>
       <button type="button" class="chip-toggle" data-sg-all style="margin:6px 0 18px">Search all ${POSN[o.pos].toLowerCase()}s instead</button>`}
@@ -1171,9 +1180,12 @@ function searchPlan(lam){
   if(wi>=0&&over<=1e-9)warnings.splice(wi,1);
   return {S,coach,warnings,base,baseCoach,lim};
 }
-// Undo the weakest trade while one adds less than MIN_GAIN at this lam. A trade that can't be undone within budget stays: it pays for the others.
+// The bar a trade must clear: 3 when trades are limited, 1 in an unlimited window, where an extra trade costs nothing
+// (the 1 still filters out swaps that are within projection noise).
+const tradeBar=()=>state.maxT>=99?1:MIN_GAIN;
+// Undo the weakest trade while one adds less than the bar at this lam. A trade that can't be undone within budget stays: it pays for the others.
 function prunePlan(S,coach,base,baseCoach,lim,lam){
-  const B=state.budget,obj=(ids,c)=>quickObj(ids,c,lam);
+  const B=state.budget,obj=(ids,c)=>quickObj(ids,c,lam),MIN_GAIN=tradeBar();
   const feasible=(ids,c)=>cost(ids,c)<=B+1e-9&&clubOk(ids)&&trades(ids,c)<=lim;
   let cur=obj(S,coach);
   for(;;){
@@ -1202,8 +1214,28 @@ function optimise(){
   const own=plan(state.lam),score=p=>quickObj(p.S,p.coach,state.lam);
   let pick=STOPS.map(plan).reduce((a,p)=>score(p)>score(a)+1e-9?p:a,own);
   if(pick!==own){pick=prunePlan(pick.S,pick.coach,own.base,own.baseCoach,own.lim,state.lam);if(score(pick)<=score(own)+1e-9)pick=own;}
-  const {S,coach}=pick;
-  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings};
+  const {S,coach}=pick,bar=tradeBar();
+  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar)};
+}
+// "Just missed": for each kept player, the best single swap that would add something at this setting but stays under the bar.
+// Shown under the trades so it's clear why a better-projected player isn't proposed.
+function nearMisses(S,coach,lim,lam,bar){
+  const avoids=new Set(state.avoids),locked=new Set(state.pins),mine=new Set(orig.players),B=state.budget,out=[];
+  if(trades(S,coach)>=lim)return out;
+  const cur=quickObj(S,coach,lam);
+  S.forEach((o,k)=>{
+    if(locked.has(o)||!mine.has(o))return;
+    const po=byId[o];let best=null;
+    for(const q of P){
+      if(q.pos!==po.pos||q.out||avoids.has(q.id)||S.includes(q.id))continue;
+      const T=S.slice();T[k]=q.id;
+      if(cost(T,coach)>B+1e-9||!clubOk(T))continue;
+      const g=quickObj(T,coach,lam)-cur;
+      if(g>.05&&g<bar&&(!best||g>best.g))best={o,i:q.id,g};
+    }
+    if(best)out.push(best);
+  });
+  return out.sort((a,b)=>b.g-a.g).slice(0,3);
 }
 
 /* ---------- render ---------- */
@@ -1240,7 +1272,7 @@ function render(){
   const body={
     team:()=>hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
-  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
 }
 function hero(){
@@ -1393,7 +1425,7 @@ function proposal(){
   const parts=proposalParts(result);
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
-    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points. Unlimited = one of the 6 free-trade windows.</div></div>
+    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.</div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
@@ -1445,7 +1477,9 @@ function proposalParts(R){
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
     <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`;
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
-  const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}</div>`;
+  const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (round points plus price rise; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
+    return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${fmt(r1(b.x-a.x),1)} proj</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
+  const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
   return {tiles,warn,trades,body};
 }
