@@ -57,6 +57,7 @@ Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the tea
 
 - Projection = half FantaSheet's xPTS for the next game, half recent form (60% of the last three EuroLeague games + 40% of the season average).
 - Expected price change = (projection − 1.1 × price) ÷ 25. Coach: (points − price) ÷ 40.
+- Matchup bonus (Proposal 2) = projection × how much more (or less) PIR the opponent allows to his position than an average team × ½. A share of his own projection, so a player who barely plays gains almost nothing.
 - Look-ahead: a trade stays after this round, so Proposal 2 also counts half of next round's matchup bonus (only the matchup, not the whole next-round projection; see `docs/adr/0001`). Coaches count half of their next game in both proposals. Captain, lineup and price rise use this round only. It is off when the next round is a free-trade window. Next fixtures come from `teamNext` in `data.json`.
 - Free-trade windows: the daily report writes `tradeWindow` into `data.json` (this round and the next: unlimited or not). The "Trades this round" switch follows it; a choice made by hand sticks until the report's answer changes.
 - Words: `GLOSSARY.md` lists the terms the site and the report use.

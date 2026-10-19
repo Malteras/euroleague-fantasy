@@ -217,6 +217,11 @@ section{padding-block:28px 8px}
 .rb-w{font-size:11.5px;font-weight:500;color:var(--faint);white-space:nowrap;text-align:right;padding-right:2px}
 .rb-sum{grid-column:3/5;border-top:1px solid var(--line);padding-top:2px;text-align:right;font-size:14px}
 .rb-sum .rb-v{font-size:14px}
+.rb-h{display:inline-flex;align-items:center;gap:6px}
+.ico.rb-info{position:relative;width:18px;height:18px;border-radius:50%;font:800 11px/1 var(--body);letter-spacing:0;text-transform:none;color:var(--muted)}
+.ico.rb-info:hover,.ico.rb-info:focus-visible{color:var(--fg);border-color:var(--faint)}
+.rb-info .tip{max-width:290px;left:auto;right:-8px;transform:none;text-transform:none;letter-spacing:0;font-weight:500}
+.rb-info .tip b{margin-top:6px}.rb-info .tip b:first-child{margin-top:0}
 .rb-legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
 .rb-legend i{display:inline-block;width:14px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--accent)}
 .rb-legend i.h{background:repeating-linear-gradient(135deg,var(--accent) 0 3px,transparent 3px 5px);box-shadow:inset 0 0 0 1px var(--accent)}
@@ -1162,10 +1167,12 @@ function capPlan(ids){
   return {v:v??0,path};
 }
 
-const MW=0.12; // matchup weight: PIR the opponent allows to his position (vs average) x 0.12
-const mBonus=p=>{const m=matchup(p);return m==null||p.out?0:r1(MW*m);};
+// Matchup bonus = his projection × how much more (or less) PIR the opponent allows to his position than an average team × MT.
+// A share of his own projection, so a player who barely plays gains next to nothing from an easy defence.
+const MT=0.5; // trust in the defence numbers: about half, they come from only a few games
+const mBonus=(p,x=p.x)=>{const m=matchup(p);return m==null||p.out?0:r1(MT*x*m/100);};
 // next round's part of the look-ahead: half its matchup bonus. Out this round counts as out next round too.
-const nBonus=p=>{const m=matchup(p,p.opp2);return m==null||p.out?0:r1(LOOK*MW*m);};
+const nBonus=p=>{const m=matchup(p,p.opp2);return m==null||p.out?0:r1(LOOK*MT*(p.xq??p.x)*m/100);};
 let curMode="q"; // which proposal's projections P.x holds right now; part of the optimiser cache key
 function withMode(mode,fn){
   const prev=curMode;curMode=mode==="m"?"m":"q";
@@ -1449,7 +1456,7 @@ function modeBar(){
   const q=m?alt:cur,mm=m?cur:alt;
   const btn=(v,t,sub,R)=>`<button type="button" class="pm${(v==="m")===m?" on":""}" data-pmode="${v}" aria-pressed="${(v==="m")===m}"><b>${t}</b><small>${sub}</small>${R?`<span class="pm-k">${sum(R)}</span>`:""}</button>`;
   return `<div class="pmodes" role="group" aria-label="Proposal type">${btn("q","Proposal 1 · Quality","Best players by projection and price growth",q)}${btn("m","Proposal 2 · Matchups","Attacks this round's weak defences by position",mm)}</div>
-  <p class="note pm-note">${m?`Proposal 2 adds a matchup bonus to each projection: ${MW} × the PIR his opponent allows to his position compared with an average team (see the Teams tab). Based on only a few games, so trust it about half.${LOOK_ON?" A trade stays after this round, so it also counts half of next round's matchup. Captain, lineup and price rise use this round only.":""}`:`Proposal 1 uses the normal projection: half FantaSheet's expected score, half his recent form. Matchups are not added on top.${LOOK_ON?" Coaches also count half of next round's game.":""}`}</p>`;
+  <p class="note pm-note">${m?`Proposal 2 adds a matchup bonus to each projection: if his opponent lets his position score 20% more than an average team (see the Teams tab), his projection goes up 10%. Half the percentage, because it comes from only a few games.${LOOK_ON?" A trade stays after this round, so it also counts half of next round's matchup. Captain, lineup and price rise use this round only.":""}`:`Proposal 1 uses the normal projection: half FantaSheet's expected score, half his recent form. Matchups are not added on top.${LOOK_ON?" Coaches also count half of next round's game.":""}`}</p>`;
 }
 function proposalHead(){
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
@@ -1657,7 +1664,7 @@ function proposalParts(R){
   const cp=coachByTeam[state.coachPin];
   const coachChip=cp?`<button type="button" class="chip-toggle sm on" data-coach="${esc(state.coachPin)}" aria-pressed="true" title="Undo">Coach ${esc(cp.name)} ✕</button>`:"";
   const picks=kept.length||pinned.length||cp?`<div class="tx-picks"><span class="muted">Your picks</span>${kept.map(i=>pickChip(i,"Keep")).join("")}${pinned.map(i=>pickChip(i,"★")).join("")}${coachChip}</div>`:"";
-  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>${LA?`Points over 2 rounds<small>${rN2} counts half</small>`:"Projected points"}</th><th>Price rise</th><th><span class="sr">Remove</span></th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>${laNote}
+  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>${LA?`<span class="rb-h">Points over 2 rounds${rbInfo(rN,rN2)}</span><small>${rN2} counts half</small>`:"Projected points"}</th><th>Price rise</th><th><span class="sr">Remove</span></th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>${laNote}
     <div class="tx-act"><button type="button" class="btn-primary" data-apply>Apply trades to My team</button><span class="note">Also sets the turn-1 lineup and captain. Nothing is saved until you press Save on My team.</span></div>`;
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
@@ -1672,6 +1679,8 @@ function proposalParts(R){
   return {tiles,warn,trades,body};
 }
 // Two small bars for one trade with the look-ahead: this round solid, half of next round striped, one zero line, the total under them
+// ⓘ in the column header: how the grey numbers and the bars are worked out
+const rbInfo=(r,r2)=>`<button type="button" class="ico rb-info" aria-label="How these numbers work" aria-describedby="rbTip">i<span class="tip" id="rbTip" role="tooltip"><b>${r}: this round</b>Projected points, out → in. The bar is the difference.<b>${r2}: next round</b>Matchup points, out → in: his projection × how much more (or less) that defence lets his position score × ½. A player who barely plays gets almost nothing. The striped bar is half the difference, because next round counts half.<b>Coaches</b>${r2} is the next game's projection, from both teams' records and home court.<b>Total</b>${r} + ${r2}. Captain, lineup and price rise use this round only.</span></button>`;
 // w1 / w2: the grey "out → in" numbers each bar comes from (left out on the total row)
 function rBars(a,b,l1,l2,w1="",w2=""){
   const Z=40,K=100/17; // zero at 40% of the track; the track spans 17 points
