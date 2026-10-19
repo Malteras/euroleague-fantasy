@@ -129,6 +129,7 @@ section{padding-block:28px 8px}
 .wmm-stops button.on::before{background:var(--fg)}
 .wmm-explain{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-soft);font-size:13.5px;color:var(--muted);min-height:calc(2.9em + 13px)}
 .wmm-explain b{color:var(--fg)}
+.wmm-flat{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:var(--raise);font-size:12.5px;color:var(--muted)}
 
 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
 .tile{padding:14px 16px;border-right:1px solid var(--line);min-width:0}
@@ -1224,15 +1225,21 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // by its own objective. The borrowed plan then goes through the same 3-point check at this stop, so a trade that only pays off when
 // price growth counts more (e.g. a like-for-like swap for a likely riser) is not carried over to the points end.
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
-const planCache=new Map();
+const planCache=new Map(),pickCache=new Map();
 function optimise(){
   const key=JSON.stringify([curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
-  const own=plan(state.lam),score=p=>quickObj(p.S,p.coach,state.lam);
-  let pick=STOPS.map(plan).reduce((a,p)=>score(p)>score(a)+1e-9?p:a,own);
-  if(pick!==own){pick=prunePlan(pick.S,pick.coach,own.base,own.baseCoach,own.lim,state.lam);if(score(pick)<=score(own)+1e-9)pick=own;}
+  const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
+    const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
+    let pick=STOPS.map(plan).reduce((a,p)=>score(p)>score(a)+1e-9?p:a,own);
+    if(pick!==own){pick=prunePlan(pick.S,pick.coach,own.base,own.baseCoach,own.lim,lam);if(score(pick)<=score(own)+1e-9)pick=own;}
+    if(pickCache.size>300)pickCache.clear();pickCache.set(k,pick);return pick;};
+  const own=plan(state.lam),pick=pickAt(state.lam);
+  // flat: every stop of the bar gives these same trades, so moving it changes nothing (said under the bar)
+  const sig=p=>p.S.slice().sort().join()+"|"+p.coach;
+  const flat=STOPS.every(l=>sig(pickAt(l))===sig(pick));
   const {S,coach}=pick,bar=tradeBar();
-  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar)};
+  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
 }
 // "Just missed": for each kept player, the best single swap that would add something at this setting but stays under the bar.
 // Shown under the trades so it's clear why a better-projected player isn't proposed.
@@ -1430,7 +1437,7 @@ const wmmPos=i=>4-i;
 function wmmField(){
   const i=stopIdx(),t=wmmText(i);
   const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===4?"first":j===0?"last":""}${j===i?" on":""}" style="left:${wmmPos(j)*25}%">${esc(n)}</button>`).join("");
-  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="wmm-dest b">← Team value</span><span class="wmm-split" id="wmmSplit">${t.split}</span><span class="wmm-dest a r">Points →</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
+  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="wmm-dest b">← Team value</span><span class="wmm-split" id="wmmSplit">${t.split}</span><span class="wmm-dest a r">Points →</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p>${result&&result.flat?'<p class="wmm-flat">Every setting gives the same trades for your squad this round. The expected price rise is worked out from the same projection as the points, so the two usually agree.</p>':""}</div>`;
 }
 function wmmSync(i){
   const t=wmmText(i),r=document.getElementById("lam");
