@@ -173,15 +173,19 @@ section{padding-block:28px 8px}
 .trade.fresh,.ttbl.fresh{animation:fresh 1.4s ease-out}
 /* trade compare tables: Out → In, with the difference in the Change column */
 .ttbl{border:1px solid var(--line-soft);border-radius:12px;overflow-x:auto;margin-top:8px}
-.ttbl.ttot{border-color:var(--line);background:var(--raise)}
+.ttbl.ttot{border-color:var(--line);margin-top:12px}
 .tt{width:100%;min-width:480px;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
 .tt col.c-l{width:27%} .tt col.c-o,.tt col.c-i{width:22%} .tt col.c-a{width:6%} .tt col.c-d{width:23%}
 .tt th,.tt td{padding:7px 10px;text-align:right;border-top:1px solid var(--line-soft);vertical-align:middle}
 .tt thead th{border-top:0;font-weight:700}
 .tt th:first-child,.tt td:first-child{text-align:left;color:var(--muted);font-weight:600}
 .tt thead th:first-child{color:var(--fg);font-family:var(--display);font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
-.tt th.o b,.tt th.o .io{color:var(--bad)} .tt th.i b,.tt th.i .io{color:var(--good)}
-.tt th .io{display:block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.tt th.o b{color:var(--bad)} .tt th.i b{color:var(--good)}
+.tt tbody tr.proj td{background:var(--raise)}
+/* one Out / In caption over all trade tables; the 1px side padding matches the tables' border */
+.tcap{padding:0 1px;overflow:hidden}
+.tcap .tt thead th{padding-block:2px 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.tcap .tt th.o{color:var(--bad)} .tcap .tt th.i{color:var(--good)}
 .tt th b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt th small{display:block;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt th.ar{text-align:center;color:var(--good);font-size:22px;font-weight:800;line-height:1}
@@ -1456,20 +1460,22 @@ function proposalParts(R){
   const table=(label,a,b,key,name,sub)=>{
     const dp=(b?b.x:0)-(a?a.x:0),dc=(b?b.exp:0)-(a?a.exp:0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dc+=dc;tot.fr+=fr;
-    const who=(p,io)=>`<span class="io">${io}</span>`+(p?`<b>${name(p)}</b><small>${sub(p)}</small>`:"—");
+    const who=p=>p?`<b>${name(p)}</b><small>${sub(p)}</small>`:"—";
     const v=(p,f)=>p?f(p):"–";
-    return `<div class="ttbl${fresh(key)}"><table class="tt">${cols}<thead><tr><th>${label}</th><th class="o">${who(a,"Out")}</th><th class="ar" aria-label="traded for">→</th><th class="i">${who(b,"In")}</th><th>Change</th></tr></thead><tbody>
+    return `<div class="ttbl${fresh(key)}"><table class="tt">${cols}<thead><tr><th>${label}</th><th class="o">${who(a)}</th><th class="ar" aria-label="traded for">→</th><th class="i">${who(b)}</th><th>Change</th></tr></thead><tbody>
       <tr><td>Price</td><td>${v(a,p=>p.price.toFixed(1))}</td><td></td><td>${v(b,p=>p.price.toFixed(1))}</td>${bankCell(fr)}</tr>
-      <tr><td>Projection</td><td>${v(a,p=>p.x)}</td><td></td><td>${v(b,p=>p.x)}</td>${dcell(dp," pts","tp")}</tr>
-      <tr><td>Expected price change</td><td>${v(a,p=>fmt(r1(p.exp),1))}</td><td></td><td>${v(b,p=>fmt(r1(p.exp),1))}</td>${dcell(dc," cr","tc")}</tr></tbody></table></div>`;
+      <tr class="proj"><td>Projected points</td><td>${v(a,p=>p.x)}</td><td></td><td>${v(b,p=>p.x)}</td>${dcell(dp," pts","tp")}</tr>
+      <tr class="proj"><td>Expected price change</td><td>${v(a,p=>fmt(r1(p.exp),1))}</td><td></td><td>${v(b,p=>fmt(r1(p.exp),1))}</td>${dcell(dc," cr","tc")}</tr></tbody></table></div>`;
   };
   const nTr=pairs.length+(coachChanged?1:0);
-  let tr=pairs.map(([o,i],k)=>table(`Trade ${k+1}`,byId[o],byId[i],i??null,p=>plink(p),p=>p.team+mu(p))).join("")
+  // Out / In are labelled once, above all the trade tables (same columns, so they sit over every name)
+  let tr=`<div class="tcap" aria-hidden="true"><table class="tt">${cols}<thead><tr><th></th><th class="o">Out</th><th></th><th class="i">In</th><th></th></tr></thead></table></div>`
+   +pairs.map(([o,i],k)=>table(`Trade ${k+1}`,byId[o],byId[i],i??null,p=>plink(p),p=>p.team+mu(p))).join("")
    +(coachChanged?table(`Trade ${pairs.length+1}`,coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),()=>"Coach"):"");
-  if(nTr>1)tr+=`<div class="ttbl ttot"><table class="tt">${cols}<thead><tr><th>All ${nTr} trades</th><th></th><th></th><th></th><th>Total</th></tr></thead><tbody>
+  if(nTr>1)tr+=`<div class="ttbl ttot"><table class="tt">${cols}<thead><tr><th>Total</th><th></th><th></th><th></th><th>All ${nTr} trades</th></tr></thead><tbody>
       <tr><td>Price</td><td></td><td></td><td></td>${bankCell(tot.fr)}</tr>
-      <tr><td>Projection</td><td></td><td></td><td></td>${dcell(tot.dp," pts","tp")}</tr>
-      <tr><td>Expected price change</td><td></td><td></td><td></td>${dcell(tot.dc," cr","tc")}</tr></tbody></table></div>`;
+      <tr class="proj"><td>Projected points</td><td></td><td></td><td></td>${dcell(tot.dp," pts","tp")}</tr>
+      <tr class="proj"><td>Expected price change</td><td></td><td></td><td></td>${dcell(tot.dc," cr","tc")}</tr></tbody></table></div>`;
   const noTrades=!pairs.length&&!coachChanged;
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
