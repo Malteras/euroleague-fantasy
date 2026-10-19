@@ -15,7 +15,7 @@
   --fg:#e9eef8; --muted:#8e9bb6; --faint:#5d6b88;
   --accent:#27b7c4; --accent-soft:rgba(39,183,196,.14); --accent-ink:#04252a;
   --good:#3fcf8f; --good-soft:rgba(63,207,143,.14); --bad:#f2637d; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15);
-  --be:#f3b64b;
+  --be:#8e9bb6; --credit:#f3b64b;
   --display:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
   --r:12px;
@@ -26,13 +26,13 @@
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#0d8a97; --accent-soft:rgba(13,138,151,.10); --accent-ink:#ffffff;
   --good:#12935c; --good-soft:rgba(18,147,92,.10); --bad:#c8304d; --bad-soft:rgba(200,48,77,.09); --warn:#b7770a; --warn-soft:rgba(183,119,10,.11);
-  --be:#c07c08; color-scheme:light;}}
+  --be:#56637d; --credit:#c07c08; color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#0d8a97; --accent-soft:rgba(13,138,151,.10); --accent-ink:#ffffff;
   --good:#12935c; --good-soft:rgba(18,147,92,.10); --bad:#c8304d; --bad-soft:rgba(200,48,77,.09); --warn:#b7770a; --warn-soft:rgba(183,119,10,.11);
-  --be:#c07c08; color-scheme:light;}
+  --be:#56637d; --credit:#c07c08; color-scheme:light;}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
@@ -77,8 +77,27 @@ section{padding-block:28px 8px}
 .seg{display:flex;background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
 .seg button{flex:1;border:0;background:none;border-radius:6px;padding:6px 8px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;min-width:34px}
 .seg button.on{background:var(--accent);color:var(--accent-ink)}
-input[type=range]{width:100%;accent-color:var(--accent)}
-.range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+/* what matters more: points (teal) vs credit growth (amber) split bar with 5 named stops */
+.wmm{gap:0}
+.wmm-ends{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:8px;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;line-height:1}
+.wmm-ends small{display:block;font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted);text-transform:none;margin-top:3px}
+.wmm-ends .a{color:var(--accent)} .wmm-ends .b{color:var(--credit);text-align:right}
+.wmm-bar{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:6px 0 0;background:transparent;cursor:pointer;--f:.5}
+.wmm-bar::-webkit-slider-runnable-track{height:14px;border-radius:7px;background:linear-gradient(to right,var(--accent) calc(9px + (100% - 18px)*var(--f)),var(--credit) 0)}
+.wmm-bar::-moz-range-track{height:14px;border-radius:7px;background:linear-gradient(to right,var(--accent) calc(9px + (100% - 18px)*var(--f)),var(--credit) 0)}
+.wmm-bar::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:26px;border-radius:4px;background:var(--fg);border:2px solid var(--surface);margin-top:-6px}
+.wmm-bar::-moz-range-thumb{width:4px;height:22px;border-radius:4px;background:var(--fg);border:2px solid var(--surface)}
+.wmm-stops{position:relative;height:36px;margin:0 9px}
+.wmm-stops button{position:absolute;top:0;width:88px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;padding:0;font-size:10px;font-weight:700;letter-spacing:.06em;line-height:1.2;text-transform:uppercase;text-align:center;color:var(--muted);cursor:pointer}
+.wmm-stops button::before{content:"";width:2px;height:6px;border-radius:1px;background:var(--faint)}
+.wmm-stops button.first{transform:translateX(-9px);align-items:flex-start;text-align:left}
+.wmm-stops button.first::before{margin-left:8px}
+.wmm-stops button.last{transform:translateX(calc(-100% + 9px));align-items:flex-end;text-align:right}
+.wmm-stops button.last::before{margin-right:8px}
+.wmm-stops button.on{color:var(--fg)}
+.wmm-stops button.on::before{background:var(--fg)}
+.wmm-explain{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line-soft);font-size:13.5px;color:var(--muted);min-height:calc(2.9em + 13px)}
+.wmm-explain b{color:var(--fg)}
 
 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
 .tile{padding:14px 16px;border-right:1px solid var(--line);min-width:0}
@@ -119,6 +138,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .trade b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trade small{color:var(--muted);font-size:12px}
 .arrow{color:var(--faint);text-align:center}
+.trade.fresh{animation:fresh 1.4s ease-out}
+@keyframes fresh{from{background:var(--accent-soft);box-shadow:0 0 0 6px var(--accent-soft)}to{background:transparent;box-shadow:0 0 0 6px transparent}}
 .coachline{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--raise);margin-top:6px;font-size:14px}
 .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
 .steps li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;font-size:14px}
@@ -215,6 +236,12 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .top nav{margin-left:0;width:100%}
   .top nav a{flex:1;text-align:center;padding-inline:6px}
 }
+/* narrow: keep every tick, but only the current stop and the two ends get words */
+@media (max-width:520px){
+  .wmm-stops button{width:76px}
+  .wmm-stops button:not(.on):not(.first):not(.last){color:transparent}
+}
+@media (prefers-reduced-motion:reduce){.trade.fresh{animation:none}}
 @media (prefers-reduced-motion:no-preference){.pc,.mrow{transition:background .2s}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -248,8 +275,14 @@ const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
 let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig;const capOpt=new Set();const MIN_GAIN=3;
+// "What matters more" stops: lam = how many points one credit of expected price rise is worth. Default (20) sits in the middle.
+const STOPS=[0,10,20,35,60];
+const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
+const STOP_DESC=["Picks whoever should score most. Price changes are ignored.","Points come first. A likely price rise only settles a close call.","Weighs points and price rises evenly. This is the default.","Takes a few fewer points for players likely to go up in price.","Buys players likely to go up in price, even if they score less."];
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null};
+const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
+state.lam=STOPS[stopIdx()]; // older saves used 0–60 in steps of 5
 function save(){try{const {open,q,...rest}=state;localStorage.setItem(LS,JSON.stringify(rest));}catch(e){}}
 
 const r1=v=>Math.round(v*10)/10;
@@ -435,12 +468,26 @@ function optimise(){
 /* ---------- render ---------- */
 function dayLabel(d){return (D.turns&&D.turns[d])||d;}
 function dayShort(d){return dayLabel(d).split(" ")[0];}
-let result;
+let result,lastIns=null;const flashAt={};
+// optimise() takes up to ~125 ms, so results are cached per setting and the other stops are worked out in idle time.
+const optCache=new Map();
+function optimiseCached(){
+  const k=JSON.stringify([state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.lam]);
+  if(!optCache.has(k)){if(optCache.size>100)optCache.clear();optCache.set(k,optimise());}
+  return optCache.get(k);
+}
+function warmStops(){
+  const idle=window.requestIdleCallback||(f=>setTimeout(f,50));
+  const todo=STOPS.slice();
+  const step=()=>{const l=todo.shift();if(l==null)return;const cur=state.lam;state.lam=l;optimiseCached();state.lam=cur;idle(step);};
+  idle(step);
+}
 function render(){
-  result=optimise();
+  result=optimiseCached();
   const app=document.getElementById("app");
   app.innerHTML=hero()+proposal()+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
+  warmStops();
 }
 function hero(){
   const days=dayKeys.map(d=>{
@@ -448,8 +495,35 @@ function hero(){
     return `<div class="day"><b>${esc(dayLabel(d))}</b><small>${fx}</small></div>`;}).join("");
   return `<div class="round" id="proposal"><div class="round-title"><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2><p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things.</p></div><div class="days">${days}</div></div>`;
 }
+function wmmText(i){
+  const g=i*25;
+  return {a:`Points ${100-g}%<small>this round</small>`,b:`${g}% Growth<small>credit value</small>`,ex:`<b>${esc(STOP_NAMES[i])}.</b> ${esc(STOP_DESC[i])}`,vt:`${STOP_NAMES[i]}: points ${100-g}%, growth ${g}%`};
+}
+function wmmField(){
+  const i=stopIdx(),t=wmmText(i);
+  const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===0?"first":j===4?"last":""}${j===i?" on":""}" style="left:${j*25}%">${esc(n)}</button>`).join("");
+  return `<div class="field wmm" style="grid-column:span 2"><label for="lam">What matters more</label><div class="wmm-ends"><span class="a" id="wmmA">${t.a}</span><span class="b" id="wmmB">${t.b}</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${i}" style="--f:${i/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
+}
+function wmmSync(i){
+  const t=wmmText(i),r=document.getElementById("lam");
+  r.value=i;r.style.setProperty("--f",i/4);r.setAttribute("aria-valuetext",t.vt);
+  document.getElementById("wmmA").innerHTML=t.a;document.getElementById("wmmB").innerHTML=t.b;document.getElementById("wmmExplain").innerHTML=t.ex;
+  document.querySelectorAll("#wmmStops button").forEach(b=>b.classList.toggle("on",+b.dataset.stop===i));
+}
 function proposal(){
-  const R=result,E=R.ev,L=E.L;
+  const parts=proposalParts(result);
+  return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
+    <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
+    <div class="field"><label>Trades allowed</label><div class="seg" id="maxT">${[0,1,2,3,4,10].map(n=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}">${n===10?"All":n}</button>`).join("")}</div></div>
+    ${wmmField()}
+  </div>
+  <div class="tiles" id="propTiles">${parts.tiles}</div></div>
+  <div id="propWarn">${parts.warn}</div>
+  <div id="propBody">${parts.body}</div></section>`;
+}
+// Everything below the controls; redrawn on its own while the "What matters more" bar is dragged.
+function proposalParts(R){
+  const E=R.ev,L=E.L;
   const bank=r1(state.budget-R.cost);
   const tradesIn=R.S.filter(i=>!orig.players.includes(i));
   const tradesOut=orig.players.filter(i=>!R.S.includes(i));
@@ -457,8 +531,14 @@ function proposal(){
   const pairs=[];const outs=tradesOut.slice();
   tradesIn.forEach(i=>{const k=outs.findIndex(o=>byId[o]&&byId[o].pos===byId[i].pos);pairs.push([k>=0?outs.splice(k,1)[0]:null,i]);});
   const coachChanged=R.coach!==orig.coach;
-  const tr=pairs.map(([o,i])=>{const a=byId[o],b=byId[i];return `<div class="trade"><div class="o"><b>${a?esc(a.name):"—"}</b><small>${a?`${a.team} · ${a.price.toFixed(1)} cr · proj ${a.x}`:""}</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>${b.team} · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`}).join("")
-   +(coachChanged?(()=>{const a=coachByTeam[orig.coach],b=coachByTeam[R.coach];return `<div class="trade"><div class="o"><b>${esc(a.name)}</b><small>Coach · ${a.price.toFixed(1)} cr</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>Coach · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`})():"");
+  // flash trades that weren't in the previous proposal
+  const ins=tradesIn.concat(coachChanged?["coach:"+R.coach]:[]);
+  // the full redraw on release continues a running flash instead of cutting it off
+  const prevIns=lastIns,now=Date.now();
+  const fresh=k=>{if(prevIns&&!prevIns.includes(k))flashAt[k]=now;const e=now-(flashAt[k]??-1e9);return e<1400?`class="trade fresh" style="animation-delay:-${e}ms"`:`class="trade"`;};
+  lastIns=ins;
+  const tr=pairs.map(([o,i])=>{const a=byId[o],b=byId[i];return `<div ${fresh(i)}><div class="o"><b>${a?esc(a.name):"—"}</b><small>${a?`${a.team} · ${a.price.toFixed(1)} cr · proj ${a.x}`:""}</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>${b.team} · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`}).join("")
+   +(coachChanged?(()=>{const a=coachByTeam[orig.coach],b=coachByTeam[R.coach];return `<div ${fresh("coach:"+R.coach)}><div class="o"><b>${esc(a.name)}</b><small>Coach · ${a.price.toFixed(1)} cr</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>Coach · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`})():"");
   const noTrades=!pairs.length&&!coachChanged;
   // turn plan
   const finalDay=dayKeys[dayKeys.length-1];
@@ -472,23 +552,18 @@ function proposal(){
     return `<div class="col"><div class="col-h"><b>${esc(dayLabel(d))}</b><span>${ps.length} player${ps.length===1?"":"s"}</span></div>${ps.map(p=>pcard(p,role[p.id],!orig.players.includes(p.id))).join("")||'<div class="note">No players on this day.</div>'}${cc}</div>`;
   }).join("");
   const plan=planSteps(R,L);
-  return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
-    <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
-    <div class="field"><label>Trades allowed</label><div class="seg" id="maxT">${[0,1,2,3,4,10].map(n=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}">${n===10?"All":n}</button>`).join("")}</div></div>
-    <div class="field" style="grid-column:span 2"><label for="lam">What matters more</label><input id="lam" type="range" min="0" max="60" step="5" value="${state.lam}"><div class="range-labels"><span>Points this round</span><span>Credit growth</span></div></div>
-  </div>
-  <div class="tiles">
+  const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
-    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT===10?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>
-  </div></div>
-  ${R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(esc).join(" ")}</div>`:""}
-  <div class="split"><div style="min-width:0;display:flex;flex-direction:column;gap:8px"><p class="note" style="margin:0">Players grouped by the day they play. Badges show where each one should finish the round; the plan on the right says when to make each move.</p><div class="board">${cols}</div></div>
+    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT===10?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`;
+  const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(esc).join(" ")}</div>`:"";
+  const body=`<div class="split"><div style="min-width:0;display:flex;flex-direction:column;gap:8px"><p class="note" style="margin:0">Players grouped by the day they play. Badges show where each one should finish the round; the plan on the right says when to make each move.</p><div class="board">${cols}</div></div>
   <div class="side">
     <div class="card"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}</div>
     <div class="card"><h3>Lineup &amp; captain plan</h3><ol class="steps">${plan}</ol><p class="note" style="margin:10px 0 0">Formation ${L.form.join("-")} (G-F-C). ${esc(D.squadNote||"")}</p></div>
-  </div></div></section>`;
+  </div></div>`;
+  return {tiles,warn,body};
 }
 function planSteps(R,L){
   const ps=R.S.map(i=>byId[i]);
@@ -497,7 +572,7 @@ function planSteps(R,L){
   const earlyIds=ps.filter(p=>p.day!==finalDay).map(p=>p.id);
   let init=null;
   try{const tmp=lineupPartial(ps.filter(p=>p.day!==finalDay),ps);init=tmp;}catch(e){}
-  if(!init)init={st:L.st,six:L.six};
+  if(!init)init={st:L.st.slice(),six:L.six}; // copy: L belongs to a cached result
   const name=p=>`<b>${esc(p.short)}</b>`;
   const stNames=init.st.map(name).join(", ");
   const reserves=ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x);
@@ -628,7 +703,14 @@ function bind(){
   const $=s=>document.querySelector(s);
   const rerender=()=>{save();const y=window.scrollY;render();window.scrollTo(0,y);};
   $("#budget").addEventListener("change",e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.budget=v;rerender();}});
-  $("#lam").addEventListener("change",e=>{state.lam=+e.target.value;rerender();});
+  // while dragging, redraw only the tiles and proposal; the full page (market highlights etc.) follows on release
+  $("#lam").addEventListener("input",e=>{
+    const i=+e.target.value;state.lam=STOPS[i];wmmSync(i);
+    result=optimiseCached();const parts=proposalParts(result);
+    $("#propTiles").innerHTML=parts.tiles;$("#propWarn").innerHTML=parts.warn;$("#propBody").innerHTML=parts.body;
+  });
+  $("#lam").addEventListener("change",()=>{rerender();$("#lam").focus({preventScroll:true});});
+  document.querySelectorAll("[data-stop]").forEach(b=>b.onclick=()=>{state.lam=STOPS[+b.dataset.stop];rerender();});
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
