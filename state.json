@@ -4,7 +4,7 @@
  "coachPin": null,
  "budget": 99.6,
  "maxT": 99,
- "lam": 20,
+ "lam": 10,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -13,11 +13,11 @@
  "allGames": true,
  "collapsed": [],
  "form": null,
+ "pmode": "q",
  "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "mine",
  "rg": null,
- "pmode": "q",
- "savedAt": "2026-10-19T14:25:30.331Z"
+ "savedAt": "2026-10-19T17:37:51.250Z"
 }
