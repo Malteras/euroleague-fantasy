@@ -4,7 +4,7 @@
  "coachPin": null,
  "budget": 99.6,
  "maxT": 99,
- "lam": 20,
+ "lam": 0,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -19,5 +19,5 @@
  "rf": "mine",
  "rg": null,
  "pmode": "q",
- "savedAt": "2026-10-19T10:51:13.667Z"
+ "savedAt": "2026-10-19T10:52:45.248Z"
 }
