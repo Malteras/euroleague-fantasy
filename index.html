@@ -190,6 +190,12 @@ section{padding-block:28px 8px}
 .tx-p.o b,.tx-p.o .plink{color:var(--bad)} .tx-p.i b,.tx-p.i .plink{color:var(--good)}
 .tx-p small{display:block;font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-p small i{font-style:normal} .tx-p small i span{font-weight:700} .tx-p small i .up{color:var(--good)} .tx-p small i .dn{color:var(--bad)}
+.tx td.tx-x,.tx th:last-child{width:1%;padding-left:4px}
+.tx-del{width:26px;height:26px;border-radius:8px;border:1px solid transparent;background:none;color:var(--faint);font-size:13px;font-weight:700;cursor:pointer;line-height:1}
+.tx-del:hover,.tx-del:focus-visible{color:var(--bad);border-color:var(--line);background:var(--bad-soft)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tx-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px}.tx-act .note{font-size:12.5px;max-width:46ch;margin:0}
+.tx-picks{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:12px;font-size:12.5px}
 .tx-cap td:first-child b{display:block} .tx-cap small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
 .tx .was{display:block;font-size:11.5px;font-weight:500;color:var(--faint);white-space:nowrap}
 .tx .tp{color:var(--accent)} .tx .tc{color:var(--credit)} .tx .neg{color:var(--bad)} .tx .z{color:var(--faint)}
@@ -1541,27 +1547,40 @@ function proposalParts(R){
   const num=(v,c)=>{v=r1(v);return `<span class="${v===0?"z":v<0&&c?"neg":c}">${fmt(v,1)}</span>`;};
   const was=(a,b,f)=>`<span class="was">${a?f(a):"–"} → ${b?f(b):"–"}</span>`;
   const tot={dp:0,dc:0,fr:0};
-  const row=(a,b,key,name,role)=>{
+  const row=(a,b,key,name,role,x)=>{
     const dp=(b?b.x:0)-(a?a.x:0),dc=(b?b.exp:0)-(a?a.exp:0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dc+=dc;tot.fr+=fr;
     const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}</b><small>${[role,game(p)].filter(Boolean).join(" · ")}</small></span></span>`:`<span class="tx-p ${side}">—</span>`;
     return `<tr class="tx-r${fresh(key)}"><td><div class="tx-pair">${who(a,"o")}<span class="tx-ar" aria-label="traded for">→</span>${who(b,"i")}</div></td>
       <td>${num(fr,"")}${was(a,b,p=>p.price.toFixed(1))}</td>
       <td>${num(dp,"tp")}${was(a,b,p=>p.x.toFixed(1))}</td>
-      <td>${num(dc,"tc")}${was(a,b,p=>fmt(r1(p.exp),1))}</td></tr>`;
+      <td>${num(dc,"tc")}${was(a,b,p=>fmt(r1(p.exp),1))}</td>
+      <td class="tx-x">${x}</td></tr>`;
   };
+  // ✕ drops a trade: keep the outgoing player (pinned as Must have) and drop any pin on the incoming one
+  const xBtn=(attr,v,label)=>`<button type="button" class="tx-del" ${attr}="${v}" title="${esc(label)}" aria-label="${esc(label)}">✕</button>`;
+  const xFor=(o,i)=>{const a=byId[o],b=byId[i];
+    return a?xBtn("data-drop",`${a.id},${b?b.id:""}`,`Remove this trade: keep ${a.short}`):xBtn("data-no",b.id,`Remove this trade: leave out ${b.short}`);};
   const nTr=pairs.length+(coachChanged?1:0);
-  const rows=pairs.map(([o,i])=>row(byId[o],byId[i],i??null,p=>plink(p),""))
-    .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach")]:[]).join("");
+  const rows=pairs.map(([o,i])=>row(byId[o],byId[i],i??null,p=>plink(p),"",xFor(o,i)))
+    .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach",
+      orig.coach?xBtn("data-coach-keep",orig.coach,"Remove this trade: keep your coach"):"")]:[]).join("");
   // the captain plan is part of the projected points too (see capPlan): show what the trades do to it
   const ca=capPlan(orig.players.filter(i=>byId[i])),cb=capPlan(R.S),dcap=cb.v-ca.v;
   const capWho=c=>c.path.length?`${esc(c.path[0].p.short)} first (${esc(turnOf2(c.path[0].p.day))})`:"–";
   let capRow="";
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
-    capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td></tr>`;}
-  const foot=nTr>1||capRow?`<tfoot><tr><td>Total · ${nTr} trade${nTr===1?"":"s"}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${num(tot.dp,"tp")}<span class="u"> pts</span></td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td></tr></tfoot>`:"";
-  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>Projected points</th><th>Price rise</th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>`;
+    capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td><td></td></tr>`;}
+  const foot=nTr>1||capRow?`<tfoot><tr><td>Total · ${nTr} trade${nTr===1?"":"s"}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${num(tot.dp,"tp")}<span class="u"> pts</span></td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
   const noTrades=!pairs.length&&!coachChanged;
+  // your picks that shape the trades, each with its own undo: kept squad players and pinned new ones
+  const kept=state.pins.filter(i=>byId[i]&&orig.players.includes(i)),pinned=state.pins.filter(i=>byId[i]&&!orig.players.includes(i));
+  const pickChip=(id,verb)=>`<button type="button" class="chip-toggle sm on" data-pin="${id}" aria-pressed="true" title="Undo">${verb} ${esc(byId[id].short)} ✕</button>`;
+  const cp=coachByTeam[state.coachPin];
+  const coachChip=cp?`<button type="button" class="chip-toggle sm on" data-coach="${esc(state.coachPin)}" aria-pressed="true" title="Undo">Coach ${esc(cp.name)} ✕</button>`:"";
+  const picks=kept.length||pinned.length||cp?`<div class="tx-picks"><span class="muted">Your picks</span>${kept.map(i=>pickChip(i,"Keep")).join("")}${pinned.map(i=>pickChip(i,"★")).join("")}${coachChip}</div>`:"";
+  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>Projected points</th><th>Price rise</th><th><span class="sr">Remove</span></th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>
+    <div class="tx-act"><button type="button" class="btn-primary" data-apply>Apply trades to My team</button><span class="note">Also sets the turn-1 lineup and captain. Nothing is saved until you press Save on My team.</span></div>`;
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
@@ -1570,7 +1589,7 @@ function proposalParts(R){
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
   const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (round points plus price rise; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
     return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${fmt(r1(b.x-a.x),1)} proj</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
-  const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${near}</div>`;
+  const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
   return {tiles,warn,trades,body};
 }
@@ -1596,7 +1615,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   // timeline
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
   const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
-  const applyBtn=`<button type="button" class="btn-primary" id="applyTrades">${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
+  const applyBtn=`<button type="button" class="btn-primary" data-apply>${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
     +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">Set the lineup · ${form}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
@@ -1852,7 +1871,7 @@ function bindTeam(rerender){
     b.ondrop=e=>{e.preventDefault();const a=+e.dataTransfer.getData("text/plain");if(!isNaN(a)&&a!==i){swapSlots(a,i);sel=null;teamChanged();rerender();}};
   });
   document.querySelectorAll("#formSeg button").forEach(b=>b.onclick=()=>{applyForm(b.dataset.form.split("-").map(Number));sel=null;teamChanged();rerender();});
-  const at=$("#applyTrades");if(at)at.onclick=()=>{withMode(state.pmode==="m"?"m":"q",applyTrades);rerender();setTimeout(()=>{const m=$("#myteam");if(m)m.scrollIntoView({behavior:"smooth",block:"start"});},0);};
+  document.querySelectorAll("[data-apply]").forEach(at=>at.onclick=()=>{withMode(state.pmode==="m"?"m":"q",applyTrades);rerender();setTimeout(()=>{const m=$("#myteam");if(m)m.scrollIntoView({behavior:"smooth",block:"start"});},0);});
   const cs=$("[data-coach-slot]");if(cs)cs.onclick=()=>setPick({slot:"coach",q:"",pos:"ALL"});
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
     const a=b.dataset.act,id=team.slots[sel];
@@ -1936,6 +1955,9 @@ function bind(){
   const cl=$("#clear");if(cl)cl.onclick=()=>{state.pins=[];state.avoids=[];state.coachPin=null;rerender();};
   const q=$("#q");let t;if(q)q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const id=+b.dataset.pin;state.avoids=state.avoids.filter(i=>i!==id);state.pins=state.pins.includes(id)?state.pins.filter(i=>i!==id):[...state.pins,id];rerender();});
+  document.querySelectorAll("[data-drop]").forEach(b=>b.onclick=()=>{const [o,i]=b.dataset.drop.split(",").map(v=>v?+v:null);
+    state.pins=state.pins.filter(x=>x!==i&&x!==o).concat(o);state.avoids=state.avoids.filter(x=>x!==o);rerender();});
+  document.querySelectorAll("[data-coach-keep]").forEach(b=>b.onclick=()=>{state.coachPin=b.dataset.coachKeep;rerender();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=state.avoids.includes(id)?state.avoids.filter(i=>i!==id):[...state.avoids,id];rerender();});
   document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;rerender();});
