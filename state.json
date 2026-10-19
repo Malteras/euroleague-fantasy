@@ -4,7 +4,7 @@
  "coachPin": null,
  "budget": 99.6,
  "maxT": 99,
- "lam": 10,
+ "lam": 0,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -19,5 +19,5 @@
  "calOpen": true,
  "rf": "mine",
  "rg": null,
- "savedAt": "2026-10-19T17:38:24.205Z"
+ "savedAt": "2026-10-19T17:39:16.167Z"
 }
