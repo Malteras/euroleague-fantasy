@@ -3,7 +3,7 @@
  "avoids": [],
  "coachPin": null,
  "budget": 99.6,
- "maxT": 99,
+ "maxT": 4,
  "lam": 60,
  "pos": "G",
  "day": "ALL",
@@ -19,5 +19,5 @@
  "rf": "mine",
  "rg": null,
  "pmode": "q",
- "savedAt": "2026-10-19T12:39:56.469Z"
+ "savedAt": "2026-10-19T12:41:57.552Z"
 }
