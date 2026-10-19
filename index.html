@@ -106,9 +106,13 @@ section{padding-block:28px 8px}
 .seg button.on{background:var(--accent);color:var(--accent-ink)}
 /* what matters more: points (teal) vs credit growth (amber) split bar with 5 named stops */
 .wmm{gap:0}
-.wmm-ends{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:8px;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;line-height:1}
-.wmm-ends small{display:block;font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted);text-transform:none;margin-top:3px}
-.wmm-ends .a{color:var(--accent)} .wmm-ends .b{color:var(--credit);text-align:right}
+/* ends say where they lead; the current split sits in the middle */
+.wmm-ends{display:flex;justify-content:space-between;align-items:flex-end;gap:6px 10px;margin-top:8px}
+.wmm-ends .a{color:var(--accent)} .wmm-ends .b{color:var(--credit)}
+.wmm-dest{flex:0 0 auto;font-size:13px;font-weight:700;line-height:1.2}
+.wmm-dest.r{text-align:right}
+.wmm-split{flex:1;min-width:0;text-align:center;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;line-height:1}
+.wmm-split .sep{color:var(--muted)}
 .wmm-bar{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:6px 0 0;background:transparent;cursor:pointer;--f:.5}
 .wmm-bar::-webkit-slider-runnable-track{height:14px;border-radius:7px;background:linear-gradient(to right,var(--accent) calc(9px + (100% - 18px)*var(--f)),var(--credit) 0)}
 .wmm-bar::-moz-range-track{height:14px;border-radius:7px;background:linear-gradient(to right,var(--accent) calc(9px + (100% - 18px)*var(--f)),var(--credit) 0)}
@@ -520,6 +524,8 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 /* narrow: keep every tick, but only the current stop and the two ends get words */
 @media (max-width:520px){
   .wmm-stops button{width:76px}
+  .wmm-ends{flex-wrap:wrap}
+  .wmm-split{order:-1;flex-basis:100%}
   .wmm-stops button:not(.on):not(.first):not(.last){color:transparent}
 }
 @media (prefers-reduced-motion:reduce){.trade.fresh{animation:none}}
@@ -1353,19 +1359,19 @@ function applyTrades(){
 }
 function wmmText(i){
   const g=i*25;
-  return {a:`Points ${100-g}%<small>this round</small>`,b:`${g}% Growth<small>credit value</small>`,ex:`<b>${esc(STOP_NAMES[i])}.</b> ${esc(STOP_DESC[i])}`,vt:`${STOP_NAMES[i]}: points ${100-g}%, growth ${g}%`};
+  return {split:`<span class="a">${100-g}% points</span> <span class="sep">·</span> <span class="b">${g}% growth</span>`,ex:`<b>${esc(STOP_NAMES[i])}.</b> ${esc(STOP_DESC[i])}`,vt:`${STOP_NAMES[i]}: points ${100-g}%, growth ${g}%`};
 }
 // The teal part of the bar is as long as the points share, so the points end is on the right: bar position = 4 - stop index.
 const wmmPos=i=>4-i;
 function wmmField(){
   const i=stopIdx(),t=wmmText(i);
   const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===4?"first":j===0?"last":""}${j===i?" on":""}" style="left:${wmmPos(j)*25}%">${esc(n)}</button>`).join("");
-  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="a" id="wmmA">${t.a}</span><span class="b" id="wmmB">${t.b}</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
+  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="wmm-dest b">← Team value</span><span class="wmm-split" id="wmmSplit">${t.split}</span><span class="wmm-dest a r">Points →</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
 }
 function wmmSync(i){
   const t=wmmText(i),r=document.getElementById("lam");
   r.value=wmmPos(i);r.style.setProperty("--f",wmmPos(i)/4);r.setAttribute("aria-valuetext",t.vt);
-  document.getElementById("wmmA").innerHTML=t.a;document.getElementById("wmmB").innerHTML=t.b;document.getElementById("wmmExplain").innerHTML=t.ex;
+  document.getElementById("wmmSplit").innerHTML=t.split;document.getElementById("wmmExplain").innerHTML=t.ex;
   document.querySelectorAll("#wmmStops button").forEach(b=>b.classList.toggle("on",+b.dataset.stop===i));
 }
 function proposal(){
