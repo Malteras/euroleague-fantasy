@@ -391,25 +391,46 @@ const cost=(ids,coach)=>ids.reduce((a,i)=>a+byId[i].price,0)+(coachByTeam[coach]
 const trades=(ids,coach)=>ids.filter(i=>!orig.players.includes(i)).length+(coach!==orig.coach?1:0);
 function clubOk(ids){const n={};for(const i of ids){const t=byId[i].team;n[t]=(n[t]||0)+1;if(n[t]>6)return false;}return true;}
 
-function optimise(){
+// Search score: the same number as evalSquad(ids,coach).obj at this lam, without building the lineup (the search calls it tens of thousands of times).
+// The captain is always the squad's top projection, since every formation starts the best player at each position.
+const qPos={G:[],F:[],C:[]};
+function quickObj(ids,coach,lam){
+  const g=qPos.G,f=qPos.F,c=qPos.C;g.length=f.length=c.length=0;let all=0,cred=0,cap=-Infinity;
+  for(const i of ids){
+    const p=byId[i],a=qPos[p.pos];all+=p.x;cred+=p.exp;if(p.x>cap)cap=p.x;
+    let k=a.length;while(k>0&&a[k-1]<p.x){a[k]=a[k-1];k--;}a[k]=p.x; // keep each position sorted high to low
+  }
+  let best=-Infinity;
+  for(const [ng,nf,nc] of FORMS){
+    if(g.length<ng||f.length<nf||c.length<nc)continue;
+    let s=0;for(let k=0;k<ng;k++)s+=g[k];for(let k=0;k<nf;k++)s+=f[k];for(let k=0;k<nc;k++)s+=c[k];
+    const six=Math.max(ng<g.length?g[ng]:-Infinity,nf<f.length?f[nf]:-Infinity,nc<c.length?c[nc]:-Infinity);
+    s+=six>-Infinity?six:0;if(s>best)best=s;
+  }
+  const cc=coachByTeam[coach];
+  return .5*all+.5*best+cap+(cc?cc.x:0)+lam*(cred+(cc?cc.exp:0));
+}
+// One local search for one "What matters more" stop: the squad with the most points + lam × expected credit change.
+function searchPlan(lam){
   const pins=state.pins.filter(i=>byId[i]),avoids=new Set(state.avoids);
   const B=state.budget,maxT=state.maxT;
   let S=orig.players.filter(i=>byId[i]);let coach=orig.coach;
   const warnings=[];
   const pool=P.filter(p=>!avoids.has(p.id));
+  const obj=(ids,c)=>quickObj(ids,c,lam);
   const feasible=(ids,c,lim)=>cost(ids,c)<=B+1e-9&&clubOk(ids)&&trades(ids,c)<=lim;
   // forced swaps: avoided players out, pinned players in
   const force=(outId,inId)=>{S=S.map(i=>i===outId?inId:i);};
   for(const id of S.slice()){
     if(!avoids.has(id))continue;
     const p=byId[id];
-    const cands=pool.filter(q=>q.pos===p.pos&&!S.includes(q.id)).map(q=>{const T=S.map(i=>i===id?q.id:i);return {q,T,e:evalSquad(T,coach).obj,ok:cost(T,coach)<=B&&clubOk(T)};}).filter(c=>c.ok).sort((a,b)=>b.e-a.e);
+    const cands=pool.filter(q=>q.pos===p.pos&&!S.includes(q.id)).map(q=>{const T=S.map(i=>i===id?q.id:i);return {q,T,e:obj(T,coach),ok:cost(T,coach)<=B&&clubOk(T)};}).filter(c=>c.ok).sort((a,b)=>b.e-a.e);
     if(cands[0])force(id,cands[0].q.id);else warnings.push(`No affordable replacement for ${p.short}.`);
   }
   for(const id of pins){
     if(S.includes(id)||!byId[id])continue;
     const p=byId[id];
-    const outs=S.filter(i=>byId[i].pos===p.pos&&!pins.includes(i)).map(i=>{const T=S.map(j=>j===i?id:j);return {i,T,e:evalSquad(T,coach).obj,c:cost(T,coach)};}).sort((a,b)=>(a.c<=B)-(b.c<=B)||b.e-a.e).reverse();
+    const outs=S.filter(i=>byId[i].pos===p.pos&&!pins.includes(i)).map(i=>{const T=S.map(j=>j===i?id:j);return {i,T,e:obj(T,coach),c:cost(T,coach)};}).sort((a,b)=>(a.c<=B)-(b.c<=B)||b.e-a.e).reverse();
     const ok=outs.filter(o=>o.c<=B&&clubOk(o.T)).sort((a,b)=>b.e-a.e);
     const pick=ok[0]||outs.sort((a,b)=>a.c-b.c)[0];
     if(pick){S=pick.T;if(!ok[0])warnings.push(`${p.short} only fits if other moves free up credits.`);}
@@ -420,56 +441,93 @@ function optimise(){
   const lim=Math.max(maxT,forced);
   if(forced>maxT)warnings.push(`Your picks need ${forced} trades, more than the ${maxT} you allowed.`);
   const locked=new Set(pins);
-  let cur=evalSquad(S,coach).obj;
+  const base=S.slice(),baseCoach=coach,mine=new Set(orig.players);
+  // Any gain counts while searching. The squad usually spends the whole budget, so the best plan can start with a
+  // downgrade that only pays off through the upgrades it funds. MIN_GAIN is checked on the finished plan instead.
+  const EPS=1e-6;
+  let cur=obj(S,coach);
+  const isNew=id=>mine.has(id)?0:1;
   const tryImprove=()=>{
     let best=null;
-    for(const out of S){
-      if(locked.has(out))continue;
+    const spent=cost(S,coach),used=trades(S,coach);
+    S.forEach((out,k)=>{
+      if(locked.has(out))return;
       const po=byId[out];
+      const left=B+1e-9-(spent-po.price),tLeft=lim-(used-isNew(out));
       for(const q of pool){
-        if(q.pos!==po.pos||S.includes(q.id))continue;
-        const T=S.map(i=>i===out?q.id:i);
-        if(!feasible(T,coach,lim))continue;
-        const e=evalSquad(T,coach).obj;
-        if(e>cur+MIN_GAIN&&(!best||e>best.e))best={e,T,c:coach};
+        if(q.pos!==po.pos||q.price>left||isNew(q.id)>tLeft||S.includes(q.id))continue;
+        const T=S.slice();T[k]=q.id;
+        if(!clubOk(T))continue;
+        const e=obj(T,coach);
+        if(e>cur+EPS&&(!best||e>best.e))best={e,T,c:coach};
       }
-    }
+    });
     if(!state.coachPin)for(const cc of C){
       if(cc.team===coach)continue;
       if(!feasible(S,cc.team,lim))continue;
-      const e=evalSquad(S,cc.team).obj;
-      if(e>cur+MIN_GAIN&&(!best||e>best.e))best={e,T:S,c:cc.team};
+      const e=obj(S,cc.team);
+      if(e>cur+EPS&&(!best||e>best.e))best={e,T:S,c:cc.team};
     }
     if(best){S=best.T;coach=best.c;cur=best.e;return true;}return false;
   };
   const tryPair=()=>{
-    const free=S.filter(i=>!locked.has(i));
     const top={G:[],F:[],C:[]};
-    pool.filter(p=>!S.includes(p.id)).sort((a,b)=>(b.x+state.lam*b.exp)-(a.x+state.lam*a.exp)).forEach(p=>{if(top[p.pos].length<22)top[p.pos].push(p);});
-    let best=null;
-    for(let a=0;a<free.length;a++)for(let b=a+1;b<free.length;b++){
-      const A=byId[free[a]],Bp=byId[free[b]];
-      for(const qa of top[A.pos])for(const qb of top[Bp.pos]){
-        if(qa.id===qb.id)continue;
-        const T=S.map(i=>i===A.id?qa.id:i===Bp.id?qb.id:i);
-        if(!feasible(T,coach,lim))continue;
-        const e=evalSquad(T,coach).obj;
-        if(e>cur+2*MIN_GAIN&&(!best||e>best.e))best={e,T};
+    pool.filter(p=>!S.includes(p.id)).sort((a,b)=>(b.x+lam*b.exp)-(a.x+lam*a.exp)).forEach(p=>{if(top[p.pos].length<22)top[p.pos].push(p);});
+    const spent=cost(S,coach),used=trades(S,coach);
+    let best=null;const T=S.slice();
+    for(let a=0;a<S.length;a++)for(let b=a+1;b<S.length;b++){
+      const A=byId[S[a]],Bp=byId[S[b]];
+      if(locked.has(A.id)||locked.has(Bp.id))continue;
+      const left=B+1e-9-(spent-A.price-Bp.price),tLeft=lim-(used-isNew(A.id)-isNew(Bp.id));
+      const club={};S.forEach((i,k)=>{if(k!==a&&k!==b){const t=byId[i].team;club[t]=(club[t]||0)+1;}});
+      for(const qa of top[A.pos]){
+        if((club[qa.team]||0)>=6)continue;
+        for(const qb of top[Bp.pos]){
+          if(qa.id===qb.id||qa.price+qb.price>left||isNew(qa.id)+isNew(qb.id)>tLeft||(club[qb.team]||0)+(qb.team===qa.team)>=6)continue;
+          T[a]=qa.id;T[b]=qb.id;
+          const e=obj(T,coach);
+          if(e>cur+EPS&&(!best||e>best.e))best={e,a,b,qa:qa.id,qb:qb.id};
+        }
       }
+      T[a]=S[a];T[b]=S[b];
     }
-    if(best){S=best.T;cur=best.e;return true;}return false;
+    if(best){S=S.slice();S[best.a]=best.qa;S[best.b]=best.qb;cur=best.e;return true;}return false;
   };
   let guard=0;
-  while(guard++<40){ if(tryImprove())continue; if(trades(S,coach)<lim-1&&tryPair())continue; break; }
-  const ev=evalSquad(S,coach);
-  return {S,coach,ev,cost:cost(S,coach),trades:trades(S,coach),warnings};
+  while(guard++<40){ if(tryImprove())continue; if(tryPair())continue; break; }
+  // Undo the weakest trade while one adds less than MIN_GAIN. A trade that can't be undone within budget stays: it pays for the others.
+  for(;;){
+    let best=null;
+    S.forEach((id,k)=>{
+      if(id===base[k]||S.includes(base[k]))return;
+      const T=S.slice();T[k]=base[k];
+      if(!feasible(T,coach,lim))return;
+      const loss=cur-obj(T,coach);
+      if(loss<MIN_GAIN&&(!best||loss<best.loss))best={loss,T,c:coach};
+    });
+    if(coach!==baseCoach&&feasible(S,baseCoach,lim)){const loss=cur-obj(S,baseCoach);if(loss<MIN_GAIN&&(!best||loss<best.loss))best={loss,T:S,c:baseCoach};}
+    if(!best)break;
+    S=best.T;coach=best.c;cur=obj(S,coach);
+  }
+  return {S,coach,warnings};
+}
+// A local search can stall in a different place at each stop, so every stop takes the best of all five stops' plans by its own
+// objective. That also keeps the stops in order: points never rise and credit change never falls as the slider moves to team value.
+const planCache=new Map();
+function optimise(){
+  const key=JSON.stringify([state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
+  const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
+  const own=plan(state.lam);
+  const pick=[...STOPS].map(plan).reduce((a,p)=>quickObj(p.S,p.coach,state.lam)>quickObj(a.S,a.coach,state.lam)+1e-9?p:a,own);
+  const {S,coach}=pick;
+  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings};
 }
 
 /* ---------- render ---------- */
 function dayLabel(d){return (D.turns&&D.turns[d])||d;}
 function dayShort(d){return dayLabel(d).split(" ")[0];}
 let result,lastIns=null;const flashAt={};
-// optimise() takes up to ~125 ms, so results are cached per setting and the other stops are worked out in idle time.
+// optimise() runs all five stops' searches the first time a setting is seen (up to ~145 ms with unlimited trades), so results are cached per setting and the other stops are worked out in idle time.
 const optCache=new Map();
 function optimiseCached(){
   const k=JSON.stringify([state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.lam]);
@@ -485,7 +543,7 @@ function warmStops(){
 function render(){
   result=optimiseCached();
   const app=document.getElementById("app");
-  app.innerHTML=hero()+proposal()+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  app.innerHTML=hero()+proposal()+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective or frees credits for one that does. All-in on points always shows the most points any setting found. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
   warmStops();
 }
