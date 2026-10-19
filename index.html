@@ -1143,35 +1143,44 @@ function searchPlan(lam){
   };
   let guard=0;
   while(guard++<40){ if(tryImprove())continue; if(tryPair())continue; break; }
-  // Undo the weakest trade while one adds less than MIN_GAIN. A trade that can't be undone within budget stays: it pays for the others.
+  ({S,coach}=prunePlan(S,coach,base,baseCoach,lim,lam));
+  const over=cost(S,coach)-B;
+  if(over>1e-9)warnings.push(`Still ${over.toFixed(1)} credits over budget. Unpin a player or allow more trades.`);
+  const wi=warnings.findIndex(w=>w.includes("only fits if other moves free up credits"));
+  if(wi>=0&&over<=1e-9)warnings.splice(wi,1);
+  return {S,coach,warnings,base,baseCoach,lim};
+}
+// Undo the weakest trade while one adds less than MIN_GAIN at this lam. A trade that can't be undone within budget stays: it pays for the others.
+function prunePlan(S,coach,base,baseCoach,lim,lam){
+  const B=state.budget,obj=(ids,c)=>quickObj(ids,c,lam);
+  const feasible=(ids,c)=>cost(ids,c)<=B+1e-9&&clubOk(ids)&&trades(ids,c)<=lim;
+  let cur=obj(S,coach);
   for(;;){
     let best=null;
     S.forEach((id,k)=>{
       if(id===base[k]||S.includes(base[k]))return;
       const T=S.slice();T[k]=base[k];
-      if(!feasible(T,coach,lim))return;
+      if(!feasible(T,coach))return;
       const loss=cur-obj(T,coach);
       if(loss<MIN_GAIN&&(!best||loss<best.loss))best={loss,T,c:coach};
     });
-    if(coach!==baseCoach&&feasible(S,baseCoach,lim)){const loss=cur-obj(S,baseCoach);if(loss<MIN_GAIN&&(!best||loss<best.loss))best={loss,T:S,c:baseCoach};}
+    if(coach!==baseCoach&&feasible(S,baseCoach)){const loss=cur-obj(S,baseCoach);if(loss<MIN_GAIN&&(!best||loss<best.loss))best={loss,T:S,c:baseCoach};}
     if(!best)break;
     S=best.T;coach=best.c;cur=obj(S,coach);
   }
-  const over=cost(S,coach)-B;
-  if(over>1e-9)warnings.push(`Still ${over.toFixed(1)} credits over budget. Unpin a player or allow more trades.`);
-  const wi=warnings.findIndex(w=>w.includes("only fits if other moves free up credits"));
-  if(wi>=0&&over<=1e-9)warnings.splice(wi,1);
-  return {S,coach,warnings};
+  return {S,coach};
 }
-// A local search can stall in a different place at each stop, so every stop takes the best of all five stops' plans by its own
-// objective. That also keeps the stops in order: points never rise and credit change never falls as the slider moves to team value.
+// A local search can stall in a different place at each stop, so every stop also looks at the other stops' plans and takes the best
+// by its own objective. The borrowed plan then goes through the same 3-point check at this stop, so a trade that only pays off when
+// price growth counts more (e.g. a like-for-like swap for a likely riser) is not carried over to the points end.
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map();
 function optimise(){
   const key=JSON.stringify([curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
-  const own=plan(state.lam);
-  const pick=STOPS.map(plan).reduce((a,p)=>quickObj(p.S,p.coach,state.lam)>quickObj(a.S,a.coach,state.lam)+1e-9?p:a,own);
+  const own=plan(state.lam),score=p=>quickObj(p.S,p.coach,state.lam);
+  let pick=STOPS.map(plan).reduce((a,p)=>score(p)>score(a)+1e-9?p:a,own);
+  if(pick!==own){pick=prunePlan(pick.S,pick.coach,own.base,own.baseCoach,own.lim,state.lam);if(score(pick)<=score(own)+1e-9)pick=own;}
   const {S,coach}=pick;
   return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings};
 }
@@ -1210,7 +1219,7 @@ function render(){
   const body={
     team:()=>hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
-  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective or frees credits for one that does. All-in on points always shows the most points any setting found. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
 }
 function hero(){
@@ -1349,7 +1358,7 @@ function wmmText(i){
 function wmmField(){
   const i=stopIdx(),t=wmmText(i);
   const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===0?"first":j===4?"last":""}${j===i?" on":""}" style="left:${j*25}%">${esc(n)}</button>`).join("");
-  return `<div class="field wmm" style="grid-column:span 2"><label for="lam">What matters more</label><div class="wmm-ends"><span class="a" id="wmmA">${t.a}</span><span class="b" id="wmmB">${t.b}</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${i}" style="--f:${i/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
+  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="a" id="wmmA">${t.a}</span><span class="b" id="wmmB">${t.b}</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${i}" style="--f:${i/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
 }
 function wmmSync(i){
   const t=wmmText(i),r=document.getElementById("lam");
