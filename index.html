@@ -494,7 +494,31 @@ html.locked,html.locked body{overflow:hidden}
 .dr-id{display:flex;gap:14px;align-items:center;padding-right:44px}
 .dr-id .jersey{width:56px;height:56px;font-size:15px;flex:none}
 .dr-id h3{font-size:28px;font-weight:800;font-style:italic;line-height:1}
-.dr-act{display:flex;gap:8px;flex-wrap:wrap}
+.dr-nm{min-width:0}
+.dr-nmrow{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+.dr-icos{display:flex;gap:6px}
+.dr-icos .ico{position:relative;width:30px;height:30px;font-size:14px;background:var(--surface)}
+.dr-icos .ico:hover,.dr-icos .ico:focus-visible{color:var(--fg);border-color:var(--faint)}
+.dr-icos .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dr-icos .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.ico .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
+.ico .tip b{display:block}
+.ico:hover .tip,.ico:focus-visible .tip{opacity:1}
+/* next game strip under the tags */
+.ng{display:grid;gap:5px}
+.ng-h{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ng-s{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.ng-s>div{padding:8px 10px;border-left:1px solid var(--line-soft);min-width:0}
+.ng-s small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.ng-s>div>b{display:block;font-family:var(--display);font-size:19px;line-height:1.15}
+.ng-s em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ng-s .tp{color:var(--accent)} .ng-s .tc{color:var(--credit)}
+.ng-s .ng-who{border-left:0;display:flex;align-items:center;gap:8px}
+.ng-who .tb{width:26px;height:26px;font-size:9px}
+.ng-who b{display:block;font-size:13.5px;white-space:nowrap}
+.ng-who span:not(.tb){display:block;font-size:12px;color:var(--muted)}
+.ng-none{font-size:13px;color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:12px;background:var(--surface)}
+@media (max-width:520px){.ng-s{grid-template-columns:repeat(3,minmax(0,1fr))}.ng-s .ng-who{grid-column:1/-1;border-bottom:1px solid var(--line-soft)}.ng-s .ng-who+div{border-left:0}}
 .dr-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
 .dr-stats div{background:var(--surface);padding:10px 14px;min-width:0}
 .dr-stats small{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -568,7 +592,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .wmm-split{order:-1;flex-basis:100%}
   .wmm-stops button:not(.on):not(.first):not(.last){color:transparent}
 }
-@media (prefers-reduced-motion:reduce){.trade.fresh,.tx tr.fresh{animation:none}}
+@media (prefers-reduced-motion:reduce){.trade.fresh,.tx tr.fresh{animation:none}.ico .tip{transition:none}}
 @media (prefers-reduced-motion:no-preference){.pc,.mrow{transition:background .2s}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -1369,8 +1393,7 @@ function drawer(){
     const cr=bars(hist.map(h=>({v:h[2],vt:(h[2]>0?"+":"")+h[2],label:"R"+h[0],sub:h[1].toFixed(1),cls:h[2]>=0?"b-up":"b-dn",title:`After round ${h[0]}: ${h[1]} credits`})),{h:150});
     const net=hist.length&&p.start!=null?r1(p.price-p.start):null;
     body=`<div class="dsec"><div class="dsec-h"><h4>PIR per game</h4>${sw}</div>${g.length?pir:'<p class="note">No games yet.</p>'}<p class="note legend"><span class="li"><span class="lg b-hi"></span>EuroLeague, beat break-even</span><span class="li"><span class="lg b-lo"></span>below break-even</span>${state.allGames?'<span class="li"><span class="lg b-dom"></span>domestic (PIR estimated, does not score)</span>':""}</p><p class="note">Break-even is in fantasy points (PIR + 10% when the team wins).</p></div>
-    <div class="dsec"><div class="dsec-h"><h4>Credits gained and lost</h4><span class="muted">${p.start!=null?`started ${p.start.toFixed(1)} → now ${p.price.toFixed(1)}${net!=null?` (<b class="${net>=0?"pos":"neg"}">${fmt(net)}</b>)`:""}`:""}</span></div>${hist.length?cr:'<p class="note">No price changes yet.</p>'}<p class="note">Bars show the change after each round; the number under each bar is the price after that round.</p></div>
-    <div class="dsec"><h4>Next game</h4><p style="margin:4px 0 0">${p.opp?`${p.opp.ha==="H"?"vs":"@"} <b>${TEAMS[p.opp.opp][0]}</b> · ${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}`:"–"}. Projection <b>${p.x}</b> against break-even <b>${p.be}</b>, expected change <b class="${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</b>.${mu!=null?` ${TEAMS[p.opp.opp][0]} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s compared with the league average.`:""}</p></div>`;
+    <div class="dsec"><div class="dsec-h"><h4>Credits gained and lost</h4><span class="muted">${p.start!=null?`started ${p.start.toFixed(1)} → now ${p.price.toFixed(1)}${net!=null?` (<b class="${net>=0?"pos":"neg"}">${fmt(net)}</b>)`:""}`:""}</span></div>${hist.length?cr:'<p class="note">No price changes yet.</p>'}<p class="note">Bars show the change after each round; the number under each bar is the price after that round.</p></div>`;
   }else if(state.dtab==="games"){
     const rows=g.slice().reverse().map(x=>`<tr class="${x.el?"":"dom"}"><td>${esc(x.d.slice(8))}.${esc(x.d.slice(5,7))}</td><td>${x.el?"EL":esc(shortComp(x.comp))}</td><td>${x.ha==="A"?"@ ":""}${esc(x.el?TEAMS[x.opp]?TEAMS[x.opp][0]:x.opp:x.opp)}</td><td>${esc(x.res)}</td><td>${x.dnp?"DNP":x.min}</td><td>${x.dnp?"":x.pts}</td><td>${x.dnp?"":x.reb??"–"}</td><td>${x.dnp?"":x.ast??"–"}</td><td><b>${x.dnp?"":x.pir??"–"}${!x.el&&!x.dnp?"*":""}</b></td><td>${x.el?x.fpt:""}</td><td class="${x.cr>0?"pos":x.cr<0?"neg":""}">${x.cr!=null?fmt(x.cr):""}</td></tr>`).join("");
     body=`<div class="dsec"><div class="dsec-h"><h4>Game log</h4>${sw}</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Comp</th><th>Opponent</th><th>Result</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>PIR</th><th>FPT</th><th>± cr</th></tr></thead><tbody>${rows||'<tr><td colspan="11">No games yet.</td></tr>'}</tbody></table></div><p class="note">FantaSheet shows the last five EuroLeague games. * Domestic PIR is estimated from Sofascore (fouls drawn and blocks against are not published).</p></div>`;
@@ -1379,12 +1402,22 @@ function drawer(){
     const rows=nx.map(x=>{const inRound=x.el&&dayKeys.includes(x.d);return `<li class="fx${x.el?" el":""}"><div class="fx-d"><b>${esc(fmtShort(x.d))}</b><span>${esc(x.t)}</span></div><div class="fx-m"><b>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</b><span>${esc(x.comp)}${inRound?` · ${esc(D.roundLabel)}`:""}</span></div>${x.el?'<span class="ptag accent">Scores</span>':'<span class="ptag">Domestic</span>'}</li>`}).join("");
     body=`<div class="dsec"><h4>Next matches · ${TEAMS[p.team][0]}</h4>${nx.length?`<ul class="fxl">${rows}</ul>`:'<p class="note">No upcoming fixtures found.</p>'}<p class="note">Times are Banja Luka time. Only EuroLeague games score; domestic games right before a EuroLeague game can mean rest.</p></div>`;
   }
-  const stats=[["Price",p.price.toFixed(1)+" cr",(p.chg!=null?fmt(p.chg):"")+" last round"],["Projection",p.x,`break-even ${p.be}`],["Season FPT",p.fpt??"–",`${p.gp} games`],["PIR avg",p.pir??"–",p.pir2526!=null?`25-26: ${p.pir2526}`:""],["Minutes",p.min??"–","per game"],["Pts / Reb / Ast",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`,"per game"]];
+  // Must have / Leave out as icons beside the name; the tooltip says what each does
+  const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
+  const icos=`<span class="dr-icos"><button type="button" class="ico pin${pinOn?" on":""}" data-pin="${p.id}" aria-pressed="${pinOn}" aria-label="Must have: always put this player in the proposal">★<span class="tip" aria-hidden="true"><b>Must have</b>Always put this player in the proposal.</span></button><button type="button" class="ico no${noOn?" on":""}" data-no="${p.id}" aria-pressed="${noOn}" aria-label="Leave out: never put this player in the proposal">✕<span class="tip" aria-hidden="true"><b>Leave out</b>Never put this player in the proposal.</span></button></span>`;
+  // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
+  const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>Next game</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
+      <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
+      <div><small>Projection</small><b class="tp">${p.x}</b><em>break-even ${p.be}</em></div>
+      <div><small>Exp. change</small><b class="${r1(p.exp)<0?"neg":"tc"}">${fmt(r1(p.exp))} cr</b><em>after this round</em></div>
+      <div><small>Matchup</small>${mu!=null?`<b class="${mu<0?"neg":mu>0?"pos":""}">${mu>0?"+":""}${mu}%</b><em>PIR for ${POSN[p.pos].toLowerCase()}s</em>`:`<b class="muted">–</b><em>no data</em>`}</div></div></div>`
+    :`<div class="ng-none">No EuroLeague game this round.</div>`;
+  const stats=[["Price",p.price.toFixed(1)+" cr",(p.chg!=null?fmt(p.chg):"")+" last round"],["Last 3 FPT",p.l3??"–","last 3 EuroLeague games"],["Season FPT",p.fpt??"–",`${p.gp} games`],["PIR avg",p.pir??"–",p.pir2526!=null?`25-26: ${p.pir2526}`:""],["Minutes",p.min??"–","per game"],["Pts / Reb / Ast",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`,"per game"]];
   const inner=`
    <div class="dr-top" style="--tc:${TEAMS[p.team][1]}"><button type="button" class="dr-x" data-close aria-label="Close">✕</button>
-    <div class="dr-id">${jersey(p.team,p.pos)}<div><h3>${esc(p.name)}</h3><div class="muted">${tname(p.team)} · ${POSN[p.pos]}${p.status?` · <b class="neg">${esc(p.status)}</b>`:""}</div></div></div>
+    <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="dr-nmrow"><h3>${esc(p.name)}</h3>${icos}</div><div class="muted">${tname(p.team)} · ${POSN[p.pos]}${p.status?` · <b class="neg">${esc(p.status)}</b>`:""}</div></div></div>
     <div class="ptags">${tagHtml(p,10)}</div>
-    <div class="dr-act"><button type="button" class="chip-toggle${state.pins.includes(p.id)?" on":""}" data-pin="${p.id}">★ Must have</button><button type="button" class="chip-toggle${state.avoids.includes(p.id)?" on":""}" data-no="${p.id}">✕ Leave out</button></div>
+    ${nextGame}
    </div>
    <div class="dr-stats">${stats.map(([k,v,s])=>`<div><small>${k}</small><b>${v}</b><span>${esc(s)}</span></div>`).join("")}</div>
    <div class="dr-tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${state.dtab===k}" class="${state.dtab===k?"on":""}">${l}</button>`).join("")}</div>
@@ -1472,7 +1505,7 @@ function proposalParts(R){
   lastIns=ins;
   // this round's game in words; in the Matchups proposal also how easy that defence is for the player's position
   const game=p=>{if(!p.opp)return "";const m=state.pmode==="m"&&p.pos?matchup(p):null;
-    return `${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}${m!=null?` <i class="${m>0?"up":m<0?"dn":""}" title="${esc(TEAMS[p.opp.opp]?.[0]||p.opp.opp)} give ${POSN[p.pos].toLowerCase()}s ${Math.abs(m)} PIR ${m>=0?"more":"less"} than average">${m>0?"+":""}${m} PIR</i>`:""}`;};
+    return `${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}${m!=null?` <i class="${m>0?"up":m<0?"dn":""}" title="${esc(TEAMS[p.opp.opp]?.[0]||p.opp.opp)} allow ${m>0?"+":""}${m}% PIR to ${POSN[p.pos].toLowerCase()}s compared with the league average">${m>0?"+":""}${m}%</i>`:""}`;};
   // One table, one row per trade: Out → In, then what the trade does to the bank, projected points and price rise.
   // The small grey line under each change is the out → in value it comes from.
   const num=(v,c)=>{v=r1(v);return `<span class="${v===0?"z":v<0&&c?"neg":c}">${fmt(v,1)}</span>`;};
