@@ -9,7 +9,7 @@
  "day": "ALL",
  "sort": "x",
  "only": false,
- "dtab": "overview",
+ "dtab": "games",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -19,5 +19,5 @@
  "rf": "mine",
  "rg": null,
  "pmode": "q",
- "savedAt": "2026-10-19T14:23:09.941Z"
+ "savedAt": "2026-10-19T14:23:20.966Z"
 }
