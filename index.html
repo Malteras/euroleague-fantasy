@@ -1216,6 +1216,9 @@ function searchPlan(lam){
   const warnings=[];
   const pool=P.filter(p=>!avoids.has(p.id));
   const obj=(ids,c)=>quickObj(ids,c,lam);
+  // A new coach must win this round at least as often as yours: never lose this round's coach game for credits or for next round.
+  // A coach you pin yourself is your call.
+  const oc=coachByTeam[orig.coach],coachOk=cc=>!oc||cc.pw>=oc.pw;
   const feasible=(ids,c,lim)=>cost(ids,c)<=B+1e-9&&clubOk(ids)&&trades(ids,c)<=lim;
   // forced swaps: avoided players out, pinned players in
   const force=(outId,inId)=>{S=S.map(i=>i===outId?inId:i);};
@@ -1256,7 +1259,7 @@ function searchPlan(lam){
       }
     }
     if(!state.coachPin)for(const cc of C){
-      if(cc.price>=coachByTeam[coach].price)continue;
+      if(cc.price>=coachByTeam[coach].price||!coachOk(cc))continue;
       if(trades(S,cc.team)>lim)continue;
       const e=obj(S,cc.team),fits=cost(S,cc.team)<=B+1e-9;
       const score=(fits?1e6:0)+e+(c0-cost(S,cc.team))*2;
@@ -1287,7 +1290,7 @@ function searchPlan(lam){
       }
     });
     if(!state.coachPin)for(const cc of C){
-      if(cc.team===coach)continue;
+      if(cc.team===coach||!coachOk(cc))continue;
       if(!feasible(S,cc.team,lim))continue;
       const e=obj(S,cc.team);
       if(e>cur+EPS&&(!best||e>best.e))best={e,T:S,c:cc.team};

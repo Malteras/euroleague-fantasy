@@ -13,4 +13,5 @@ Matchup bonus = his projection × how much more (or less) PIR that opponent allo
 - Price rise, captain and lineup stay this round only. The look-ahead affects only which trades are picked.
 - Coaches count half of their next-round projection (a win chance), in both proposals. Proposal 1 players have no look-ahead.
 - Out this round counts as out next round too: zero for both.
+- A coach trade must not lower this round's win chance (Ognjen, 19 Oct 2026). Otherwise the look-ahead and the credits it frees could swap in a coach who will probably lose this round.
 - The look-ahead stops at the next round. Things change too much after that, and you can trade again before it.
