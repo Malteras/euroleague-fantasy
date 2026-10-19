@@ -1,5 +1,7 @@
 {
- "pins": [],
+ "pins": [
+  73
+ ],
  "avoids": [],
  "coachPin": null,
  "budget": 99.6,
@@ -19,5 +21,5 @@
  "calOpen": true,
  "rf": "mine",
  "rg": null,
- "savedAt": "2026-10-19T17:37:51.250Z"
+ "savedAt": "2026-10-19T17:38:07.550Z"
 }
