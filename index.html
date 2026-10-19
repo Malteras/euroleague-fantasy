@@ -61,6 +61,14 @@ section{padding-block:28px 8px}
 .sec-head h2{font-size:30px;font-weight:800}
 
 /* hero / round strip */
+.watch{margin-top:20px;padding:14px 16px;border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--r);background:var(--surface)}
+.watch-h{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.watch-h h2{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0}
+.watch-h span{color:var(--muted);font-size:13px}
+.watch ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.watch li{display:flex;gap:8px;align-items:baseline;font-size:14.5px;line-height:1.45}
+.watch li .tag{flex:none}
+@media (max-width:600px){.watch li{flex-direction:column;align-items:flex-start;gap:3px}}
 .cal{margin-top:20px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 .cal-h{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;cursor:pointer}
 .cal-h:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r)}
@@ -1430,7 +1438,7 @@ function render(){
    if(tp&&ex2&&ex2.dataset.tpid===tp){/* keep open, no re-animation */}else tr.innerHTML=html;}
   document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
   const body={
-    team:()=>hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
+    team:()=>watchBox()+hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
   app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
@@ -1935,16 +1943,66 @@ function gameBox(r,{rows,dnp}){
   return `<div class="rg-box">${tabs}${tbl(act)||'<p class="note" style="margin:8px 0 0">No box score for this team\'s fantasy players.</p>'}${dn.length?`<p class="rg-dnp">Did not play: ${dn.map(x=>`${plink(x.p,x.p.short)} <span class="muted">(${x.why})</span>`).join(", ")}</p>`:""}
     ${r.dom?'<p class="note" style="margin:8px 0 0">Domestic games don\'t score in fantasy. PIR≈ is estimated (fouls drawn and blocks against are not published). Green break-even = he played at a level that would raise his price.</p>':(r.note?`<p class="note" style="margin:8px 0 0">${linkify(r.note)}</p>`:"")}</div>`;
 }
+// Players named in the "Out"/"Doubtful" news lines ("Name (CLUB), ..."): known players by id, the rest by name
+function newsAbsences(){
+  const byId=new Map(),extra=[];
+  const byNameTeam=(n,t)=>P.find(p=>p.name===n&&(!t||p.team===t));
+  (D.news||[]).filter(n=>/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag)).forEach(n=>{
+    n.txt.split(/,\s*/).forEach(part=>{const m=part.trim().match(/^(.+?)\s*\(([A-Z]{3})\)$/);if(!m)return;
+      const p=byNameTeam(m[1].trim(),m[2]);if(p){if(!byId.has(p.id))byId.set(p.id,n.tag);}else extra.push({name:m[1].trim(),team:m[2],st:n.tag});});
+  });
+  return {byId,extra};
+}
+/* ---------- watch before the deadline ----------
+   Availability news that can change this round's call, for your squad and the proposal's incoming players: who is out
+   or doubtful, who sat out his last game, and whose recent numbers came while a key teammate was out (Etienne scored
+   22 and 27 without Hifi, 6 on average with him). The projection does not know about teammates, so these are the
+   calls to make by hand before trades close. */
+const MATE_FPT=12,MATE_GAP=6; // a teammate counts from 12 FPT a game; flag a gap of 6+ FPT a game without him
+// p's recent EuroLeague games split by whether teammate t played. t's log lists only the games he played, so a date
+// inside his log window that is missing from it is a game he missed. Needs two games each way.
+function mateSplit(p,t){
+  const tl=t.log||[];if(!tl.length)return null;
+  const td=new Set(tl.map(g=>g.d)),from=tl.length>=(t.gp||0)?"":tl[tl.length-1].d;
+  const g=(p.log||[]).filter(x=>x.d>=from&&x.fpt!=null),w=g.filter(x=>td.has(x.d)),wo=g.filter(x=>!td.has(x.d));
+  if(w.length<2||wo.length<2)return null;
+  return {w:avg(w.map(x=>x.fpt)),wo:avg(wo.map(x=>x.fpt)),nw:w.length,nwo:wo.length};
+}
+function watchItems(){
+  if(!result)return [];
+  const mine=orig.players.filter(i=>byId[i]),pairs=tradePairs(result),inFor=new Map(pairs.filter(x=>x[1]!=null).map(([o,i])=>[i,o]));
+  const kept=mine.filter(i=>result.S.includes(i)),who=[...inFor.keys(),...kept].map(i=>byId[i]); // incoming players first: their lines decide a trade
+  const news=newsAbsences().byId,items=[],f1=x=>x.toFixed(1);
+  // out or doubtful: kept players only, the optimiser already trades away or skips the ones it knows are out
+  who.forEach(p=>{const st=p.status||news.get(p.id);if(!st)return;const tr=inFor.has(p.id);
+    items.push({tag:st,txt:`${plink(p)} is listed ${esc(st.toLowerCase())}${tr?`. Check before you bring him in for ${plink(byId[inFor.get(p.id)])}`:". Bench or trade him if he is not back"}.`});});
+  // a key teammate out (or just back) and this player's numbers depend on it
+  who.forEach(p=>{if(p.out||!p.log.length)return;
+    P.forEach(t=>{if(t.team!==p.team||t.id===p.id||(t.fpt||0)<MATE_FPT)return;
+      const missed=t.log.length?p.log.filter(x=>x.d>t.log[0].d).length:0;if(!t.out&&!missed)return;
+      const s=mateSplit(p,t);if(!s||s.wo-s.w<MATE_GAP)return;
+      const o=inFor.has(p.id)?byId[inFor.get(p.id)]:null,day=esc(dayShort(p.day));
+      const why=`${t.out?`${plink(t)} is listed out.`:`${plink(t)} missed ${esc(p.short)}'s last ${missed>1?missed+" games":"game"} and is not listed out.`} ${plink(p)} averaged ${f1(s.wo)} FPT without him (${s.nwo} games) and ${f1(s.w)} with him (${s.nw}).`;
+      const call=inFor.has(p.id)?(o?` <b>${esc(t.short)} out on ${day} → make ${esc(o.short)} → ${esc(p.short)}. He plays → keep ${esc(o.short)}.</b>`:` <b>${esc(t.short)} out on ${day} → bring in ${esc(p.short)}. He plays → skip it.</b>`)
+        :` <b>If ${esc(t.short)} plays on ${day}, expect less from ${esc(p.short)}.</b>`;
+      items.push({tag:`Depends on ${t.short}`,txt:why+call});});});
+  // sat out his club's last game, often a rest day before a EuroLeague game
+  who.forEach(p=>{if(p.out||p.status)return;const d=(p.dom||[])[0];if(!d||!d.dnp||(p.log[0]&&p.log[0].d>d.d))return;
+    items.push({tag:"Missed last game",txt:`${plink(p)} sat out ${esc((TEAMS[p.team]||[p.team])[0])}'s last game (${esc(fmtShort(d.d))}, domestic). Often rest; check he plays ${esc(dayShort(p.day))}.`});});
+  return items;
+}
+function watchBox(){
+  const items=watchItems();if(!items.length)return "";
+  const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+  return `<section class="watch" aria-labelledby="watchH"><div class="watch-h"><h2 id="watchH">Watch before the deadline</h2><span>Trades close ${esc(dayLabel(D.deadline))}${tip?" "+esc(tip):""}</span></div>
+    <ul>${items.map(x=>`<li><span class="tag ${/^(out|doubtful)$/i.test(x.tag)?esc(x.tag):"Doubtful"}">${esc(x.tag)}</span><span>${x.txt}</span></li>`).join("")}</ul></section>`;
+}
 function newsPanel(){
   // absences: player statuses + names in "Out"/"Doubtful" news lines, grouped by club
   const out=new Map();
   P.forEach(p=>{if(p.status)out.set(p.id,{p,st:p.status});});
-  const byNameTeam=(n,t)=>P.find(p=>p.name===n&&(!t||p.team===t));
-  const extra=[];
-  (D.news||[]).filter(n=>/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag)).forEach(n=>{
-    n.txt.split(/,\s*/).forEach(part=>{const m=part.trim().match(/^(.+?)\s*\(([A-Z]{3})\)$/);if(!m)return;
-      const p=byNameTeam(m[1].trim(),m[2]);if(p){if(!out.has(p.id))out.set(p.id,{p,st:n.tag});}else extra.push({name:m[1].trim(),team:m[2],st:n.tag});});
-  });
+  const na=newsAbsences(),extra=na.extra;
+  na.byId.forEach((st,id)=>{if(!out.has(id))out.set(id,{p:byId[id],st});});
   const list=[...out.values()].map(x=>({name:x.p.name,team:x.p.team,st:x.st,p:x.p})).concat(extra);
   const mineOut=list.filter(x=>x.p&&orig.players.includes(x.p.id));
   const clubs={};list.forEach(x=>{(clubs[x.team]=clubs[x.team]||[]).push(x);});
