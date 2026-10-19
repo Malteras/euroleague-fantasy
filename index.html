@@ -767,7 +767,7 @@ function init(data){
     const o=oppOf[c.team],pr=winP(c.team,o),x=cProj(pr);
     // the look-ahead counts half of next round's game too, in both proposals (docs/adr/0001)
     const o2=nextOf[c.team],pw2=o2?winP(c.team,o2):null;
-    return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:rec[c.team],opp2:o2,pw2,nx:LOOK_ON&&o2?r1(LOOK*cProj(pw2)):0};
+    return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:rec[c.team],opp2:o2,pw2,x2:o2?cProj(pw2):0,nx:LOOK_ON&&o2?LOOK*cProj(pw2):0};
   });
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   savedTeam=teamFrom(SQUAD||D.squad);
@@ -1069,9 +1069,9 @@ function matchup(p,o=p.opp){
   const v=D.defence[o.opp]["vs_"+p.pos.toLowerCase()];return v==null?null:v;
 }
 /* ---------- look-ahead ----------
-   A trade stays after this round, so Proposal 2 also counts half of next round's matchup (coaches: half of next round's
-   game, in both proposals). Only the matchup, not the whole next-round projection: see docs/adr/0001. Off when the next
-   round is a free-trade window, where any trade can be undone for free. */
+   A trade stays after this round, so Proposal 2 also counts half of his next-round projection: his quality with next round's
+   matchup (coaches: half of next round's game, in both proposals). See docs/adr/0001. Off when the next round is a
+   free-trade window, where any trade can be undone for free. */
 const LOOK=0.5;let LOOK_ON=true;const nextOf={};
 // Each club's first EuroLeague game after this round. Sofascore gives the opponent's full name; newer data has its code (oc),
 // older data is matched by the names this round's games use.
@@ -1172,14 +1172,16 @@ function capPlan(ids){
 const MT=0.5; // trust in the defence numbers: about half, they come from only a few games
 const mBonus=(p,x=p.x)=>{const m=matchup(p);return m==null||p.out?0:r1(MT*x*m/100);};
 // next round's part of the look-ahead: half its matchup bonus. Out this round counts as out next round too.
-const nBonus=p=>{const m=matchup(p,p.opp2);return m==null||p.out?0:r1(LOOK*MT*(p.xq??p.x)*m/100);};
+// next round's projection: his normal projection with next round's matchup bonus. Out this round counts as out next round too,
+// and no next game found means nothing to count.
+const nProj=p=>{if(p.out||!p.opp2)return 0;const x=p.xq??p.x,m=matchup(p,p.opp2);return r1(x+(m==null?0:MT*x*m/100));};
 let curMode="q"; // which proposal's projections P.x holds right now; part of the optimiser cache key
 function withMode(mode,fn){
   const prev=curMode;curMode=mode==="m"?"m":"q";
   try{
     if(mode!=="m")return fn();
-    const keep=P.map(p=>p.x);P.forEach(p=>{p.xq=p.x;p.x=r1(p.x+mBonus(p));p.nx=LOOK_ON?nBonus(p):0;});
-    try{return fn();}finally{P.forEach((p,i)=>{p.x=keep[i];p.nx=0;});}
+    const keep=P.map(p=>p.x);P.forEach(p=>{p.xq=p.x;p.x=r1(p.x+mBonus(p));p.x2=nProj(p);p.nx=LOOK_ON?LOOK*p.x2:0;});
+    try{return fn();}finally{P.forEach((p,i)=>{p.x=keep[i];p.nx=0;p.x2=0;});}
   }finally{curMode=prev;}
 }
 let resultAlt=null;
@@ -1422,7 +1424,7 @@ function render(){
   const body={
     team:()=>hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
-  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. A trade also counts half of next round's matchup (Proposal 2) or next round's game (coaches). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
 }
 function hero(){
@@ -1456,7 +1458,7 @@ function modeBar(){
   const q=m?alt:cur,mm=m?cur:alt;
   const btn=(v,t,sub,R)=>`<button type="button" class="pm${(v==="m")===m?" on":""}" data-pmode="${v}" aria-pressed="${(v==="m")===m}"><b>${t}</b><small>${sub}</small>${R?`<span class="pm-k">${sum(R)}</span>`:""}</button>`;
   return `<div class="pmodes" role="group" aria-label="Proposal type">${btn("q","Proposal 1 · Quality","Best players by projection and price growth",q)}${btn("m","Proposal 2 · Matchups","Attacks this round's weak defences by position",mm)}</div>
-  <p class="note pm-note">${m?`Proposal 2 adds a matchup bonus to each projection: if his opponent lets his position score 20% more than an average team (see the Teams tab), his projection goes up 10%. Half the percentage, because it comes from only a few games.${LOOK_ON?" A trade stays after this round, so it also counts half of next round's matchup. Captain, lineup and price rise use this round only.":""}`:`Proposal 1 uses the normal projection: half FantaSheet's expected score, half his recent form. Matchups are not added on top.${LOOK_ON?" Coaches also count half of next round's game.":""}`}</p>`;
+  <p class="note pm-note">${m?`Proposal 2 adds a matchup bonus to each projection: if his opponent lets his position score 20% more than an average team (see the Teams tab), his projection goes up 10%. Half the percentage, because it comes from only a few games.${LOOK_ON?" A trade stays after this round, so it also counts half of his projected points next round. Captain, lineup and price rise use this round only.":""}`:`Proposal 1 uses the normal projection: half FantaSheet's expected score, half his recent form. Matchups are not added on top.${LOOK_ON?" Coaches also count half of next round's game.":""}`}</p>`;
 }
 function proposalHead(){
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
@@ -1631,8 +1633,8 @@ function proposalParts(R){
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
     const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">· ${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${[role,game(p)].filter(Boolean).join(" · ")}</small>`}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
-    // grey out → in beside the bars: this round's projections; next round's matchup points (a coach: his next-game projection)
-    const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>fmt(p.nx/LOOK,1),a)} → ${ow(p=>fmt(p.nx/LOOK,1),b)}`;
+    // grey out → in beside the bars: this round's projections, then next round's (the striped bar is half the difference)
+    const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>(p.x2||0).toFixed(1),a)} → ${ow(p=>(p.x2||0).toFixed(1),b)}`;
     const pts=LA?rBars(dp,dn,rN,rN2,w1,w2):r1(dn)?`${num(dp+dn,"tp")}<span class="was">${fmt(r1(dp),1)} now · ${fmt(r1(dn),1)} next</span>`:`${num(dp,"tp")}${was(a,b,p=>p.x.toFixed(1))}`;
     return `<tr class="tx-r${fresh(key)}"><td><div class="tx-pair">${who(a,"o")}<span class="tx-ar" aria-label="traded for">→</span>${who(b,"i")}</div></td>
       <td>${num(fr,"")}${was(a,b,p=>p.price.toFixed(1))}</td>
@@ -1655,7 +1657,7 @@ function proposalParts(R){
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
     capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td><td></td></tr>`;}
   const foot=nTr>1||capRow?`<tfoot><tr><td>Total · ${nTr} trade${nTr===1?"":"s"}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
-  const laNote=LA?`<div class="rb-legend"><span><i></i>${rN}, this round</span><span><i class="h"></i>${rN2}, counts half (its matchup only)</span><span class="rb-legend-w">Grey numbers, out → in: ${rN} projected points; ${rN2} matchup points (coaches: next game's projection)</span></div>`
+  const laNote=LA?`<div class="rb-legend"><span><i></i>${rN}, this round</span><span><i class="h"></i>${rN2}, counts half</span><span class="rb-legend-w">Grey numbers, out → in: projected points in ${rN} and in ${rN2}</span></div>`
     :state.pmode==="m"&&!LOOK_ON?`<p class="note" style="margin:10px 0 0">Round ${D.round+1} is a free-trade window, so these trades are judged on this round only.</p>`:"";
   const noTrades=!pairs.length&&!coachChanged;
   // your picks that shape the trades, each with its own undo: kept squad players and pinned new ones
@@ -1672,7 +1674,7 @@ function proposalParts(R){
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
     <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`;
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
-  const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's matchup and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
+  const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
     return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?`${fmt(r1(b.x-a.x),1)} now · ${fmt(r1(b.nx-a.nx),1)} next`:`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
   const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
@@ -1680,7 +1682,7 @@ function proposalParts(R){
 }
 // Two small bars for one trade with the look-ahead: this round solid, half of next round striped, one zero line, the total under them
 // ⓘ in the column header: how the grey numbers and the bars are worked out
-const rbInfo=(r,r2)=>`<button type="button" class="ico rb-info" aria-label="How these numbers work" aria-describedby="rbTip">i<span class="tip" id="rbTip" role="tooltip"><b>${r}: this round</b>Projected points, out → in. The bar is the difference.<b>${r2}: next round</b>Matchup points, out → in: his projection × how much more (or less) that defence lets his position score × ½. A player who barely plays gets almost nothing. The striped bar is half the difference, because next round counts half.<b>Coaches</b>${r2} is the next game's projection, from both teams' records and home court.<b>Total</b>${r} + ${r2}. Captain, lineup and price rise use this round only.</span></button>`;
+const rbInfo=(r,r2)=>`<button type="button" class="ico rb-info" aria-label="How these numbers work" aria-describedby="rbTip">i<span class="tip" id="rbTip" role="tooltip"><b>${r}: this round</b>Projected points, out → in: his projection with this round's matchup. The bar is the difference.<b>${r2}: next round</b>Projected points, out → in: his projection with next round's matchup. A matchup changes a projection by half the percentage: a defence that lets centres score 30% more adds 15%. The striped bar is half the difference, because next round counts half.<b>Coaches</b>Projected from the win chance: both teams' records and home court.<b>Total</b>${r} + ${r2}. Captain, lineup and price rise use this round only.</span></button>`;
 // w1 / w2: the grey "out → in" numbers each bar comes from (left out on the total row)
 function rBars(a,b,l1,l2,w1="",w2=""){
   const Z=40,K=100/17; // zero at 40% of the track; the track spans 17 points

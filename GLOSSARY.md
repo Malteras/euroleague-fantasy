@@ -35,7 +35,7 @@ How much the opponent lets a player's position score, as a percentage above or b
 _Avoid_: Score spread, fixture difficulty
 
 **Look-ahead**:
-Counting the next round's matchup at half weight when judging a trade made this round. Covers this round and the next one only, and never changes who starts or captains this round.
+Counting half of a player's next-round projection, with that round's matchup, when judging a trade made this round. Covers this round and the next one only, and never changes who starts or captains this round.
 _Avoid_: Horizon, fixture run, multi-round
 
 **Proposal**:
