@@ -170,27 +170,37 @@ section{padding-block:28px 8px}
 .trade small{color:var(--muted);font-size:12px}
 .arrow{color:var(--faint);text-align:center}
 .ptrades{margin-top:16px}
-.trade.fresh,.ttbl.fresh{animation:fresh 1.4s ease-out}
-/* trade compare tables: Out → In, with the difference in the Change column */
-.ttbl{border:1px solid var(--line-soft);border-radius:12px;overflow-x:auto;margin-top:8px}
-.ttbl.ttot{border-color:var(--line);margin-top:12px}
-.tt{width:100%;min-width:480px;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
-.tt col.c-l{width:27%} .tt col.c-o,.tt col.c-i{width:22%} .tt col.c-a{width:6%} .tt col.c-d{width:23%}
-.tt th,.tt td{padding:7px 10px;text-align:right;border-top:1px solid var(--line-soft);vertical-align:middle}
-.tt thead th{border-top:0;font-weight:700}
-.tt th:first-child,.tt td:first-child{text-align:left;color:var(--muted);font-weight:600}
-.tt thead th:first-child{color:var(--fg);font-family:var(--display);font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
-.tt th.o b{color:var(--bad)} .tt th.i b{color:var(--good)}
-.tt tbody tr.proj td{background:var(--raise)}
-/* one Out / In caption over all trade tables; the 1px side padding matches the tables' border */
-.tcap{padding:0 1px;overflow:hidden}
-.tcap .tt thead th{padding-block:2px 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.tcap .tt th.o,.tcap .tt th.i{color:var(--muted)}
-/* Out values end at the arrow and In values start after it, so the arrow sits midway between the two players */
-.tt th:nth-child(4),.tt td:nth-child(4){text-align:left}
-.tt th b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tt th small{display:block;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tt th.ar{text-align:center;color:var(--good);font-size:22px;font-weight:800;line-height:1}
+.trade.fresh,.tx tr.fresh{animation:fresh 1.4s ease-out}
+/* trades: one row per trade, Out → In with club badges and this round's game, then what the trade changes */
+.tx{overflow-x:auto}
+.tx table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tx th{padding:0 8px 6px;text-align:right;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);vertical-align:bottom}
+.tx td{padding:10px 8px;text-align:right;border-top:1px solid var(--line-soft);vertical-align:middle;font-weight:700}
+.tx td+td{white-space:nowrap}
+.tx th:first-child,.tx td:first-child{text-align:left;padding-left:0}
+.tx th:last-child,.tx td:last-child{padding-right:0}
+/* every row splits the column the same way, so all the In players start on one line */
+.tx-pair{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px 10px;min-width:0}
+.tx-ar{flex:none;color:var(--faint);font-weight:800}
+.tx-p{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto}
+.tx-p .tb{width:28px;height:28px;font-size:10px}
+.tx-p>span:last-child{min-width:0}
+.tx-p b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-p.o b,.tx-p.o .plink{color:var(--bad)} .tx-p.i b,.tx-p.i .plink{color:var(--good)}
+.tx-p small{display:block;font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-p small i{font-style:normal;font-weight:700} .tx-p small i.up{color:var(--good)} .tx-p small i.dn{color:var(--bad)}
+.tx .was{display:block;font-size:11.5px;font-weight:500;color:var(--faint);white-space:nowrap}
+.tx .tp{color:var(--accent)} .tx .tc{color:var(--credit)} .tx .neg{color:var(--bad)} .tx .z{color:var(--faint)}
+.tx tfoot td{border-top:2px solid var(--line);font-weight:800}
+.tx tfoot td:first-child{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.02em}
+@media (max-width:640px){
+  .tx-pair{grid-template-columns:minmax(0,1fr)}
+  .tx-ar{display:none}
+  .tx-p .tb{width:22px;height:22px;font-size:8.5px}
+  .tx .was,.tx .u{display:none}
+  .tx td{padding-inline:6px}
+  .tx th{letter-spacing:.04em}
+}
 /* "Just missed": trades under the bar at this setting */
 .near{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
 .near-h{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -200,7 +210,6 @@ section{padding-block:28px 8px}
 .near-r b.o{color:var(--bad)} .near-r b.i{color:var(--good)} .near-r .ar{color:var(--good);font-weight:800}
 .near-r .tp{color:var(--accent);font-weight:700} .near-r .tc{color:var(--credit);font-weight:700}
 .chip-toggle.sm{padding:4px 10px;font-size:12.5px}
-.tt td.d{font-weight:800} .tt .tp{color:var(--accent)} .tt .tc{color:var(--credit)} .tt td.neg{color:var(--bad)}
 @keyframes fresh{from{background:var(--accent-soft);box-shadow:0 0 0 6px var(--accent-soft)}to{background:transparent;box-shadow:0 0 0 6px transparent}}
 .coachline{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--raise);margin-top:6px;font-size:14px}
 .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
@@ -558,7 +567,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .wmm-split{order:-1;flex-basis:100%}
   .wmm-stops button:not(.on):not(.first):not(.last){color:transparent}
 }
-@media (prefers-reduced-motion:reduce){.trade.fresh,.ttbl.fresh{animation:none}}
+@media (prefers-reduced-motion:reduce){.trade.fresh,.tx tr.fresh{animation:none}}
 @media (prefers-reduced-motion:no-preference){.pc,.mrow{transition:background .2s}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -1454,32 +1463,28 @@ function proposalParts(R){
   // returns the rest of a class attribute: ` fresh" style="…` while the flash runs, else ""
   const fresh=k=>{if(k==null)return "";if(prevIns&&!prevIns.includes(k))flashAt[k]=now;const e=now-(flashAt[k]??-1e9);return e<1400?` fresh" style="animation-delay:-${e}ms`:"";};
   lastIns=ins;
-  const mu=p=>state.pmode==="m"&&p.opp?` · ${p.opp.ha==="H"?"vs":"@"} ${p.opp.opp} ${matchup(p)!=null?(matchup(p)>0?"+":"")+matchup(p):""}`:"";
-  // One compare table per trade: price, projection and expected price change for the player out and in, and the difference.
-  // All tables share the same column widths, so the total table underneath lines up with every Change column.
-  const cols='<colgroup><col class="c-l"><col class="c-o"><col class="c-a"><col class="c-i"><col class="c-d"></colgroup>';
-  const dcell=(v,unit,c)=>`<td class="d ${v<0?"neg":c}">${fmt(r1(v),1)}${unit}</td>`;
-  const bankCell=fr=>`<td class="d">${fr>=0?"frees":"costs"} ${Math.abs(r1(fr)).toFixed(1)}</td>`;
+  // this round's game in words; in the Matchups proposal also how easy that defence is for the player's position
+  const game=p=>{if(!p.opp)return "";const m=state.pmode==="m"&&p.pos?matchup(p):null;
+    return `${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}${m!=null?` <i class="${m>0?"up":m<0?"dn":""}" title="${esc(TEAMS[p.opp.opp]?.[0]||p.opp.opp)} give ${POSN[p.pos].toLowerCase()}s ${Math.abs(m)} PIR ${m>=0?"more":"less"} than average">${m>0?"+":""}${m} PIR</i>`:""}`;};
+  // One table, one row per trade: Out → In, then what the trade does to the bank, projected points and price rise.
+  // The small grey line under each change is the out → in value it comes from.
+  const num=(v,c)=>{v=r1(v);return `<span class="${v===0?"z":v<0&&c?"neg":c}">${fmt(v,1)}</span>`;};
+  const was=(a,b,f)=>`<span class="was">${a?f(a):"–"} → ${b?f(b):"–"}</span>`;
   const tot={dp:0,dc:0,fr:0};
-  const table=(label,a,b,key,name,sub)=>{
+  const row=(a,b,key,name,role)=>{
     const dp=(b?b.x:0)-(a?a.x:0),dc=(b?b.exp:0)-(a?a.exp:0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dc+=dc;tot.fr+=fr;
-    const who=p=>p?`<b>${name(p)}</b><small>${sub(p)}</small>`:"—";
-    const v=(p,f)=>p?f(p):"–";
-    return `<div class="ttbl${fresh(key)}"><table class="tt">${cols}<thead><tr><th>${label}</th><th class="o">${who(a)}</th><th class="ar" aria-label="traded for">→</th><th class="i">${who(b)}</th><th>Change</th></tr></thead><tbody>
-      <tr><td>Price</td><td>${v(a,p=>p.price.toFixed(1))}</td><td></td><td>${v(b,p=>p.price.toFixed(1))}</td>${bankCell(fr)}</tr>
-      <tr class="proj"><td>Projected points</td><td>${v(a,p=>p.x)}</td><td></td><td>${v(b,p=>p.x)}</td>${dcell(dp," pts","tp")}</tr>
-      <tr class="proj"><td>Expected price change</td><td>${v(a,p=>fmt(r1(p.exp),1))}</td><td></td><td>${v(b,p=>fmt(r1(p.exp),1))}</td>${dcell(dc," cr","tc")}</tr></tbody></table></div>`;
+    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}</b><small>${[role,game(p)].filter(Boolean).join(" · ")}</small></span></span>`:`<span class="tx-p ${side}">—</span>`;
+    return `<tr class="tx-r${fresh(key)}"><td><div class="tx-pair">${who(a,"o")}<span class="tx-ar" aria-label="traded for">→</span>${who(b,"i")}</div></td>
+      <td>${num(fr,"")}${was(a,b,p=>p.price.toFixed(1))}</td>
+      <td>${num(dp,"tp")}${was(a,b,p=>p.x.toFixed(1))}</td>
+      <td>${num(dc,"tc")}${was(a,b,p=>fmt(r1(p.exp),1))}</td></tr>`;
   };
   const nTr=pairs.length+(coachChanged?1:0);
-  // Out / In are labelled once, above all the trade tables (same columns, so they sit over every name)
-  let tr=`<div class="tcap" aria-hidden="true"><table class="tt">${cols}<thead><tr><th></th><th class="o">Out</th><th></th><th class="i">In</th><th></th></tr></thead></table></div>`
-   +pairs.map(([o,i],k)=>table(`Trade ${k+1}`,byId[o],byId[i],i??null,p=>plink(p),p=>p.team+mu(p))).join("")
-   +(coachChanged?table(`Trade ${pairs.length+1}`,coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),()=>"Coach"):"");
-  if(nTr>1)tr+=`<div class="ttbl ttot"><table class="tt">${cols}<thead><tr><th>Total</th><th></th><th></th><th></th><th>All ${nTr} trades</th></tr></thead><tbody>
-      <tr><td>Price</td><td></td><td></td><td></td>${bankCell(tot.fr)}</tr>
-      <tr class="proj"><td>Projected points</td><td></td><td></td><td></td>${dcell(tot.dp," pts","tp")}</tr>
-      <tr class="proj"><td>Expected price change</td><td></td><td></td><td></td>${dcell(tot.dc," cr","tc")}</tr></tbody></table></div>`;
+  const rows=pairs.map(([o,i])=>row(byId[o],byId[i],i??null,p=>plink(p),""))
+    .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach")]:[]).join("");
+  const foot=nTr>1?`<tfoot><tr><td>Total · ${nTr} trades</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${num(tot.dp,"tp")}<span class="u"> pts</span></td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td></tr></tfoot>`:"";
+  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>Projected points</th><th>Price rise</th></tr></thead><tbody>${rows}</tbody>${foot}</table></div>`;
   const noTrades=!pairs.length&&!coachChanged;
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
