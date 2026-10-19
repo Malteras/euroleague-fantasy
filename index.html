@@ -16,6 +16,7 @@
   --accent:#27b7c4; --accent-soft:rgba(39,183,196,.14); --accent-ink:#04252a;
   --good:#3fcf8f; --good-soft:rgba(63,207,143,.14); --bad:#f2637d; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15);
   --be:#8e9bb6; --credit:#f3b64b;
+  --court-a:#1d2a3f; --court-b:#152036; --court-line:rgba(255,255,255,.10);
   --display:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
   --r:12px;
@@ -26,13 +27,13 @@
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#0d8a97; --accent-soft:rgba(13,138,151,.10); --accent-ink:#ffffff;
   --good:#12935c; --good-soft:rgba(18,147,92,.10); --bad:#c8304d; --bad-soft:rgba(200,48,77,.09); --warn:#b7770a; --warn-soft:rgba(183,119,10,.11);
-  --be:#56637d; --credit:#c07c08; color-scheme:light;}}
+  --be:#56637d; --credit:#c07c08; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#0d8a97; --accent-soft:rgba(13,138,151,.10); --accent-ink:#ffffff;
   --good:#12935c; --good-soft:rgba(18,147,92,.10); --bad:#c8304d; --bad-soft:rgba(200,48,77,.09); --warn:#b7770a; --warn-soft:rgba(183,119,10,.11);
-  --be:#56637d; --credit:#c07c08; color-scheme:light;}
+  --be:#56637d; --credit:#c07c08; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); color-scheme:light;}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
@@ -50,7 +51,8 @@ h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.01e
 .brand h1{font-size:24px;font-weight:800;font-style:italic;line-height:1}
 .brand .eyebrow{font-size:11px}
 .top nav{display:flex;gap:4px;margin-left:auto;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:3px}
-.top nav a{text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;padding:6px 12px;border-radius:7px}
+.top nav a{text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;padding:6px 12px;border-radius:7px;white-space:nowrap}
+.top nav{overflow-x:auto;scrollbar-width:none;max-width:100%}.top nav::-webkit-scrollbar{display:none}
 .top nav a:hover{color:var(--fg)}
 .top nav a.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 0 var(--line)}
 
@@ -59,14 +61,39 @@ section{padding-block:28px 8px}
 .sec-head h2{font-size:30px;font-weight:800}
 
 /* hero / round strip */
-.round{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;padding-block:22px 0}
+.cal{margin-top:20px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.cal-h{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;cursor:pointer}
+.cal-h:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r)}
+.cal-t{display:flex;flex-direction:column;gap:2px;min-width:0}.cal-t b{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+.cal-t small{color:var(--muted);font-size:13px}
+.cal-more{display:flex;align-items:center;gap:6px;color:var(--accent);font-weight:600;font-size:14px;white-space:nowrap}
+.cal-more .chev{display:inline-block;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-4px;transition:transform .15s}
+.cal.open .cal-more .chev{transform:rotate(225deg);margin-top:4px}
+.cal .days{padding:0 12px 12px}
+.round{display:grid;grid-template-columns:1fr;gap:16px;padding-block:22px 0}
 .round-title{display:flex;flex-direction:column;gap:6px}
+.datechip{align-self:flex-start;font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
 .round-title h2{font-size:clamp(34px,6vw,54px);font-weight:800;font-style:italic;line-height:.95}
 .round-title h2 span{color:var(--accent)}
-.days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;min-width:0}
-.day b{font-family:var(--display);font-size:17px;text-transform:uppercase;display:block}
-.day small{color:var(--muted);display:block;font-size:12.5px;line-height:1.5}
+.days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0;overflow:hidden}
+.day-h{display:flex;justify-content:space-between;align-items:end;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--line-soft);background:var(--raise)}
+.day-h b{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;display:block;line-height:1.05}
+.turn{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+.day-n{font-size:12px;color:var(--muted);white-space:nowrap}
+.games{list-style:none;margin:0;padding:4px 0}
+.game{display:grid;grid-template-columns:42px minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:6px;padding:8px 14px;position:relative}
+.game+.game{border-top:1px solid var(--line-soft)}
+.game.has-mine{background:linear-gradient(90deg,var(--accent-soft),transparent 70%)}
+.game.has-mine::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.gt{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted)}
+.gside{display:flex;align-items:center;gap:7px;min-width:0}
+.gside.away{justify-content:flex-end}
+.tn{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs{font-size:11px;color:var(--faint);text-align:center;text-transform:uppercase;font-weight:700}
+.tb{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:10.5px;letter-spacing:.02em;color:#fff;background:var(--tc);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18),0 0 0 1px var(--line)}
+.gmine{grid-column:2/-1;font-size:11.5px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmine::before{content:"Your players: ";font-weight:600;color:var(--muted)}
 
 /* panels */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px}
@@ -75,7 +102,7 @@ section{padding-block:28px 8px}
 .field label{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .num-input{background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%;font-weight:700;font-size:18px}
 .seg{display:flex;background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
-.seg button{flex:1;border:0;background:none;border-radius:6px;padding:6px 8px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;min-width:34px}
+.seg button{flex:1;border:0;background:none;border-radius:6px;padding:6px 8px;font-weight:600;font-size:14px;color:var(--muted);cursor:pointer;min-width:34px;white-space:nowrap}
 .seg button.on{background:var(--accent);color:var(--accent-ink)}
 /* what matters more: points (teal) vs credit growth (amber) split bar with 5 named stops */
 .wmm{gap:0}
@@ -138,6 +165,7 @@ section{padding-block:28px 8px}
 .trade b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trade small{color:var(--muted);font-size:12px}
 .arrow{color:var(--faint);text-align:center}
+.ptrades{margin-top:16px}
 .trade.fresh{animation:fresh 1.4s ease-out}
 @keyframes fresh{from{background:var(--accent-soft);box-shadow:0 0 0 6px var(--accent-soft)}to{background:transparent;box-shadow:0 0 0 6px transparent}}
 .coachline{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--raise);margin-top:6px;font-size:14px}
@@ -194,6 +222,75 @@ section{padding-block:28px 8px}
 
 /* coaches + results */
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.res-two{align-items:start}
+.res-col{display:flex;flex-direction:column;gap:10px;min-width:0}.res-col>.seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.res-col>.seg::-webkit-scrollbar{display:none}.res-col>.seg button{flex:1 0 auto;padding:7px 14px}
+.rg-day{padding:10px 14px 4px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--raise);border-top:1px solid var(--line-soft)}
+.rg-day:first-child{border-top:0;border-radius:16px 16px 0 0}
+.rg{border-top:1px solid var(--line-soft)}
+.rg-row{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto 14px;grid-template-areas:"t s c" "m s c";gap:2px 12px;align-items:center;padding:10px 14px;cursor:pointer}
+.rg-row:hover{background:var(--raise)}.rg-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rg-t{grid-area:t;display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}.rg-t b{font-size:14.5px}.rg-t .opp{font-size:14.5px;color:var(--fg)}.rg-t .vs{color:var(--faint);font-size:12px}
+.rg-t .tb{width:26px;height:26px;font-size:9px}
+.rg-meta{grid-area:m;font-size:12.5px;color:var(--muted)}.rg-mine{color:var(--accent);font-weight:700}
+.rg-row .score{grid-area:s}
+.rg-row .chev{grid-area:c;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-top:-4px}
+.rg.open .rg-row .chev{transform:rotate(225deg);margin-top:4px}
+.rg.dom .rg-row{opacity:.92}
+.rg-box{padding:4px 14px 14px;background:var(--raise)}
+.rg-team+.rg-team{margin-top:12px}.rg-th{display:flex;align-items:center;gap:8px;margin:8px 0 4px}.rg-th .tb{width:24px;height:24px;font-size:9px}
+.rg-tbl{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--surface);border-radius:10px;overflow:hidden}
+.rg-tbl th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line-soft)}
+.rg-tbl td{padding:6px 8px;border-top:1px solid var(--line-soft)}.rg-tbl .n{text-align:right;font-variant-numeric:tabular-nums}
+.rg-tbl tr.mine-r td{background:var(--accent-soft)}
+.rg-p{display:flex;align-items:center;gap:8px;min-width:0}.rg-p .jersey{width:26px;height:26px;font-size:9px;flex:none}.rg-p .jersey::after{display:none}
+.rg-you{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.tlink{cursor:pointer}.tlink:hover{box-shadow:0 0 0 2px var(--accent)}.tlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tb.big{width:56px;height:56px;font-size:15px;flex:none}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.tcard{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer}
+.tcard:hover{border-color:var(--accent)}.tcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tc-n{display:flex;flex-direction:column;gap:2px;min-width:0}.tc-n b{font-size:16px}.tc-n small{color:var(--muted);font-size:12.5px}
+.tp-body{display:flex;flex-direction:column;gap:12px;padding-top:14px;padding-bottom:20px}
+.tp-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.tp-card h4{margin:0 0 8px;font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+.tp-bar{display:grid;grid-template-columns:78px minmax(80px,1fr) 40px minmax(0,150px);gap:8px;align-items:center;padding:4px 0;font-size:13.5px}
+.tp-k{font-weight:700}.tp-track{position:relative;height:10px;border-radius:999px;background:var(--raise);overflow:hidden}
+.tp-mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:var(--line)}
+.tp-fill{position:absolute;top:0;bottom:0}.tp-fill.plus{background:var(--good)}.tp-fill.minus{background:var(--bad)}
+.tp-v{font-family:var(--display);font-weight:800;font-size:17px;text-align:right}.tp-v.bad{color:var(--good)}.tp-v.good{color:var(--bad)}
+.tp-vt{font-size:12.5px;color:var(--muted)}.tp-vt.bad{color:var(--good);font-weight:600}.tp-vt.good{color:var(--bad);font-weight:600}
+.tp-line{margin:8px 0 0;font-size:14px}
+.tp-warn{padding:10px 12px;border-radius:12px;background:var(--warn-soft);font-size:14px}
+.tp-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tp-pl li{display:flex;align-items:center;gap:10px}.tp-pl .jersey{width:32px;height:32px;font-size:10px;flex:none}.tp-pl .jersey::after{display:none}
+.tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}.tp-pl .plink{font-weight:700}.tp-pl small{color:var(--muted);font-size:12.5px}
+.tp-form{display:flex;flex-wrap:wrap;gap:6px}
+.tp-g{padding:4px 9px;border-radius:999px;font-weight:800;font-size:13px}.tp-g small{font-weight:500;color:var(--muted)}
+.tp-g.w{background:var(--good-soft);color:var(--good)}.tp-g.l{background:var(--bad-soft);color:var(--bad)}
+.tp-next{list-style:none;margin:0;padding:0;font-size:14px}.tp-next li{display:flex;gap:12px;padding:3px 0}.tp-next li span:first-child{color:var(--muted);width:90px}
+@media (max-width:520px){.tp-bar{grid-template-columns:70px minmax(60px,1fr) 36px}.tp-vt{grid-column:1/-1;margin-top:-2px}}
+.rg-tabs{display:flex;gap:6px;margin:8px 0}
+.rg-tabs button{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:5px 10px 5px 5px;font:600 13.5px var(--body);color:var(--muted);cursor:pointer}
+.rg-tabs button .tb{width:24px;height:24px;font-size:9px}.rg-tabs button span:last-child{font-size:11.5px;color:var(--faint)}
+.rg-tabs button.on{border-color:var(--accent);color:var(--fg);box-shadow:0 0 0 2px var(--accent-soft)}
+.rg-dnp{margin:8px 0 0;font-size:13px}
+@media (max-width:520px){.rg-tbl th:nth-child(4),.rg-tbl td:nth-child(4){display:none}.rg-tbl{font-size:12.5px}.rg-tbl td,.rg-tbl th{padding:6px 5px}}
+.news-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.news-card{padding:16px}
+.nc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.nc-h h3{font-size:22px;margin:2px 0 0}
+.nc-mine{font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px}
+.nc-mine.ok{background:var(--good-soft);color:var(--good)}.nc-mine.bad{background:var(--bad-soft);color:var(--bad)}
+.ab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.ab-club{border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px;background:var(--raise)}
+.ab-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}.ab-h b{flex:1;font-size:14px}.ab-h>span:last-child{font-size:12px;font-weight:700;color:var(--bad);background:var(--bad-soft);border-radius:999px;padding:1px 8px}
+.ab-club ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.ab{display:flex;align-items:center;gap:8px;font-size:14px}
+.ab small{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.ab-pos{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800;background:var(--surface);border:1px solid var(--line);color:var(--muted);flex:none}
+.ab.mine-ab{color:var(--bad);font-weight:700}
+.news-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.news-list li{display:flex;gap:8px;align-items:baseline;font-size:14.5px}
 .list{display:flex;flex-direction:column}
 .lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 14px;border-top:1px solid var(--line-soft);align-items:center}
 .lrow:first-child{border-top:0}
@@ -210,6 +307,189 @@ section{padding-block:28px 8px}
 .ptag.warn{background:var(--warn-soft);color:var(--warn)} .ptag.accent{background:var(--accent-soft);color:var(--accent)}
 .bl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 #report .two{row-gap:20px}
+/* my team */
+.mt-actions{display:flex;gap:8px;flex-wrap:wrap}
+.plink{all:unset;cursor:pointer;color:inherit;font:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:2px}
+.plink:hover{color:var(--accent);text-decoration-color:currentColor}.plink:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.btn-primary.sm{padding:7px 12px;font-size:13.5px}
+.sg-keep{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--good-soft);font-size:14px}
+.sg-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.sg-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.sg-top{display:flex;align-items:center;gap:12px}.sg-top .jersey{flex:none}
+.sg-n{flex:1;min-width:0;display:flex;flex-direction:column}.sg-n .plink{font-weight:700;font-size:15.5px}.sg-n small{color:var(--muted);font-size:12.5px}
+.sg-s{text-align:right}.sg-s b{font-family:var(--display);font-size:24px;line-height:1}.sg-s small{display:block;font-size:11px;color:var(--muted)}
+.sg-why{margin:10px 0 0;padding-left:18px;font-size:13.5px;display:flex;flex-direction:column;gap:3px}
+.sg-btns{display:flex;gap:6px;flex-wrap:wrap}
+.cmp-t{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14px}
+.cmp-t th,.cmp-t td{padding:9px 10px;text-align:left;vertical-align:top;border-top:1px solid var(--line-soft)}
+.cmp-t thead th{border-top:0;background:var(--raise);vertical-align:middle}
+.cmp-t thead th:not(:first-child){width:38%}
+.cmp-t thead th>span{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:8px}.cmp-t thead .jersey{width:30px;height:30px;font-size:10px;vertical-align:middle}.cmp-t thead .jersey::after{display:none}
+.cmp-t thead .plink{font-weight:700}.cmp-t thead small{color:var(--muted);font-size:12px;font-weight:500}
+.cmp-t tbody th{font-weight:600;color:var(--muted);font-size:13px}
+.cmp-t td.win{background:var(--good-soft)}
+.cmp-act{display:flex;justify-content:space-between;gap:10px;margin-bottom:20px}
+.sg-act{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}.sg-act .muted{font-size:12.5px}
+.pmodes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:720px;margin-top:8px}
+.pm{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer}
+.pm b{font-family:var(--display);font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+.pm small{color:var(--muted);font-size:13px}.pm .pm-k{margin-top:4px;font-weight:700;font-size:13px;color:var(--fg)}
+.pm.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--accent-soft)}.pm.on b{color:var(--accent)}
+.pm:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pm-note{margin:6px 0 0;max-width:72ch}
+@media (max-width:520px){.pmodes{grid-template-columns:1fr}}
+.plan{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px}.pc-h .muted{font-size:13px}
+.pcourt .court{min-height:300px}
+.slot.static{cursor:default}.slot.static:hover{transform:none}
+.slot.static .plink{font-weight:700;font-size:13.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.newp{border-color:var(--good);box-shadow:0 0 0 2px var(--good-soft),0 4px 14px rgba(0,0,0,.12)}
+.b-new,.b-six{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:999px;white-space:nowrap}
+.b-new{background:var(--good);color:#fff}.b-six{background:var(--good-soft);color:var(--good);border:1px solid var(--good-soft)}
+.pbench{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-top:6px}
+.pbench .slot{width:auto;box-shadow:none;padding:9px 3px 7px}.pbench .slot small{font-size:11px}
+.pbench .jersey{width:34px;height:34px;font-size:11px}
+.ptl h3{margin-bottom:12px}
+.tl{list-style:none;margin:0;padding:0}
+.tl>li{position:relative;margin-left:7px;padding:0 0 20px 22px;border-left:2px solid var(--line)}
+.tl>li:last-child{border-left-color:transparent;padding-bottom:4px}
+.tl>li::before{content:"";position:absolute;left:-8px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:3px solid var(--accent)}
+.tl>li.now::before{background:var(--accent)}
+.tl-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.tl-h b{font-family:var(--display);font-size:21px;font-weight:800;text-transform:uppercase;line-height:1}
+.tl-h small{color:var(--muted);font-size:13px}
+.tl-lbl{margin:12px 0 4px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tl-txt{margin:0 0 4px;font-size:14.5px}
+.tl-trades .trade{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:6px;background:var(--surface)}
+.tl-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}.tl-act .note{font-size:12.5px;max-width:46ch;margin:0}
+.tl-who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tl-p{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--line-soft)}
+.tl-p small{color:var(--muted)}.tl-p.r-cap{background:var(--warn-soft);border-color:var(--warn)}.tl-p.r-start{background:var(--accent-soft)}.tl-p.r-bench{opacity:.75}
+.tl-warn{margin-top:8px;padding:7px 11px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:13.5px}
+@media (max-width:900px){.plan{grid-template-columns:1fr}}
+@media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
+@media (max-width:760px){.mt-save{justify-content:stretch}.mt-save .btn-primary{flex:1}}
+.btn-primary{border:0;border-radius:10px;padding:10px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.mt-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
+.court{position:relative;border-radius:18px;padding:22px 14px 26px;display:flex;flex-direction:column;gap:14px;
+  background:linear-gradient(180deg,var(--court-a),var(--court-b));border:1px solid var(--line);overflow:hidden;min-height:330px;justify-content:space-around}
+.court-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.court-lines *{fill:none;stroke:var(--court-line);stroke-width:2}
+.crow{display:flex;justify-content:space-evenly;gap:10px;position:relative;flex-wrap:wrap}
+.syncpill{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:999px;align-self:center;white-space:nowrap}
+.syncpill.ok{background:var(--good-soft);color:var(--good)}.syncpill.busy{background:var(--accent-soft);color:var(--accent)}.syncpill.bad{background:var(--bad-soft);color:var(--bad)}
+.connect{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;margin:0 0 12px;border:1px solid var(--accent);border-radius:var(--r);background:var(--accent-soft)}
+.connect>div{flex:1 1 260px;display:flex;flex-direction:column;gap:2px}.connect small{color:var(--muted);font-size:13px}
+.connect input{flex:0 1 180px;min-width:0;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit}
+.formbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.formbar .seg{flex-wrap:wrap}
+.formbar .seg button{white-space:nowrap;padding-left:10px;padding-right:10px}
+@media (max-width:420px){.formbar .seg button{padding-left:6px;padding-right:6px;font-size:12px;flex:1}}
+.appliedbox{padding:10px 12px;border-radius:10px;background:var(--good-soft);color:var(--fg);font-size:14px}
+.slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:104px;padding:10px 6px 8px;border-radius:14px;border:1px solid var(--line);background:var(--surface);cursor:pointer;color:inherit;font:inherit;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .15s,border-color .15s}
+.slot:hover{transform:translateY(-2px)}
+.slot b{font-size:13.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slot small{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.slot .jersey{width:40px;height:40px;font-size:12px}
+.slot.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),0 4px 14px rgba(0,0,0,.2)}
+.slot.over{border-color:var(--warn);border-style:dashed}
+.slot.empty{border-style:dashed;background:color-mix(in srgb,var(--surface) 70%,transparent);box-shadow:none;min-height:96px;justify-content:center}
+.plus{font-family:var(--display);font-size:28px;line-height:1;color:var(--accent)}
+.capb{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:var(--warn);color:#1d1300;font-weight:800;font-size:11px;display:grid;place-items:center}
+.mt-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbl{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.bench{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bench .slot{width:auto}
+.benchrow .slot{width:104px}
+.coachslot{width:100%;flex-direction:row;justify-content:space-between;padding:12px 14px}
+.coachslot.empty{flex-direction:row;justify-content:center;gap:8px;min-height:auto}
+.mt-money{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.tv{font-family:var(--display);font-size:30px;font-weight:800;line-height:1}.tv small{font-size:14px;color:var(--muted)}
+.selbar{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent)}
+.selbtns{display:flex;gap:6px;flex-wrap:wrap}
+.checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chk{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+.chk.ok{background:var(--good-soft);color:var(--good)}.chk.bad{background:var(--bad-soft);color:var(--bad)}
+.savehelp{margin-top:12px;padding:14px;border-radius:14px;background:var(--surface);border:1px solid var(--accent)}
+.savehelp a{color:var(--accent);font-weight:700}
+.savehelp textarea{width:100%;margin-top:10px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--raise);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+/* picker */
+.pickbox{position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 24px));max-height:min(80vh,720px);display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.45);overflow:hidden}
+.pk-h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 6px;position:relative}
+.pk-h h3{font-size:22px;font-weight:800}
+.pk-h .dr-x{position:static}
+.pk-tools{display:flex;gap:8px;padding:6px 16px 10px;flex-wrap:wrap}
+.pk-head,.pk{display:grid;grid-template-columns:minmax(0,1fr) 54px 48px;gap:10px;align-items:center}
+.pk-head{padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.pk-list{overflow-y:auto;padding:4px 8px 10px}
+.pk{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:8px;border-radius:10px;cursor:pointer;grid-template-columns:34px minmax(0,1fr) 54px 48px}
+.pk:hover{background:var(--raise)}
+.pk .jersey{width:34px;height:34px;font-size:10.5px}
+.pk.dis{opacity:.4;cursor:not-allowed}
+.pk-n{min-width:0}.pk-n b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pk-n small{display:block;font-size:12px;color:var(--muted)}
+.pk-p,.pk-x{text-align:right;font-weight:700}.pk-x{font-family:var(--display);font-size:17px}
+button.pk[data-pk-coach]{grid-template-columns:minmax(0,1fr) 54px 48px}
+@media (max-width:760px){.mt-grid{grid-template-columns:1fr}.slot{width:96px}.slot.coachslot{width:100%}.bench .slot{padding:8px 4px}.bench .slot b{font-size:12px}}
+@media (max-width:420px){.slot{width:88px}.crow{gap:6px}}
+/* collapsible days */
+.day-h{width:100%;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.day-h:hover{background:var(--line-soft)}
+.chev{display:inline-block;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-left:10px;position:relative;top:-2px;transition:transform .2s}
+.day.shut .chev{transform:rotate(-45deg);top:0}
+.day.shut .day-h{border-bottom:0}
+.pc{cursor:pointer}.pc:hover{border-color:var(--line)}
+/* drawer */
+html.locked,html.locked body{overflow:hidden}
+.scrim{position:fixed;inset:0;background:rgba(5,10,20,.55);z-index:40;animation:fade .2s}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--bg);z-index:41;overflow-y:auto;box-shadow:-20px 0 50px rgba(0,0,0,.35);animation:slide .25s cubic-bezier(.2,.8,.2,1);padding-bottom:max(24px,env(safe-area-inset-bottom,0px))}
+@keyframes slide{from{transform:translateX(100%)}to{transform:none}}@keyframes fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim{animation:none}}
+.dr-top{position:relative;padding:calc(18px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 14px 18px;background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 32%,var(--surface)),var(--surface) 70%);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.dr-x{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:15px}
+.dr-id{display:flex;gap:14px;align-items:center;padding-right:44px}
+.dr-id .jersey{width:56px;height:56px;font-size:15px;flex:none}
+.dr-id h3{font-size:28px;font-weight:800;font-style:italic;line-height:1}
+.dr-act{display:flex;gap:8px;flex-wrap:wrap}
+.dr-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.dr-stats div{background:var(--surface);padding:10px 14px;min-width:0}
+.dr-stats small{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.dr-stats b{display:block;font-family:var(--display);font-size:22px;line-height:1.1}
+.dr-stats span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-tabs{display:flex;gap:4px;padding:10px 14px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+.dr-tabs button{border:0;background:none;padding:10px 12px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.dr-tabs button.on{color:var(--fg);border-bottom-color:var(--accent)}
+.dr-body{padding:6px 14px 0}
+.dsec{padding:14px 0;border-bottom:1px solid var(--line-soft)}
+.dsec:last-child{border-bottom:0}
+.dsec h4{font-family:var(--display);font-size:18px;font-weight:800;text-transform:uppercase;margin:0}
+.dsec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.seg.sm button{padding:4px 10px;font-size:13px}
+#day button,#pos button{flex:1 0 auto}
+#maxT button{white-space:normal}
+.chart-scroll{overflow-x:auto;margin:0 -4px}
+.chart{display:block;max-width:none}
+.chart .g{stroke:var(--line-soft)}.chart .z{stroke:var(--line);stroke-width:1.2}
+.chart .ax{fill:var(--muted);font-size:10.5px;font-family:var(--body)}.chart .ax.sm{font-size:9.5px;fill:var(--faint)}
+.chart .vl{fill:var(--fg);font-size:11px;font-weight:700;font-family:var(--body)}
+.chart .bel{stroke:var(--be);stroke-width:1.5;stroke-dasharray:5 4}.chart .belt{fill:var(--be);font-size:10.5px;font-weight:700;font-family:var(--body)}
+.b-hi{fill:var(--accent)}.b-lo{fill:var(--faint)}.b-dom{fill:var(--warn)}.b-dnp{fill:var(--line)}.b-up{fill:var(--good)}.b-dn{fill:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.lg{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.li{display:inline-flex;align-items:center;white-space:nowrap;margin-right:12px}
+.chart .vl.neg{fill:var(--bad)}
+.lg.b-hi{background:var(--accent)}.lg.b-lo{background:var(--faint)}.lg.b-dom{background:var(--warn)}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+.tbl th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px;border-bottom:1px solid var(--line-soft)}
+.tbl tr.dom td{color:var(--muted)}.tbl tr.dom td b{color:var(--warn)}
+.fxl{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.fx{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line-soft)}
+.fx.el{border-color:var(--accent);background:linear-gradient(90deg,var(--accent-soft),var(--surface) 60%)}
+.fx-d b,.fx-m b{display:block}.fx-d span,.fx-m span{display:block;font-size:12px;color:var(--muted)}
+.fx-m{min-width:0}.fx-m b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who[role=button]{cursor:pointer}
 footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 .loading{padding:60px 0;text-align:center;color:var(--muted)}
 
@@ -224,7 +504,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .mobile-only{display:block}
 }
 @media (max-width:760px){
-  .round{grid-template-columns:1fr}
+  .days{grid-template-columns:1fr}
   .ctrl{grid-template-columns:1fr 1fr}
   .tiles{grid-template-columns:1fr 1fr}
   .tile:nth-child(2){border-right:0}
@@ -232,9 +512,10 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .board{grid-template-columns:1fr}
   .two{grid-template-columns:1fr}
   .side{grid-template-columns:1fr}
+  .dr-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .detail{grid-template-columns:1fr}
   .top nav{margin-left:0;width:100%}
-  .top nav a{flex:1;text-align:center;padding-inline:6px}
+  .top nav a{flex:none;text-align:center;padding-inline:10px}
 }
 /* narrow: keep every tick, but only the current stop and the two ends get words */
 @media (max-width:520px){
@@ -255,15 +536,17 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
       <div class="eyebrow">EuroLeague Fantasy · round planner</div>
     </div>
     <nav aria-label="Sections">
-      <a href="#proposal" class="on">Proposal</a>
-      <a href="#report">Report</a>
-      <a href="#market">Players</a>
-      <a href="#coaches">Coaches</a>
-      <a href="#results">Results</a>
+      <a href="#team" data-page="team" class="on">My team</a>
+      <a href="#report" data-page="report">Report</a>
+      <a href="#players" data-page="players">Players</a>
+      <a href="#teams" data-page="teams">Teams</a>
+      <a href="#coaches" data-page="coaches">Coaches</a>
+      <a href="#results" data-page="results">Results</a>
     </nav>
   </div>
 </header>
 
+<div id="picker-root"></div><div id="team-root"></div><div id="drawer-root"></div>
 <main class="wrap" id="app">
   <div class="loading" id="loading">Loading player data…</div>
 </main>
@@ -274,23 +557,66 @@ const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","
 const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
-let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig;const capOpt=new Set();const MIN_GAIN=3;
+let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,tp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
 // "What matters more" stops: lam = how many points one credit of expected price rise is worth. Default (20) sits in the middle.
 const STOPS=[0,10,20,35,60];
 const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
 const STOP_DESC=["Picks whoever should score most. Price changes are ignored.","Points come first. A likely price rise only settles a close call.","Weighs points and price rises evenly. This is the default.","Takes a few fewer points for players likely to go up in price.","Buys players likely to go up in price, even if they score less."];
-let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null};
+let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
+const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
-state.lam=STOPS[stopIdx()]; // older saves used 0–60 in steps of 5
-function save(){try{const {open,q,...rest}=state;localStorage.setItem(LS,JSON.stringify(rest));}catch(e){}}
+snapLam();
+if(state.maxT!==4&&state.maxT!==99)state.maxT=state.maxT>=10?99:4;
+/* sync across devices: only on the Vercel site, which has /api. GitHub Pages has no /api, so it stays local. */
+const PASSK="fazani-pass";
+const SYNC={mode:"off",pass:"",status:"",timer:null};
+try{SYNC.pass=localStorage.getItem(PASSK)||"";}catch(e){}
+const PAGES=["team","report","players","teams","coaches","results"];
+const PAGE_ALIAS={myteam:"team",proposal:"team",market:"players"};
+function pageFromHash(){const h=(location.hash||"").slice(1);const p=PAGE_ALIAS[h]||h;return PAGES.includes(p)?p:null;}
+let page=pageFromHash()||"team";
+function prefsOut(){const {open,q,...rest}=state;return rest;}
+function save(){try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}
+  if(SYNC.mode!=="on")return;
+  clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,1200);}
+function setSync(st){SYNC.status=st;const el=document.getElementById("syncPill");if(el){el.textContent=syncLabel();el.className="syncpill "+(st==="fail"?"bad":st==="saving"?"busy":"ok");}}
+function syncLabel(){return SYNC.status==="saving"?"Syncing…":SYNC.status==="fail"?"Sync failed · will retry":"Synced on all devices";}
+function api(path,opt={}){const ac=typeof AbortController!=="undefined"?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),15000):null;
+  return fetch("api/"+path,{...opt,cache:"no-store",signal:ac?ac.signal:undefined,headers:{"Content-Type":"application/json","x-pass":SYNC.pass,...(opt.headers||{})}}).finally(()=>t&&clearTimeout(t));}
+function applyRemote(j){SYNC.mode="on";SYNC.status="ok";if(j.prefs){const {savedAt,...p}=j.prefs;Object.assign(state,p,{open:null,q:""});snapLam();try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}}return j.squad||null;}
+function pushPrefs(){setSync("saving");api("state",{method:"PUT",body:JSON.stringify({prefs:prefsOut()})}).then(r=>{if(!r.ok)throw 0;setSync("ok");}).catch(()=>{setSync("fail");clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,15000);});}
+function loadRemote(){
+  if(location.protocol==="file:")return Promise.resolve(null);
+  return api("state").then(r=>{
+    if(r.status===401){SYNC.mode="locked";return null;}
+    if(!r.ok||!(r.headers.get("content-type")||"").includes("json")){SYNC.mode="off";return null;}
+    return r.json().then(applyRemote);
+  }).catch(()=>{SYNC.mode="off";return null;});
+}
 
 const r1=v=>Math.round(v*10)/10;
 const fmt=(v,d=1)=>(v>0?"+":"")+v.toFixed(d);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const turnOf2=d=>{const k=dayKeys.indexOf(d);return k>=0?`Turn ${k+1}`:"";};
+const plink=(p,txt)=>p?`<button type="button" class="plink" data-open="${p.id}">${esc(txt==null?p.name:txt)}</button>`:"";
+let NAMERE=null,NAMEMAP=null;
+function linkify(text){
+  // escape, then turn any player's full name (or unique surname) into a link to his panel
+  const t=esc(text);if(!P||!P.length)return t;
+  if(!NAMERE){
+    NAMEMAP={};const cnt={};P.forEach(p=>{cnt[p.short]=(cnt[p.short]||0)+1;});
+    P.forEach(p=>{NAMEMAP[esc(p.name)]=p;if(cnt[p.short]===1&&p.short.length>=4)NAMEMAP[esc(p.short)]=NAMEMAP[esc(p.short)]||p;});
+    const keys=Object.keys(NAMEMAP).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+    NAMERE=new RegExp("(^|[^\\p{L}])("+keys.join("|")+")(?![\\p{L}])","gu");
+  }
+  return t.replace(NAMERE,(m,pre,name)=>pre+`<button type="button" class="plink" data-open="${NAMEMAP[name].id}">${name}</button>`);
+}
 const jersey=(t,pos)=>`<span class="jersey" data-pos="${pos}" style="background:${(TEAMS[t]||["","#445"])[1]}">${t}</span>`;
 
-fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(init).catch(e=>{
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(tp&&!state.open){tp=null;render();}else if(sug!=null&&!state.open){if(sugCmp!=null)sugCmp=null;else sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
+let SQUAD=null;
+fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>loadRemote().then(rsq=>rsq||fetch("squad.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)).then(sq=>{SQUAD=sq;init(d);})).catch(e=>{
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
 });
 
@@ -325,13 +651,296 @@ function init(data){
     return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:rec[c.team]};
   });
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
-  orig={players:D.squad.players.slice(),coach:D.squad.coach};
+  savedTeam=teamFrom(SQUAD||D.squad);
+  const lt=state.team;
+  team=(lt&&lt.base===(savedTeam.updated||"")&&Array.isArray(lt.slots))?teamFrom(lt):teamFrom(savedTeam);
+  orig={players:teamIds(),coach:team.coach};
   // captain options: two best projections per day
   dayKeys.forEach(d=>P.filter(p=>p.day===d).sort((a,b)=>b.x-a.x).slice(0,2).forEach(p=>capOpt.add(p.id)));
   P.forEach(p=>{p.tags=tagsFor(p);});
-  if(state.budget==null)state.budget=D.budget;
+  if(state.budget==null||!state.budgetTouched)state.budget=teamValue();
+  window.__planner={get result(){return result},get state(){return state},get byId(){return byId},get orig(){return orig},get coaches(){return coachByTeam},get days(){return dayKeys}};
   render();
 }
+
+/* ---------- my team ---------- */
+const POSMAX={G:4,F:4,C:2};
+const REPO_EDIT="https://github.com/Malteras/euroleague-fantasy/edit/main/squad.json";
+function teamFrom(src){
+  src=src||{};
+  let slots=Array.isArray(src.slots)&&src.slots.length===10?src.slots.map(i=>i&&byId[i]?i:null):autoSlots((src.players||[]).filter(i=>byId[i]));
+  return {slots,coach:src.coach||null,bank:+(src.bank||0),cap:src.cap&&slots.slice(0,5).includes(src.cap)?src.cap:null,updated:src.updated||"",base:src.base||""};
+}
+function autoSlots(ids){
+  if(ids.length===10){const L=lineup(ids);if(L){const st=L.st.map(p=>p.id),six=L.six?L.six.id:null;const rest=ids.filter(i=>!st.includes(i)&&i!==six);return [...st,six,...rest];}}
+  const a=ids.slice(0,10);while(a.length<10)a.push(null);return a;
+}
+const teamIds=()=>team.slots.filter(Boolean);
+const teamCost=()=>teamIds().reduce((a,i)=>a+byId[i].price,0)+(team.coach&&coachByTeam[team.coach]?coachByTeam[team.coach].price:0);
+const teamValue=()=>r1(teamCost()+team.bank);
+function posCount(ids){const c={G:0,F:0,C:0};ids.forEach(i=>c[byId[i].pos]++);return c;}
+function starterForm(){const st=team.slots.slice(0,5).filter(Boolean);if(st.length<5)return null;const c=posCount(st);return FORMS.find(([g,f,cc])=>g===c.G&&f===c.F&&cc===c.C)?[c.G,c.F,c.C]:false;}
+function teamChecks(){
+  const ids=teamIds(),c=posCount(ids),club={};ids.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
+  const maxClub=Math.max(0,...Object.values(club));const form=starterForm();
+  return [
+    {ok:c.G===4,t:`${c.G}/4 guards`},{ok:c.F===4,t:`${c.F}/4 forwards`},{ok:c.C===2,t:`${c.C}/2 centres`},
+    {ok:!!team.coach,t:team.coach?"Coach set":"No coach"},
+    {ok:maxClub<=6,t:`Max ${maxClub} from one club`},
+    {ok:!!form,t:form?`Formation ${form.join("-")}`:form===null?"Starting five not full":"Starting five: invalid formation"},
+    {ok:!!team.cap,t:team.cap?`Captain ${byId[team.cap].short}`:"No captain"},
+    {ok:team.bank>=0,t:team.bank>=0?`Bank ${team.bank.toFixed(1)}`:`Over budget by ${(-team.bank).toFixed(1)}`},
+  ];
+}
+const teamValid=()=>{const ids=teamIds(),c=posCount(ids);return ids.length===10&&c.G===4&&c.F===4&&c.C===2&&!!team.coach;};
+function teamJSON(){return {updated:new Date().toISOString().slice(0,10),players:teamIds(),coach:team.coach,bank:r1(team.bank),slots:team.slots,cap:team.cap,
+  names:team.slots.map(i=>i?byId[i].name:null),coachName:team.coach&&coachByTeam[team.coach]?coachByTeam[team.coach].name:null};}
+const sameTeam=(a,b)=>JSON.stringify([a.slots,a.coach,r1(a.bank),a.cap])===JSON.stringify([b.slots,b.coach,r1(b.bank),b.cap]);
+function teamChanged(){
+  state.team={slots:team.slots,coach:team.coach,bank:team.bank,cap:team.cap,base:savedTeam.updated||""};
+  orig={players:teamIds(),coach:team.coach};
+  P.forEach(p=>{p.tags=tagsFor(p);});
+  state.budgetTouched=false;state.budget=teamValue();
+}
+function courtRows(){
+  const f=starterForm()||state.form||[2,2,1],need={G:f[0],F:f[1],C:f[2]},rows={G:[],F:[],C:[]},epos={};
+  const empt=[];
+  for(let i=0;i<5;i++){const id=team.slots[i];if(id)rows[byId[id].pos].push(i);else empt.push(i);}
+  empt.forEach(i=>{const k=["G","F","C"].find(k=>rows[k].length<need[k])||"G";rows[k].push(i);epos[i]=k;});
+  return {rows,epos,f};
+}
+function applyForm(f){
+  state.form=f;
+  const need={G:f[0],F:f[1],C:f[2]};
+  const all=team.slots.map((id,i)=>({id,i})).filter(o=>o.id);
+  const pri=o=>o.i<5?0:o.i===5?1:2;
+  const sorted=all.slice().sort((a,b)=>pri(a)-pri(b)||byId[b.id].x-byId[a.id].x);
+  const st=[];
+  ["G","F","C"].forEach(k=>{sorted.filter(o=>byId[o.id].pos===k).slice(0,need[k]).forEach(o=>st.push(o.id));});
+  const rest=all.filter(o=>!st.includes(o.id));
+  const six=rest.slice().sort((a,b)=>byId[b.id].x-byId[a.id].x)[0];
+  const bench=rest.filter(o=>o!==six).sort((a,b)=>a.i-b.i).map(o=>o.id);
+  // keep empty starter spots where a position is missing
+  const slots=st.slice();while(slots.length<5)slots.push(null);
+  slots.push(six?six.id:null,...bench);while(slots.length<10)slots.push(null);
+  team.slots=slots.slice(0,10);
+  if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;
+}
+function slotHtml(i,ep){
+  const id=team.slots[i],p=id?byId[id]:null,role=i<5?(ep?POSN[ep]:"Starter"):i===5?"6th man":"Bench";
+  const cls=`slot${p?"":" empty"}${sel===i?" sel":""}`;
+  if(!p)return `<button type="button" class="${cls}" data-slot="${i}"${ep?` data-epos="${ep}"`:""} aria-label="${role}: add a player"><span class="plus">+</span><small>${role}</small></button>`;
+  return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}">${team.cap===id?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr · ${esc(turnOf2(p.day))}</small></button>`;
+}
+function myteam(){
+  const saved=sameTeam(team,savedTeam);
+  const checks=teamChecks().map(c=>`<span class="chk ${c.ok?"ok":"bad"}">${c.ok?"✓":"!"} ${esc(c.t)}</span>`).join("");
+  const sp=sel!=null&&team.slots[sel]?byId[team.slots[sel]]:null;
+  const bar=sp?`<div class="selbar"><span><b>${plink(sp)}</b> selected. Tap another spot to swap.</span><span class="selbtns"><button type="button" class="btn-primary sm" data-act="suggest">Suggest replacements</button>${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
+  const coach=team.coach&&coachByTeam[team.coach];
+  const cr=courtRows(),fk=cr.f.join("-");
+  const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="${k===fk?"on":""}" aria-pressed="${k===fk}" title="${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""}, ${f[2]} centre${f[2]>1?"s":""}">${f[0]}G ${f[1]}F ${f[2]}C</button>`}).join("")}</div></div>`;
+  return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?`Saved team${savedTeam.updated?` · ${esc(fmtDate(savedTeam.updated))}`:""} · the daily report uses this`:`Changed in this browser only · not saved for the daily report yet`}</div><h2>My team</h2></div>
+   <div class="mt-actions">${SYNC.mode==="on"?`<span id="syncPill" class="syncpill ${SYNC.status==="fail"?"bad":SYNC.status==="saving"?"busy":"ok"}">${syncLabel()}</span>`:""}</div></div>
+   ${SYNC.mode==="locked"?`<form class="connect" id="connectForm"><div><b>Connect this device</b><small>Enter your passcode once. Your team, picks and settings then stay the same on every device, and Save goes straight to the daily report.</small></div><input id="passIn" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode"><button class="btn-primary" type="submit">Connect</button><span class="note" id="passMsg" role="status"></span></form>`:""}
+   ${formSeg}
+   <div class="mt-grid">
+    <div class="court" aria-label="Starting five">
+      <svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>
+      ${["C","F","G"].map(k=>`<div class="crow" data-row="${k}">${cr.rows[k].map(i=>slotHtml(i,cr.epos[i])).join("")}</div>`).join("")}
+    </div>
+    <div class="mt-side">
+      <div class="benchrow"><div class="lbl">6th man · 100%</div>${slotHtml(5)}</div>
+      <div><div class="lbl">Bench · 50%</div><div class="bench">${[6,7,8,9].map(i=>slotHtml(i)).join("")}</div></div>
+      <div class="mt-coach"><div class="lbl">Head coach</div><button type="button" class="slot coachslot${coach?"":" empty"}" data-coach-slot>${coach?`<b>${esc(coach.name)}</b><small>${TEAMS[coach.team][0]} · ${coach.price.toFixed(1)} cr</small>`:'<span class="plus">+</span><small>Add coach</small>'}</button></div>
+      <div class="mt-money"><div><div class="lbl"><label for="bank">Bank (credits left)</label></div><input id="bank" class="num-input" type="number" step="0.1" min="0" max="30" value="${team.bank}"></div><div><div class="lbl">Team value</div><div class="tv">${teamValue().toFixed(1)}<small> cr</small></div></div></div>
+    </div>
+   </div>
+   ${bar}
+   <div class="checks">${checks}</div>
+   <div class="mt-save">${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div>
+   <div id="saveHelp" class="savehelp" hidden>
+     <ol class="steps">
+       <li><span>Your team is copied. If copying did not work, select the text below and copy it.</span></li>
+       <li><span><a href="${REPO_EDIT}" target="_blank" rel="noopener">Open squad.json on GitHub</a>, select everything there and paste.</span></li>
+       <li><span>Press <b>Commit changes</b>. Tomorrow's report and this page will use the new team.</span></li>
+     </ol>
+     <textarea id="teamJson" readonly rows="6" aria-label="Team data">${esc(JSON.stringify(teamJSON(),null,1))}</textarea>
+   </div>
+  </section>`;
+}
+function picker(){
+  if(!pick)return "";
+  const isCoach=pick.slot==="coach";
+  const cur=isCoach?null:team.slots[pick.slot];
+  const others=teamIds().filter(i=>i!==cur);
+  const cnt=posCount(others),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
+  let list;
+  if(isCoach){
+    list=C.slice().sort((a,b)=>b.x-a.x).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${c.x}</span></button>`).join("");
+  }else{
+    const need=Object.keys(POSMAX).filter(k=>cnt[k]<POSMAX[k]);
+    const pos=pick.pos==="ALL"?null:pick.pos;
+    list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort((a,b)=>b.x-a.x).slice(0,80).map(p=>{
+      const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${p.x}</span></button>`;}).join("");
+  }
+  const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
+  return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
+    <div class="pk-h"><h3>${isCoach?"Pick a coach":cur?"Replace "+esc(byId[cur].short):"Add a player"}</h3><button type="button" class="dr-x" data-pk-close aria-label="Close">✕</button></div>
+    <div class="pk-tools"><input id="pkq" class="search" type="search" placeholder="Search name or club" value="${esc(pick.q)}" aria-label="Search">${posSeg}</div>
+    <div class="pk-head"><span>${isCoach?"Coach":"Player"}</span><span>Price</span><span>Proj.</span></div>
+    <div class="pk-list" id="pklist">${list||'<p class="note" style="padding:12px">Nothing matches.</p>'}</div></div>`;
+}
+/* ---------- replacement suggestions (rule-based, works offline) ---------- */
+function suggestFor(slot){
+  const oid=team.slots[slot],o=byId[oid];if(!o)return {o:null,list:[]};
+  const others=teamIds().filter(i=>i!==oid),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
+  const val=p=>p.x+state.lam*p.exp;
+  const list=P.filter(c=>c.pos===o.pos&&c.id!==oid&&!others.includes(c.id)&&!c.out&&c.price<=r1(o.price+team.bank)+1e-9&&(club[c.team]||0)<6)
+    .map(c=>({c,score:r1(val(c)-val(o))})).sort((a,b)=>b.score-a.score).slice(0,6)
+    .map(x=>({...x,why:reasons(x.c,o)}));
+  return {o,list};
+}
+function reasons(c,o){
+  const R=[];const l3=avg(c.log.slice(0,3).map(g=>g.fpt));const gain=r1(c.x-o.x);
+  R.push(`Projected <b>${c.x}</b> this round vs ${o.x} for ${esc(o.short)} (${gain>=0?"+":""}${gain}).`);
+  const m=matchup(c);const opp=c.opp?(c.opp.ha==="H"?"vs ":"@ ")+c.opp.opp:"";
+  if(m!=null&&m>=15)R.push(`Easy matchup ${esc(opp)}: they give ${POSN[c.pos].toLowerCase()}s ${m} PIR more than average.`);
+  else if(m!=null&&m<=-15)R.push(`Hard matchup ${esc(opp)}: they give ${POSN[c.pos].toLowerCase()}s ${-m} PIR less than average.`);
+  if(l3!=null&&c.fpt!=null&&l3>=c.fpt+3)R.push(`In form: last 3 games ${r1(l3)} FPT on average (season ${c.fpt}).`);
+  else if(l3!=null&&c.fpt!=null&&l3<=c.fpt-4)R.push(`Out of form: last 3 games ${r1(l3)} FPT (season ${c.fpt}).`);
+  if(c.exp>=0.15)R.push(`Price should rise about ${fmt(r1(c.exp),1)} cr (break-even ${c.be}).`);
+  else if(c.exp<=-0.15)R.push(`Price may drop about ${r1(c.exp)} cr (break-even ${c.be}).`);
+  if(c.rise!=null&&c.rise>=50)R.push(`FantaSheet gives him a ${Math.round(c.rise)}% chance to rise.`);
+  const dA=avg(domRecent(c).map(g=>g.pir));if(dA!=null&&dA>=1.1*c.price+3)R.push(`Strong in his domestic league lately (PIR about ${r1(dA)}).`);
+  const ko=dayKeys.indexOf(o.day),kc=dayKeys.indexOf(c.day);
+  if(kc>ko&&ko>=0)R.push(`Plays later (${turnOf2(c.day)}), so you see more scores before you decide.`);
+  else if(kc<ko&&kc>=0)R.push(`Plays earlier (${turnOf2(c.day)}): a possible early captain.`);
+  if(c.log[0]&&c.log[0].min<15)R.push(`Risk: only ${c.log[0].min} min last game.`);
+  if(c.status)R.push(`Status: ${esc(c.status)}.`);
+  return R;
+}
+function compareTable(o,c){
+  const opp=p=>p.opp?`${p.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:p.opp.opp)}${p.opp.ha==="H"?" (home)":""}, ${esc(turnOf2(p.day))}`:"–";
+  const m=p=>matchup(p);const l3=p=>p.log.slice(0,3).map(g=>g.fpt);const a3=p=>{const v=l3(p);return v.length?v.reduce((x,y)=>x+y,0)/v.length:null;};
+  const dom=p=>{const g=(p.dom||[])[0];if(!g)return "–";return g.dnp||g.absent?`did not play (${esc(g.opp)})`:`PIR≈${g.pir} in ${Math.round(g.min)} min`;};
+  const mtxt=v=>v==null?"–":`${v>0?"+":""}${v} ${v>=25?"(very easy)":v>=12?"(easy)":v<=-25?"(very hard)":v<=-12?"(hard)":"(average)"}`;
+  // [label, valueA, valueB, numeric A, numeric B, higherIsBetter]
+  const rows=[
+    ["Price",o.price.toFixed(1),c.price.toFixed(1),o.price,c.price,false],
+    ["Next game",opp(o),opp(c),null,null],
+    [`Opponent vs ${POSW[o.pos]}`,mtxt(m(o)),mtxt(m(c)),m(o),m(c),true],
+    ["Projection",o.x,c.x,o.x,c.x,true],
+    ["With matchup bonus",r1(o.x+mBonus(o)),r1(c.x+mBonus(c)),o.x+mBonus(o),c.x+mBonus(c),true],
+    ["Last 3 EuroLeague (FPT)",l3(o).join(", ")||"–",l3(c).join(", ")||"–",a3(o),a3(c),true],
+    ["Season average",o.fpt??"–",c.fpt??"–",o.fpt,c.fpt,true],
+    ["Break-even",o.be,c.be,null,null],
+    ["Expected price change",`${o.exp>=0?"+":""}${o.exp.toFixed(2)} cr`,`${c.exp>=0?"+":""}${c.exp.toFixed(2)} cr`,o.exp,c.exp,true],
+    ["Minutes last game",o.log[0]?Math.round(o.log[0].min):"–",c.log[0]?Math.round(c.log[0].min):"–",o.log[0]?o.log[0].min:null,c.log[0]?c.log[0].min:null,true],
+    ["Last domestic game",dom(o),dom(c),null,null],
+  ];
+  const cell=(txt,me,other,hib)=>{const win=me!=null&&other!=null&&hib!=null&&Math.abs(me-other)>1e-9&&(hib?me>other:me<other);return `<td class="${win?"win":""}">${win?`<b>${txt}</b>`:txt}</td>`;};
+  const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
+  return `<div class="cmp"><button type="button" class="chip-toggle" data-sg-back>← Back to the list</button>
+    <table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${esc(TEAMS[o.team][0])} · now</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${esc(TEAMS[c.team][0])}</small></span></th></tr></thead>
+    <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>
+    <p class="note" style="margin:8px 0 12px">Bold = better of the two. ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
+    <div class="cmp-act"><button type="button" class="chip-toggle" data-sg-back>Keep ${esc(o.short)}</button><button type="button" class="btn-primary" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></div>`;
+}
+function suggestPanel(){
+  if(sug==null)return "";
+  const {o,list}=suggestFor(sug);if(!o){sug=null;return "";}
+  const cmpP=sugCmp!=null?byId[sugCmp]:null;
+  const best=list[0];
+  const row=({c,score,why})=>{const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
+    return `<li class="sg-item"><div class="sg-top">${jersey(c.team,c.pos)}<div class="sg-n">${plink(c)}<small>${esc(TEAMS[c.team][0])} · ${c.price.toFixed(1)} cr · ${esc(turnOf2(c.day))} · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+esc(c.opp.opp):""}</small></div><div class="sg-s"><b class="${score>=0?"pos":"neg"}">${score>=0?"+":""}${score}</b><small>value</small></div></div>
+      <ul class="sg-why">${why.slice(0,4).map(t=>`<li>${t}</li>`).join("")}</ul>
+      <div class="sg-act"><span class="muted">${diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price"} · bank after ${bankAfter.toFixed(1)}</span><span class="sg-btns"><button type="button" class="chip-toggle" data-sg-cmp="${c.id}">Compare</button><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></span></div></li>`;};
+  return `<div class="scrim" data-sg-close></div><aside class="drawer sugg" role="dialog" aria-modal="true" aria-label="Replacements for ${esc(o.name)}">
+    <div class="dr-top" style="--tc:${(TEAMS[o.team]||["","#445"])[1]}"><button type="button" class="dr-x" data-sg-close aria-label="Close">✕</button>
+      <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${o.price.toFixed(1)} cr · proj ${o.x} · ${esc(turnOf2(o.day))} · bank ${team.bank.toFixed(1)}</div></div></div></div>
+    <div class="dr-body">${cmpP?compareTable(o,cmpP):`
+      ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<MIN_GAIN?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${MIN_GAIN}+ value. Best options are below anyway.</div>`:""}
+      <p class="note" style="margin:10px 0">${POSN[o.pos]}s you can afford (up to ${r1(o.price+team.bank).toFixed(1)} cr), best first. "Value" = projected points + credit growth, compared with ${esc(o.short)}, using the planner's "What matters more" setting.</p>
+      <ol class="sg-list">${list.map(row).join("")}</ol>
+      <button type="button" class="chip-toggle" data-sg-all style="margin:6px 0 18px">Search all ${POSN[o.pos].toLowerCase()}s instead</button>`}
+    </div></aside>`;
+}
+/* ---------- team analysis ---------- */
+const POSW={G:"guards",F:"forwards",C:"centres"};
+function teamInfo(t){
+  const df=(D.defence||{})[t]||null;
+  const avgAllowed=(()=>{const v=Object.values(D.defence||{}).map(x=>x.pir_allowed);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;})();
+  // games from player logs (one per date)
+  const g={};P.filter(p=>p.team===t).forEach(p=>(p.log||[]).forEach(x=>{if(!g[x.d])g[x.d]={d:x.d,opp:x.opp,ha:x.ha,res:x.res};}));
+  const games=Object.values(g).sort((a,b)=>b.d.localeCompare(a.d));
+  const w=games.filter(x=>x.res&&x.res[0]==="W").length;
+  const pos=["G","F","C"].map(k=>({k,v:df?df["vs_"+k.toLowerCase()]:null}));
+  const weak=pos.filter(x=>x.v!=null).sort((a,b)=>b.v-a.v)[0],strong=pos.filter(x=>x.v!=null).sort((a,b)=>a.v-b.v)[0];
+  const opp=oppOf[t]||null;
+  const players=P.filter(p=>p.team===t);
+  return {t,df,avgAllowed,games,w,l:games.length-w,pos,weak,strong,opp,players};
+}
+function verdict(v,k){
+  if(v==null)return {cls:"",txt:"No data"};
+  if(v>=25)return {cls:"bad",txt:`Very weak vs ${POSW[k]}`};
+  if(v>=12)return {cls:"bad",txt:`Weak vs ${POSW[k]}`};
+  if(v<=-25)return {cls:"good",txt:`Very strong vs ${POSW[k]}`};
+  if(v<=-12)return {cls:"good",txt:`Strong vs ${POSW[k]}`};
+  return {cls:"",txt:`Average vs ${POSW[k]}`};
+}
+function teamSummary(I){
+  // plain-English lines: what they allow and how to use it
+  const L=[];const n=TEAMS[I.t][0];
+  if(!I.df)return L;
+  if(I.weak&&I.weak.v>=12)L.push(`<b>Weak spot:</b> ${n} allow ${POSW[I.weak.k]} ${I.weak.v} PIR more than an average team. Players at that position facing ${n} are good picks.`);
+  if(I.strong&&I.strong.v<=-12)L.push(`<b>Strong spot:</b> they allow ${POSW[I.strong.k]} ${-I.strong.v} PIR less than average. Avoid ${POSW[I.strong.k]} who play against ${n}.`);
+  if(I.avgAllowed!=null){const d=Math.round(I.df.pir_allowed-I.avgAllowed);
+    L.push(d>=5?`Overall they give away a lot: ${I.df.pir_allowed} team PIR per game, ${d} above the league average.`:d<=-5?`Overall a tough defence: ${I.df.pir_allowed} team PIR per game, ${-d} below the league average.`:`Overall an average defence (${I.df.pir_allowed} team PIR allowed per game).`);}
+  return L;
+}
+function teamPanel(){
+  if(!tp||!TEAMS[tp])return "";
+  const I=teamInfo(tp),n=TEAMS[tp][0],col=TEAMS[tp][1];
+  const bars=I.pos.map(({k,v})=>{const V=verdict(v,k);const w=v==null?0:Math.min(50,Math.abs(v));
+    return `<div class="tp-bar"><span class="tp-k">${POSW[k][0].toUpperCase()+POSW[k].slice(1)}</span><span class="tp-track"><span class="tp-mid"></span><span class="tp-fill ${v>=0?"plus":"minus"}" style="${v>=0?"left:50%":"right:50%"};width:${w}%"></span></span><span class="tp-v ${V.cls}">${v==null?"–":(v>0?"+":"")+v}</span><span class="tp-vt ${V.cls}">${esc(V.txt)}</span></div>`;}).join("");
+  // attack them: this round's opponent players at their weak position
+  let attack="";
+  if(I.opp&&I.weak&&I.weak.v>=12){
+    const o=I.opp.opp,cands=P.filter(p=>p.team===o&&p.pos===I.weak.k&&!p.out).sort((a,b)=>b.x-a.x).slice(0,3);
+    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · proj ${p.x} · ${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul></div>`;
+  }
+  let avoid="";
+  if(I.opp&&I.strong&&I.strong.v<=-12){const o=I.opp.opp;const mine=P.filter(p=>p.team===o&&p.pos===I.strong.k&&orig.players.includes(p.id));
+    if(mine.length)avoid=`<div class="tp-warn">Your ${mine.map(p=>plink(p,p.short)).join(", ")} ${mine.length>1?"face":"faces"} ${esc(n)}'s strong side this round.</div>`;}
+  const top=I.players.filter(p=>!p.out).sort((a,b)=>b.x-a.x).slice(0,6);
+  const risers=I.players.filter(p=>!p.out&&p.price<=9&&p.exp>=0.1).sort((a,b)=>b.exp-a.exp).slice(0,4);
+  const outs=I.players.filter(p=>p.status);
+  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · proj ${p.x} · ${p.exp>=0?"+":""}${r1(p.exp)} cr</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul>`;
+  const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"}" title="${esc(g.d)}">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small></span>`).join("");
+  const next=((D.teamNext||{})[tp]||[]).filter(x=>x.el).slice(0,3).map(x=>`<li><span>${esc(fmtShort(x.d))}</span><span>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</span></li>`).join("");
+  const coach=coachByTeam[tp];
+  return `<div class="scrim" data-tp-close></div><aside class="drawer tpanel" data-tpid="${tp}" role="dialog" aria-modal="true" aria-label="${esc(n)} team analysis">
+   <div class="dr-top" style="--tc:${col}"><button type="button" class="dr-x" data-tp-close aria-label="Close">✕</button>
+    <div class="dr-id"><span class="tb big" style="--tc:${col}">${tp}</span><div><div class="eyebrow" style="margin:0">Team analysis</div><h3>${esc(n)}</h3><div class="muted">${I.games.length?`${I.w}–${I.l} in EuroLeague`:""}${coach?` · coach ${esc(coach.name)}`:""}${I.opp?` · this round ${I.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[I.opp.opp][0])} (${esc(turnOf2(turnOf[tp]))})`:""}</div></div></div></div>
+   <div class="dr-body tp-body">
+    <div class="tp-card"><h4>What they allow, by position</h4><p class="note" style="margin:0 0 8px">PIR opponents score against them compared with an average team. Plus = easy for that position, minus = hard.</p>${bars}
+      ${teamSummary(I).map(x=>`<p class="tp-line">${x}</p>`).join("")}</div>
+    ${attack}${avoid}
+    <div class="tp-card"><h4>Form</h4><div class="tp-form">${form||'<span class="note">No games yet.</span>'}</div>${next?`<h4 style="margin-top:12px">Next EuroLeague games</h4><ul class="tp-next">${next}</ul>`:""}</div>
+    <div class="tp-card"><h4>Best fantasy players</h4>${pl(top)}</div>
+    ${risers.length?`<div class="tp-card"><h4>Cheap risers (9 cr or less)</h4>${pl(risers)}</div>`:""}
+    ${outs.length?`<div class="tp-card"><h4>Injuries</h4><p class="tp-line">${outs.map(p=>`${plink(p,p.short)} <span class="tag ${esc(p.status)}">${esc(p.status)}</span>`).join(" ")}</p></div>`:""}
+   </div></aside>`;
+}
+function teamsPage(){
+  const cards=Object.keys(TEAMS).filter(t=>(D.defence||{})[t]||P.some(p=>p.team===t)).map(t=>{const I=teamInfo(t);
+    const chips=I.pos.map(({k,v})=>{const V=verdict(v,k);return V.cls?`<span class="ptag ${V.cls==="bad"?"good":"warn"}">${V.cls==="bad"?"Easy":"Hard"} for ${POSW[k]} ${v>0?"+":""}${v}</span>`:"";}).join("");
+    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${I.games.length?`${I.w}–${I.l}`:""}${I.opp?` · next ${I.opp.ha==="H"?"vs":"@"} ${esc(I.opp.opp)} (${esc(turnOf2(turnOf[t]))})`:""}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;}).join("");
+  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">Defence by position · from the player's point of view</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${cards}</div></section>`;
+}
+function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
 
 /* ---------- tags ---------- */
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
@@ -347,7 +956,7 @@ function tagsFor(p){
   if(p.out)T.push(["Out","bad"]);else if(p.status)T.push([p.status,"warn"]);
   if(mine){
     if(p.out||p.exp<=-0.25||(l2!=null&&l2<p.be-4&&p.exp<0))T.push(["Consider dropping","bad"]);
-    else if(p.exp>=0.15)T.push(["Keep · gaining","good"]);else T.push(["Hold","neutral"]);  /* projected near break-even: price should barely move */
+    else if(p.exp>=0.15)T.push(["Keep · gaining","good"]);else T.push(["Keep · price steady","neutral"]);  /* projected near break-even: price should barely move */
   }else if(!p.out){
     if(p.x>=18&&p.exp>=0.15)T.push(["Must have","accent"]);
     else if(p.exp>=0.12&&p.x>=9)T.push(["Consider for next round","accent"]);
@@ -376,6 +985,7 @@ function lineup(ids){
     const s=st.reduce((a,p)=>a+p.x,0)+(six?six.x:0);
     if(!best||s>best.s)best={s,st,six,form:[g,f,c],bench:rest.slice(1)};
   }
+  if(!best)return null;
   best.cap=best.st.reduce((a,p)=>p.x>a.x?p:a,best.st[0]);
   return best;
 }
@@ -391,6 +1001,18 @@ const cost=(ids,coach)=>ids.reduce((a,i)=>a+byId[i].price,0)+(coachByTeam[coach]
 const trades=(ids,coach)=>ids.filter(i=>!orig.players.includes(i)).length+(coach!==orig.coach?1:0);
 function clubOk(ids){const n={};for(const i of ids){const t=byId[i].team;n[t]=(n[t]||0)+1;if(n[t]>6)return false;}return true;}
 
+const MW=0.12; // matchup weight: PIR the opponent allows to his position (vs average) x 0.12
+const mBonus=p=>{const m=matchup(p);return m==null||p.out?0:r1(MW*m);};
+let curMode="q"; // which proposal's projections P.x holds right now; part of the optimiser cache key
+function withMode(mode,fn){
+  const prev=curMode;curMode=mode==="m"?"m":"q";
+  try{
+    if(mode!=="m")return fn();
+    const keep=P.map(p=>p.x);P.forEach(p=>{p.xq=p.x;p.x=r1(p.x+mBonus(p));});
+    try{return fn();}finally{P.forEach((p,i)=>{p.x=keep[i];});}
+  }finally{curMode=prev;}
+}
+let resultAlt=null;
 // Search score: the same number as evalSquad(ids,coach).obj at this lam, without building the lineup (the search calls it tens of thousands of times).
 // The captain is always the squad's top projection, since every formation starts the best player at each position.
 const qPos={G:[],F:[],C:[]};
@@ -441,6 +1063,32 @@ function searchPlan(lam){
   const lim=Math.max(maxT,forced);
   if(forced>maxT)warnings.push(`Your picks need ${forced} trades, more than the ${maxT} you allowed.`);
   const locked=new Set(pins);
+  // Repair: if over budget (pins, lower budget), make the cheapest-in-points swaps until it fits.
+  let rep=0;
+  while(cost(S,coach)>B+1e-9&&rep++<12){
+    let best=null;const c0=cost(S,coach);
+    for(const out of S){
+      if(locked.has(out))continue;const po=byId[out];
+      for(const q of pool){
+        if(q.pos!==po.pos||S.includes(q.id)||q.price>=po.price||q.out)continue;
+        const T=S.map(i=>i===out?q.id:i);
+        if(!clubOk(T)||trades(T,coach)>lim)continue;
+        const e=obj(T,coach),saved=c0-cost(T,coach);
+        const fits=cost(T,coach)<=B+1e-9;
+        const score=(fits?1e6:0)+e+saved*2;
+        if(!best||score>best.score)best={score,T,e};
+      }
+    }
+    if(!state.coachPin)for(const cc of C){
+      if(cc.price>=coachByTeam[coach].price)continue;
+      if(trades(S,cc.team)>lim)continue;
+      const e=obj(S,cc.team),fits=cost(S,cc.team)<=B+1e-9;
+      const score=(fits?1e6:0)+e+(c0-cost(S,cc.team))*2;
+      if(!best||score>best.score)best={score,T:S,e,c:cc.team};
+    }
+    if(!best)break;
+    S=best.T;if(best.c)coach=best.c;
+  }
   const base=S.slice(),baseCoach=coach,mine=new Set(orig.players);
   // Any gain counts while searching. The squad usually spends the whole budget, so the best plan can start with a
   // downgrade that only pays off through the upgrades it funds. MIN_GAIN is checked on the finished plan instead.
@@ -509,49 +1157,190 @@ function searchPlan(lam){
     if(!best)break;
     S=best.T;coach=best.c;cur=obj(S,coach);
   }
+  const over=cost(S,coach)-B;
+  if(over>1e-9)warnings.push(`Still ${over.toFixed(1)} credits over budget. Unpin a player or allow more trades.`);
+  const wi=warnings.findIndex(w=>w.includes("only fits if other moves free up credits"));
+  if(wi>=0&&over<=1e-9)warnings.splice(wi,1);
   return {S,coach,warnings};
 }
 // A local search can stall in a different place at each stop, so every stop takes the best of all five stops' plans by its own
 // objective. That also keeps the stops in order: points never rise and credit change never falls as the slider moves to team value.
+// Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map();
 function optimise(){
-  const key=JSON.stringify([state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
+  const key=JSON.stringify([curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const own=plan(state.lam);
-  const pick=[...STOPS].map(plan).reduce((a,p)=>quickObj(p.S,p.coach,state.lam)>quickObj(a.S,a.coach,state.lam)+1e-9?p:a,own);
+  const pick=STOPS.map(plan).reduce((a,p)=>quickObj(p.S,p.coach,state.lam)>quickObj(a.S,a.coach,state.lam)+1e-9?p:a,own);
   const {S,coach}=pick;
   return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings};
 }
 
 /* ---------- render ---------- */
+function fmtDate(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});}catch(e){return d;}}
 function dayLabel(d){return (D.turns&&D.turns[d])||d;}
 function dayShort(d){return dayLabel(d).split(" ")[0];}
 let result,lastIns=null;const flashAt={};
-// optimise() runs all five stops' searches the first time a setting is seen (up to ~145 ms with unlimited trades), so results are cached per setting and the other stops are worked out in idle time.
-const optCache=new Map();
-function optimiseCached(){
-  const k=JSON.stringify([state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.lam]);
-  if(!optCache.has(k)){if(optCache.size>100)optCache.clear();optCache.set(k,optimise());}
-  return optCache.get(k);
+function goPage(p,anchor){
+  if(!PAGES.includes(p))return;
+  const changed=p!==page;page=p;
+  if(location.hash!=="#"+p)history.pushState(null,"","#"+p);
+  if(changed)render();
+  const el=anchor&&document.getElementById(anchor);
+  if(el)el.scrollIntoView({behavior:"smooth",block:"start"});else if(changed)window.scrollTo(0,0);
 }
-function warmStops(){
-  const idle=window.requestIdleCallback||(f=>setTimeout(f,50));
-  const todo=STOPS.slice();
-  const step=()=>{const l=todo.shift();if(l==null)return;const cur=state.lam;state.lam=l;optimiseCached();state.lam=cur;idle(step);};
-  idle(step);
-}
+document.querySelectorAll(".top nav a[data-page]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();goPage(a.dataset.page);}));
+window.addEventListener("popstate",()=>{const p=pageFromHash()||"team";if(p!==page){page=p;if(D)render();window.scrollTo(0,0);}});
 function render(){
-  result=optimiseCached();
+  const pm=state.pmode==="m"?"m":"q";
+  result=teamValid()?withMode(pm,optimise):null;
+  resultAlt=(teamValid()&&page==="team")?withMode(pm==="m"?"q":"m",optimise):null;
   const app=document.getElementById("app");
-  app.innerHTML=hero()+proposal()+report()+market()+coaches()+results()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective or frees credits for one that does. All-in on points always shows the most points any setting found. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  const dr=document.getElementById("drawer-root");
+  const ex=dr.querySelector(".drawer");
+  if(state.open&&byId[state.open]){
+    const d=drawer();
+    if(ex&&+ex.dataset.id===state.open)ex.innerHTML=d.inner;   // same player: swap content only, no re-open
+    else dr.innerHTML=d.wrap;
+  }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick||sug!=null||!!tp);
+  document.getElementById("picker-root").innerHTML=picker()+suggestPanel();
+  {const tr=document.getElementById("team-root"),ex2=tr.querySelector(".tpanel");const html=teamPanel();
+   if(tp&&ex2&&ex2.dataset.tpid===tp){/* keep open, no re-animation */}else tr.innerHTML=html;}
+  document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
+  const body={
+    team:()=>hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
+    report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective or frees credits for one that does. All-in on points always shows the most points any setting found. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
-  warmStops();
 }
 function hero(){
-  const days=dayKeys.map(d=>{
-    const fx=D.fixtures.filter(f=>f[0]===d).map(f=>`${f[1]}–${f[2]}`).join(" · ");
-    return `<div class="day"><b>${esc(dayLabel(d))}</b><small>${fx}</small></div>`;}).join("");
-  return `<div class="round" id="proposal"><div class="round-title"><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2><p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things.</p></div><div class="days">${days}</div></div>`;
+  const mine=new Set(orig.players);
+  const sq=R=>R?R.S:[];
+  const prop=new Set(result?result.S:[]);
+  const days=dayKeys.map((d,k)=>{
+    const games=D.fixtures.filter(f=>f[0]===d).slice().sort((a,b)=>(a[3]||"").localeCompare(b[3]||""));
+    const myCount=P.filter(p=>mine.has(p.id)&&p.day===d).length;
+    const rows=games.map(([_,h,a,t])=>{
+      const my=P.filter(p=>mine.has(p.id)&&(p.team===h||p.team===a));
+      const names=my.map(p=>plink(p,p.short)).join(", ");
+      return `<li class="game${my.length?" has-mine":""}">
+        <span class="gt">${t?esc(t):"–"}</span>
+        <span class="gside">${badge(h)}<span class="tn">${esc(TEAMS[h][0])}</span></span>
+        <span class="vs">vs</span>
+        <span class="gside away"><span class="tn">${esc(TEAMS[a][0])}</span>${badge(a)}</span>
+        ${my.length?`<span class="gmine" title="Your players: ${esc(my.map(p=>p.short).join(", "))}">${names}</span>`:""}
+      </li>`;}).join("");
+    const shut=state.collapsed.includes(d);
+    return `<div class="day${shut?" shut":""}"><button type="button" class="day-h" data-day="${d}" aria-expanded="${!shut}"><div><span class="turn">Turn ${k+1}</span><b>${esc(dayLabel(d))}</b></div><span class="day-n">${games.length} game${games.length===1?"":"s"} · ${myCount} of yours<span class="chev" aria-hidden="true"></span></span></button><ul class="games"${shut?" hidden":""}>${rows}</ul></div>`;}).join("");
+  const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+  const open=!!state.calOpen;
+  const span=dayKeys.length?`${esc(dayShort(dayKeys[0]))} – ${esc(dayLabel(dayKeys[dayKeys.length-1]))}`:"";
+  return `<div class="cal${open?" open":""}"><button type="button" class="cal-h" id="calToggle" aria-expanded="${open}" aria-controls="calDays"><span class="cal-t"><b>${esc(D.roundLabel)} schedule</b><small>${span} · ${D.fixtures.length} games · trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></span><span class="cal-more">${open?"Hide":"Show"} games<span class="chev" aria-hidden="true"></span></span></button><div class="days" id="calDays"${open?"":" hidden"}>${days}</div></div>`;
+}
+function modeBar(){
+  const m=state.pmode==="m";
+  const cur=result,alt=resultAlt;
+  const sum=(R)=>R?`${R.ev.pts.toFixed(0)} pts · ${R.trades} trade${R.trades===1?"":"s"}`:"";
+  const q=m?alt:cur,mm=m?cur:alt;
+  const btn=(v,t,sub,R)=>`<button type="button" class="pm${(v==="m")===m?" on":""}" data-pmode="${v}" aria-pressed="${(v==="m")===m}"><b>${t}</b><small>${sub}</small>${R?`<span class="pm-k">${sum(R)}</span>`:""}</button>`;
+  return `<div class="pmodes" role="group" aria-label="Proposal type">${btn("q","Proposal 1 · Quality","Best players by projection and price growth",q)}${btn("m","Proposal 2 · Matchups","Attacks this round's weak defences by position",mm)}</div>
+  <p class="note pm-note">${m?`Proposal 2 adds a matchup bonus to each projection: ${MW} × the PIR his opponent allows to his position compared with an average team (see the Teams tab). Based on only a few games, so trust it about half.`:`Proposal 1 uses the normal projection: half FantaSheet's expected score, half his recent form. Matchups are not added on top.`}</p>`;
+}
+function proposalHead(){
+  const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+  return `<div class="round" id="proposal"><div class="round-title"><div class="datechip">Report of ${esc(fmtDate((D.report&&D.report.date)||D.updated))} · data updated ${esc(fmtDate(D.updated))}</div><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}${tip?` · ${tip}`:""}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2>${modeBar()}<p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things. Times are Banja Luka time.</p></div></div>`;
+}
+function bars(items,{be=null,h=170,unit=""}={}){
+  // items: [{v,label,sub,cls}] — one SVG bar chart with a zero line and optional break-even line
+  const W=Math.max(320,items.length*46),pad=26,top=18,bot=36;
+  const vals=items.map(i=>i.v).concat(be!=null?[be]:[]).concat([0]);
+  let max=Math.max(...vals),min=Math.min(...vals);if(max-min<4){max+=2;min-=2;}
+  const span=max-min||1,y=v=>top+(max-v)/span*(h-top-bot);
+  const step=(W-pad-6)/Math.max(1,items.length),bw=Math.min(30,step*.62);
+  const ticks=[];const st=span>40?20:span>16?10:span>6?4:1;
+  for(let t=Math.ceil(min/st)*st;t<=max;t+=st)ticks.push(t);
+  const grid=ticks.map(t=>`<line class="g" x1="${pad}" x2="${W-6}" y1="${y(t)}" y2="${y(t)}"></line><text class="ax" x="${pad-5}" y="${y(t)+3.5}" text-anchor="end">${t}</text>`).join("");
+  const b=items.map((it,i)=>{const cx=pad+step*i+step/2,y0=y(0),y1=y(it.v),top_=Math.min(y0,y1),hh=Math.max(1.5,Math.abs(y1-y0));
+    return `<rect class="${it.cls}" x="${cx-bw/2}" y="${top_}" width="${bw}" height="${hh}" rx="3"><title>${esc(it.title||"")}</title></rect><text class="vl${it.v<0?" neg":""}" x="${cx}" y="${it.v>=0?top_-4:y0-4}" text-anchor="middle">${it.vt??it.v}</text><text class="ax" x="${cx}" y="${h-20}" text-anchor="middle">${esc(it.label)}</text><text class="ax sm" x="${cx}" y="${h-8}" text-anchor="middle">${esc(it.sub||"")}</text>`}).join("");
+  const bl=be!=null?`<line class="bel" x1="${pad}" x2="${W-6}" y1="${y(be)}" y2="${y(be)}"></line><text class="belt" x="${W-8}" y="${y(be)-4}" text-anchor="end">break-even ${be}</text>`:"";
+  return `<div class="chart-scroll"><svg class="chart" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img">${grid}<line class="z" x1="${pad}" x2="${W-6}" y1="${y(0)}" y2="${y(0)}"></line>${b}${bl}</svg></div>`;
+}
+function playerGames(p){
+  const el=(p.log||[]).map(g=>({...g,comp:"EuroLeague",el:true}));
+  const dom=state.allGames?(p.dom||[]).map(g=>({...g,el:false})):[];
+  return el.concat(dom).sort((a,b)=>a.d.localeCompare(b.d));
+}
+function drawer(){
+  const p=byId[state.open];if(!p)return "";
+  const tabs=[["overview","Overview"],["games","Games"],["fixtures","Fixtures"]];
+  const mu=matchup(p);
+  const g=playerGames(p);
+  const sw=`<div class="seg sm" id="allg"><button type="button" data-v="0" class="${!state.allGames?"on":""}" aria-pressed="${!state.allGames}">EuroLeague</button><button type="button" data-v="1" class="${state.allGames?"on":""}" aria-pressed="${state.allGames}">All games</button></div>`;
+  let body="";
+  if(state.dtab==="overview"){
+    const pir=bars(g.map(x=>({v:x.pir??0,vt:x.dnp?"DNP":(x.pir??"–"),label:(x.ha==="A"?"@":"")+(x.el?x.opp:shortOpp(x.opp)),sub:x.d.slice(8)+"/"+x.d.slice(5,7),cls:x.dnp?"b-dnp":x.el?(x.fpt>=p.be?"b-hi":"b-lo"):"b-dom",title:`${x.comp} · ${x.opp} · ${x.res} · ${x.min} min · ${x.pts} pts`})),{be:p.be});
+    const hist=(p.hist||[]);
+    const cr=bars(hist.map(h=>({v:h[2],vt:(h[2]>0?"+":"")+h[2],label:"R"+h[0],sub:h[1].toFixed(1),cls:h[2]>=0?"b-up":"b-dn",title:`After round ${h[0]}: ${h[1]} credits`})),{h:150});
+    const net=hist.length&&p.start!=null?r1(p.price-p.start):null;
+    body=`<div class="dsec"><div class="dsec-h"><h4>PIR per game</h4>${sw}</div>${g.length?pir:'<p class="note">No games yet.</p>'}<p class="note legend"><span class="li"><span class="lg b-hi"></span>EuroLeague, beat break-even</span><span class="li"><span class="lg b-lo"></span>below break-even</span>${state.allGames?'<span class="li"><span class="lg b-dom"></span>domestic (PIR estimated, does not score)</span>':""}</p><p class="note">Break-even is in fantasy points (PIR + 10% when the team wins).</p></div>
+    <div class="dsec"><div class="dsec-h"><h4>Credits gained and lost</h4><span class="muted">${p.start!=null?`started ${p.start.toFixed(1)} → now ${p.price.toFixed(1)}${net!=null?` (<b class="${net>=0?"pos":"neg"}">${fmt(net)}</b>)`:""}`:""}</span></div>${hist.length?cr:'<p class="note">No price changes yet.</p>'}<p class="note">Bars show the change after each round; the number under each bar is the price after that round.</p></div>
+    <div class="dsec"><h4>Next game</h4><p style="margin:4px 0 0">${p.opp?`${p.opp.ha==="H"?"vs":"@"} <b>${TEAMS[p.opp.opp][0]}</b> · ${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}`:"–"}. Projection <b>${p.x}</b> against break-even <b>${p.be}</b>, expected change <b class="${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</b>.${mu!=null?` ${TEAMS[p.opp.opp][0]} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s compared with the league average.`:""}</p></div>`;
+  }else if(state.dtab==="games"){
+    const rows=g.slice().reverse().map(x=>`<tr class="${x.el?"":"dom"}"><td>${esc(x.d.slice(8))}.${esc(x.d.slice(5,7))}</td><td>${x.el?"EL":esc(shortComp(x.comp))}</td><td>${x.ha==="A"?"@ ":""}${esc(x.el?TEAMS[x.opp]?TEAMS[x.opp][0]:x.opp:x.opp)}</td><td>${esc(x.res)}</td><td>${x.dnp?"DNP":x.min}</td><td>${x.dnp?"":x.pts}</td><td>${x.dnp?"":x.reb??"–"}</td><td>${x.dnp?"":x.ast??"–"}</td><td><b>${x.dnp?"":x.pir??"–"}${!x.el&&!x.dnp?"*":""}</b></td><td>${x.el?x.fpt:""}</td><td class="${x.cr>0?"pos":x.cr<0?"neg":""}">${x.cr!=null?fmt(x.cr):""}</td></tr>`).join("");
+    body=`<div class="dsec"><div class="dsec-h"><h4>Game log</h4>${sw}</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Comp</th><th>Opponent</th><th>Result</th><th>Min</th><th>Pts</th><th>Reb</th><th>Ast</th><th>PIR</th><th>FPT</th><th>± cr</th></tr></thead><tbody>${rows||'<tr><td colspan="11">No games yet.</td></tr>'}</tbody></table></div><p class="note">FantaSheet shows the last five EuroLeague games. * Domestic PIR is estimated from Sofascore (fouls drawn and blocks against are not published).</p></div>`;
+  }else{
+    const nx=(D.teamNext&&D.teamNext[p.team])||[];
+    const rows=nx.map(x=>{const inRound=x.el&&dayKeys.includes(x.d);return `<li class="fx${x.el?" el":""}"><div class="fx-d"><b>${esc(fmtShort(x.d))}</b><span>${esc(x.t)}</span></div><div class="fx-m"><b>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</b><span>${esc(x.comp)}${inRound?` · ${esc(D.roundLabel)}`:""}</span></div>${x.el?'<span class="ptag accent">Scores</span>':'<span class="ptag">Domestic</span>'}</li>`}).join("");
+    body=`<div class="dsec"><h4>Next matches · ${TEAMS[p.team][0]}</h4>${nx.length?`<ul class="fxl">${rows}</ul>`:'<p class="note">No upcoming fixtures found.</p>'}<p class="note">Times are Banja Luka time. Only EuroLeague games score; domestic games right before a EuroLeague game can mean rest.</p></div>`;
+  }
+  const stats=[["Price",p.price.toFixed(1)+" cr",(p.chg!=null?fmt(p.chg):"")+" last round"],["Projection",p.x,`break-even ${p.be}`],["Season FPT",p.fpt??"–",`${p.gp} games`],["PIR avg",p.pir??"–",p.pir2526!=null?`25-26: ${p.pir2526}`:""],["Minutes",p.min??"–","per game"],["Pts / Reb / Ast",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`,"per game"]];
+  const inner=`
+   <div class="dr-top" style="--tc:${TEAMS[p.team][1]}"><button type="button" class="dr-x" data-close aria-label="Close">✕</button>
+    <div class="dr-id">${jersey(p.team,p.pos)}<div><h3>${esc(p.name)}</h3><div class="muted">${tname(p.team)} · ${POSN[p.pos]}${p.status?` · <b class="neg">${esc(p.status)}</b>`:""}</div></div></div>
+    <div class="ptags">${tagHtml(p,10)}</div>
+    <div class="dr-act"><button type="button" class="chip-toggle${state.pins.includes(p.id)?" on":""}" data-pin="${p.id}">★ Must have</button><button type="button" class="chip-toggle${state.avoids.includes(p.id)?" on":""}" data-no="${p.id}">✕ Leave out</button></div>
+   </div>
+   <div class="dr-stats">${stats.map(([k,v,s])=>`<div><small>${k}</small><b>${v}</b><span>${esc(s)}</span></div>`).join("")}</div>
+   <div class="dr-tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${state.dtab===k}" class="${state.dtab===k?"on":""}">${l}</button>`).join("")}</div>
+   <div class="dr-body">${body}</div>`;
+  return {inner,wrap:`<div class="scrim" data-close></div><aside class="drawer" data-id="${p.id}" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">${inner}</aside>`};
+}
+function shortOpp(n){return n.split(/\s+/).filter(w=>!/^(KK|BC|BK|CB|FC|SK|AS|CSP|B\.K\.|Basket|Basketball|Club|Baloncesto)$/i.test(w))[0]||n;}
+function shortComp(c){return ({"Liga ACB":"ACB","Lega A Basket":"LBA","Stoiximan GBL":"GBL","AdmiralBet ABA League":"ABA","France Pro A":"LNB","Germany BBL":"BBL","Betsafe-LKL":"LKL","Turkish Basketball Super League":"BSL","Israeli Basketball Super League":"ISR"})[c]||c;}
+function fmtShort(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});}catch(e){return d;}}
+function tipoff(p){const f=D.fixtures.find(f=>f[0]===p.day&&(f[1]===p.team||f[2]===p.team));return f&&f[3]?f[3]:"";}
+function badge(t){const c=(TEAMS[t]||["","#445"])[1];return TEAMS[t]?`<span class="tb tlink" style="--tc:${c}" data-team="${t}" role="button" tabindex="0" title="${esc(TEAMS[t][0])}: team analysis">${t}</span>`:`<span class="tb" style="--tc:${c}">${t}</span>`;}
+const tname=t=>TEAMS[t]?`<button type="button" class="plink" data-team="${t}">${esc(TEAMS[t][0])}</button>`:esc(t);
+function tradePairs(R){
+  const tradesIn=R.S.filter(i=>!orig.players.includes(i));
+  const outs=orig.players.filter(i=>!R.S.includes(i));
+  const pairs=[];
+  tradesIn.forEach(i=>{const k=outs.findIndex(o=>byId[o]&&byId[o].pos===byId[i].pos);pairs.push([k>=0?outs.splice(k,1)[0]:null,i]);});
+  outs.forEach(o=>pairs.push([o,null]));
+  return pairs;
+}
+function applyTrades(){
+  const R=result;if(!R)return;
+  const pairs=tradePairs(R);
+  let bank=team.bank;
+  pairs.forEach(([o,i])=>{if(o)bank+=byId[o].price;if(i)bank-=byId[i].price;});
+  if(R.coach!==team.coach&&coachByTeam[R.coach]){bank+=(coachByTeam[team.coach]?coachByTeam[team.coach].price:0)-coachByTeam[R.coach].price;team.coach=R.coach;}
+  team.bank=Math.max(0,r1(bank));
+  // lineup = the plan's first step: day-one starting five, 6th man and captain
+  let plan=null;try{plan=initPlan(R,R.ev.L);}catch(e){}
+  if(plan){
+    const ord={G:0,F:1,C:2};
+    const st=plan.init.st.slice().sort((a,b)=>ord[a.pos]-ord[b.pos]).map(p=>p.id);let six=plan.init.six?plan.init.six.id:null;
+    const bench=R.S.filter(i=>!st.includes(i)&&i!==six).sort((a,b)=>byId[b].x-byId[a].x);
+    if(six==null&&bench.length)six=bench.shift();   // nobody plays early: best late player sits as 6th man
+    team.slots=[...st,six,...bench].slice(0,10);while(team.slots.length<10)team.slots.push(null);
+    team.cap=plan.cap0.id;
+  }else{
+    const s2=team.slots.slice();pairs.forEach(([o,i])=>{const k=o?s2.indexOf(o):s2.indexOf(null);if(k>=0)s2[k]=i;});team.slots=s2;
+    if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;
+  }
+  state.form=null;justApplied=pairs.filter(p=>p[1]).length+(R.coach!==orig.coach?1:0);
+  teamChanged();
 }
 function wmmText(i){
   const g=i*25;
@@ -572,58 +1361,87 @@ function proposal(){
   const parts=proposalParts(result);
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
-    <div class="field"><label>Trades allowed</label><div class="seg" id="maxT">${[0,1,2,3,4,10].map(n=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}">${n===10?"All":n}</button>`).join("")}</div></div>
+    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points. Unlimited = one of the 6 free-trade windows.</div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
   <div id="propWarn">${parts.warn}</div>
+  <div id="propTrades">${parts.trades}</div>
   <div id="propBody">${parts.body}</div></section>`;
 }
 // Everything below the controls; redrawn on its own while the "What matters more" bar is dragged.
+// The trades sit right under the controls so you can watch them change as you move the bar.
 function proposalParts(R){
   const E=R.ev,L=E.L;
   const bank=r1(state.budget-R.cost);
-  const tradesIn=R.S.filter(i=>!orig.players.includes(i));
-  const tradesOut=orig.players.filter(i=>!R.S.includes(i));
-  // pair by position
-  const pairs=[];const outs=tradesOut.slice();
-  tradesIn.forEach(i=>{const k=outs.findIndex(o=>byId[o]&&byId[o].pos===byId[i].pos);pairs.push([k>=0?outs.splice(k,1)[0]:null,i]);});
+  const pairs=tradePairs(R);
   const coachChanged=R.coach!==orig.coach;
-  // flash trades that weren't in the previous proposal
-  const ins=tradesIn.concat(coachChanged?["coach:"+R.coach]:[]);
-  // the full redraw on release continues a running flash instead of cutting it off
+  // flash trades that weren't in the previous proposal; the full redraw on release continues a running flash instead of cutting it off
+  const ins=R.S.filter(i=>!orig.players.includes(i)).concat(coachChanged?["coach:"+R.coach]:[]);
   const prevIns=lastIns,now=Date.now();
   const fresh=k=>{if(prevIns&&!prevIns.includes(k))flashAt[k]=now;const e=now-(flashAt[k]??-1e9);return e<1400?`class="trade fresh" style="animation-delay:-${e}ms"`:`class="trade"`;};
   lastIns=ins;
-  const tr=pairs.map(([o,i])=>{const a=byId[o],b=byId[i];return `<div ${fresh(i)}><div class="o"><b>${a?esc(a.name):"—"}</b><small>${a?`${a.team} · ${a.price.toFixed(1)} cr · proj ${a.x}`:""}</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>${b.team} · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`}).join("")
+  const mu=p=>state.pmode==="m"&&p.opp?` · ${p.opp.ha==="H"?"vs":"@"} ${p.opp.opp} ${matchup(p)!=null?(matchup(p)>0?"+":"")+matchup(p):""}`:"";
+  const tr=pairs.map(([o,i])=>{const a=byId[o],b=byId[i];return `<div ${b?fresh(i):'class="trade"'}><div class="o"><b>${a?plink(a):"—"}</b><small>${a?`${a.team} · ${a.price.toFixed(1)} cr · proj ${a.x}${mu(a)}`:""}</small></div><div class="arrow">→</div><div class="i"><b>${b?plink(b):"—"}</b><small>${b?`${b.team} · ${b.price.toFixed(1)} cr · proj ${b.x}${mu(b)}`:""}</small></div></div>`}).join("")
    +(coachChanged?(()=>{const a=coachByTeam[orig.coach],b=coachByTeam[R.coach];return `<div ${fresh("coach:"+R.coach)}><div class="o"><b>${esc(a.name)}</b><small>Coach · ${a.price.toFixed(1)} cr</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>Coach · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`})():"");
   const noTrades=!pairs.length&&!coachChanged;
-  // turn plan
-  const finalDay=dayKeys[dayKeys.length-1];
-  const early=R.S.filter(i=>byId[i].day!==finalDay);
-  const role={};
-  L.st.forEach(p=>role[p.id]="start");if(L.six)role[L.six.id]="six";role[L.cap.id]="cap";
-  const coach=coachByTeam[R.coach];
-  const cols=dayKeys.map(d=>{
-    const ps=R.S.map(i=>byId[i]).filter(p=>p.day===d).sort((a,b)=>b.x-a.x);
-    const cc=coach.day===d?`<div class="coachline"><span>Coach <b>${esc(coach.name)}</b></span><span class="muted">${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+coach.opp.opp:""} · proj ${coach.x}</span></div>`:"";
-    return `<div class="col"><div class="col-h"><b>${esc(dayLabel(d))}</b><span>${ps.length} player${ps.length===1?"":"s"}</span></div>${ps.map(p=>pcard(p,role[p.id],!orig.players.includes(p.id))).join("")||'<div class="note">No players on this day.</div>'}${cc}</div>`;
-  }).join("");
-  const plan=planSteps(R,L);
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
-    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT===10?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`;
-  const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(esc).join(" ")}</div>`:"";
-  const body=`<div class="split"><div style="min-width:0;display:flex;flex-direction:column;gap:8px"><p class="note" style="margin:0">Players grouped by the day they play. Badges show where each one should finish the round; the plan on the right says when to make each move.</p><div class="board">${cols}</div></div>
-  <div class="side">
-    <div class="card"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}</div>
-    <div class="card"><h3>Lineup &amp; captain plan</h3><ol class="steps">${plan}</ol><p class="note" style="margin:10px 0 0">Formation ${L.form.join("-")} (G-F-C). ${esc(D.squadNote||"")}</p></div>
-  </div></div>`;
-  return {tiles,warn,body};
+    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`;
+  const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
+  const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}</div>`;
+  const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
+  return {tiles,warn,trades,body};
 }
-function planSteps(R,L){
+function planView(R,L,{tr,noTrades,pairs,coachChanged}){
+  const {ps,finalDay,init,cap0,capByDay,reserves}=initPlan(R,L);
+  const isNew=p=>!orig.players.includes(p.id);
+  const T=d=>turnOf2(d).replace("Turn ","T");
+  const name=p=>`<b>${plink(p,p.short)}</b>`;
+  const st=init.st,six=init.six;
+  const cnt={G:0,F:0,C:0};st.forEach(p=>cnt[p.pos]++);const form=`${cnt.G}-${cnt.F}-${cnt.C}`;
+  // court
+  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===cap0?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${p.x} · ${esc(turnOf2(p.day))}</small></div>`;
+  const rows=["C","F","G"].map(k=>`<div class="crow">${st.filter(p=>p.pos===k).map(p=>ps1(p,isNew(p)?'<span class="b-new">New</span>':"")).join("")}</div>`).join("");
+  const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${p.x} · ${esc(T(p.day))}</small></div>`;}).join("");
+  const court=`<div class="card pcourt"><div class="pc-h"><h3>Proposed lineup</h3><span class="muted">${form} · day-one start</span></div>
+    <div class="court"><svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>${rows}</div>
+    <div class="lbl" style="margin-top:12px">6th man · bench</div><div class="pbench">${bench}</div></div>`;
+  // timeline
+  const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+  const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
+  const applyBtn=`<button type="button" class="btn-primary" id="applyTrades">${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
+  const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
+    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">Set the lineup · ${form}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
+    <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
+  const later=capByDay.filter(p=>p.day>cap0.day);
+  const keepAt=later.length?Math.round(Math.max(...later.map(p=>p.x))*1.15):null;
+  const lateRes=reserves.filter(p=>p.day===finalDay);
+  const secondLast=dayKeys[dayKeys.length-2];
+  const coach=coachByTeam[R.coach];
+  const risky=ps.filter(p=>p.log&&p.log[0]&&p.log[0].min<12);
+  const turns=dayKeys.map((d,k)=>{
+    const games=D.fixtures.filter(f=>f[0]===d).length;
+    const mine=ps.filter(p=>p.day===d).sort((a,b)=>b.x-a.x);
+    const role=p=>p===cap0?"cap":st.includes(p)?"start":p===six?"six":"bench";
+    const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${p.x}${role(p)==="cap"?" · C":role(p)==="bench"?" · bench":role(p)==="six"?" · 6th":""}</small></span>`).join("");
+    const acts=[];
+    if(d===cap0.day&&later.length)acts.push(`If ${name(cap0)} scores <b>${keepAt}+</b>, keep the armband. Otherwise move it to ${later.map(p=>`${name(p)} (${esc(turnOf2(p.day))}, ${p.x})`).join(", then ")}. Bring a bench player into the starting five first if needed.`);
+    if(d===secondLast&&lateRes.length)acts.push(`Swap in ${lateRes.map(p=>`${name(p)} ${p.x}`).join(", ")} for anyone who scored below his projection. Match positions or change the formation.`);
+    if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (proj ${coach.x}).</span>`);
+    const rk=risky.filter(p=>p.day===d);
+    const warn=rk.length?`<div class="tl-warn">Minutes watch: ${rk.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.</div>`:"";
+    const lbl=k===dayKeys.length-1?(acts.filter(a=>!a.startsWith('<span class="muted">')).length?"After these games":"Last turn"):`After ${esc(dayShort(d))}'s games`;
+    return `<li><div class="tl-h"><b>${esc(turnOf2(d))}</b><small>${esc(dayLabel(d))} · ${games} game${games===1?"":"s"}</small></div>
+      ${who?`<div class="tl-who">${who}</div>`:'<p class="note" style="margin:4px 0 0">None of your players.</p>'}
+      ${acts.length?`<p class="tl-lbl">${lbl}</p>${acts.map(a=>`<p class="tl-txt">${a}</p>`).join("")}`:`<p class="tl-txt muted" style="margin-top:6px">${k===dayKeys.length-1?"Nothing to do. The round ends after these games.":"Nothing to change."}</p>`}${warn}</li>`;
+  }).join("");
+  const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl"><li class="now"><div class="tl-h"><b>Now</b><small>before ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""} · trades close</small></div>${nowBody}</li>${turns}</ol></div>`;
+  return `<div class="plan">${court}${timeline}</div>`;
+}
+function initPlan(R,L){
   const ps=R.S.map(i=>byId[i]);
   const finalDay=dayKeys[dayKeys.length-1];
   // initial lineup: best formation without last-day players where possible
@@ -631,7 +1449,8 @@ function planSteps(R,L){
   let init=null;
   try{const tmp=lineupPartial(ps.filter(p=>p.day!==finalDay),ps);init=tmp;}catch(e){}
   if(!init)init={st:L.st.slice(),six:L.six}; // copy: L belongs to a cached result
-  const name=p=>`<b>${esc(p.short)}</b>`;
+  if(!init.six){init={...init,six:ps.filter(p=>!init.st.includes(p)).sort((a,b)=>b.x-a.x)[0]||null};}
+  const name=p=>`<b>${plink(p,p.short)}</b>`;
   const stNames=init.st.map(name).join(", ");
   const reserves=ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x);
   const lateRes=reserves.filter(p=>p.day===finalDay);
@@ -642,6 +1461,12 @@ function planSteps(R,L){
   const bestX=Math.max(...ps.map(p=>p.x));
   const cap0=capByDay.find(p=>p.x>=Math.max(12,.6*bestX))||capByDay[0];
   if(!init.st.includes(cap0)){const k=init.st.findIndex(p=>p.pos===cap0.pos);if(k>=0){if(init.six===cap0)init.six=init.st[k];init.st[k]=cap0;}}
+  return {ps,finalDay,init,cap0,capByDay,reserves:ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x)};
+}
+function planSteps(R,L){
+  const {ps,finalDay,init,cap0,capByDay,reserves}=initPlan(R,L);
+  const name=p=>`<b>${plink(p,p.short)}</b>`;
+  const lateRes=reserves.filter(p=>p.day===finalDay);
   const stNames2=init.st.map(name).join(", ");
   const steps=[];
   steps.push(`Before ${esc(dayShort(dayKeys[0]))}: start ${stNames2}${init.six?`, 6th man ${name(init.six)}`:""}. Captain ${name(cap0)} (${esc(dayShort(cap0.day))}, proj ${cap0.x}) because he plays first: a big game is doubled, a quiet one costs nothing since you can still move the armband.`);
@@ -671,10 +1496,10 @@ function lineupPartial(early,all){
   if(!best)throw 0;return best;
 }
 function pcard(p,role,isNew){
-  const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Hold","Must have","Out"].includes(t[0]));
+  const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Keep · price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
   const o=p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"";
-  return `<div class="pc${isNew?" new":""}">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${p.x}</span><span class="chg ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</span>${b}</div></div>`;
+  return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${p.x}</span><span class="chg ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</span>${b}</div></div>`;
 }
 function spark(p){
   const g=(p.log||[]).slice(0,5).reverse();const W=150,H=36,max=Math.max(45,...g.map(x=>x.fpt),p.be+5);
@@ -697,14 +1522,14 @@ function detail(p){
   return `<div class="detail"><div><div class="eyebrow" style="margin-bottom:6px">Fantasy points, last ${g.length} games · bars in colour beat break-even</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fantasy points by game against break-even ${p.be}">${grid}${bars}<line x1="${pad}" x2="${W-6}" y1="${by}" y2="${by}" stroke="var(--be)" stroke-width="1.5" stroke-dasharray="5 4"></line><text class="bel" x="${W-8}" y="${by-5}" text-anchor="end">break-even ${p.be}</text></svg></div><div><div class="kv">${m.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("")}</div><p class="note" style="margin:10px 0 0">${p.price.toFixed(1)} cr (${fmt(p.chg??0)} last round). Next: ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}, ${esc(dayLabel(p.day))}. Expected change ${fmt(r1(p.exp))} cr. Projection: ${p.src==="FantaSheet"?`half FantaSheet xPTS (${p.xpts}), half recent form (${p.own})`:"his recent form"}.${mu!=null?` ${p.opp?TEAMS[p.opp.opp][0]:""} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s vs league average.`:""}</p><div class="ptags" style="margin-top:8px">${tagHtml(p,10)}</div></div>${domRows?`<div style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Domestic games · PIR estimated (fouls drawn and blocks against not published)</div><div class="panel list">${domRows}</div></div>`:""}</div>`;
 }
 function market(){
-  const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result.S),mine=new Set(orig.players);
+  const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>p.x,exp:p=>p.exp,val:p=>p.val,price:p=>p.price,min:p=>p.min||0}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     <button type="button" class="ico pin${pins.has(p.id)?" on":""}" data-pin="${p.id}" aria-pressed="${pins.has(p.id)}" title="Must have">★</button>
-    <button type="button" class="who" data-open="${p.id}" aria-expanded="${state.open===p.id}">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr</small><span class="ptags">${tagHtml(p)}</span></span></button>
+    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
     <span class="cell-num big">${p.x}</span>
@@ -712,7 +1537,6 @@ function market(){
     <span class="h-sp">${spark(p)}</span>
     <span class="opp h-op"><b>${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}</b><small>${esc(dayLabel(p.day))}</small></span>
     <button type="button" class="ico no${av.has(p.id)?" on":""}" data-no="${p.id}" aria-pressed="${av.has(p.id)}" title="Leave out">✕</button>
-    ${state.open===p.id?detail(p):""}
   </div>`).join("");
   return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">★ forces a player into the proposal, ✕ keeps him out. Tap a name for his last five games against break-even.</p></div>
   <div class="tools"><input id="q" class="search" type="search" placeholder="Search player or team" value="${esc(state.q)}" aria-label="Search players">
@@ -734,15 +1558,15 @@ function report(){
   const rDates=elDates.filter(d=>(new Date(lastD)-new Date(d))/864e5<=2);
   const lastG=p=>p.log.find(g=>rDates.includes(g.d));
   const played=P.filter(p=>lastG(p));
-  const row=(p,g,extra="")=>`<div class="lrow"><div style="min-width:0"><div class="who" style="cursor:default">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${p.price.toFixed(1)} cr · ${g.ha==="A"?"@":"vs"} ${g.opp} · ${g.min} min</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir??"–"}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR</small></div><small class="muted">${g.fpt} FPT · ${extra}</small></div></div>`;
+  const row=(p,g,extra="")=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${p.price.toFixed(1)} cr · ${g.ha==="A"?"@":"vs"} ${g.opp} · ${g.min} min</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir??"–"}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR</small></div><small class="muted">${g.fpt} FPT · ${extra}</small></div></div>`;
   const top=played.slice().sort((a,b)=>lastG(b).fpt-lastG(a).fpt).slice(0,10).map(p=>row(p,lastG(p),`${fmt(p.chg??0)} cr`)).join("");
   const low=played.filter(p=>p.price>=8).map(p=>({p,g:lastG(p),d:lastG(p).fpt-p.be})).sort((a,b)=>a.d-b.d).slice(0,8).map(({p,g,d})=>row(p,g,`${r1(d)} vs break-even`)).join("");
   const domL=P.flatMap(p=>domRecent(p).slice(0,1).map(g=>({p,g}))).filter(({p,g})=>g.pir>=1.1*p.price+3&&g.min>=10).sort((a,b)=>(b.g.pir-1.1*b.p.price)-(a.g.pir-1.1*a.p.price)).slice(0,10)
-    .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" style="cursor:default">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${esc(g.comp)} · ${g.ha==="A"?"@":"vs"} ${esc(g.opp)} · ${g.min} min · ${g.pts} pts ${g.reb} reb ${g.ast} ast</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr · break-even ${p.be}</small></div></div>`).join("");
-  const rested=P.filter(p=>orig.players.includes(p.id)&&p.dom[0]&&(p.dom[0].dnp||p.dom[0].min<8)).map(p=>`${esc(p.short)} (${p.dom[0].absent?"not in the box score":p.dom[0].dnp?"did not play":p.dom[0].min+" min"} vs ${esc(p.dom[0].opp)})`);
-  const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${esc(p.name)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
-  const sum=(R.summary||[]).map(t=>`<li>${esc(t)}</li>`).join("");
-  return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(R.date||D.updated)}</div><h2>Round report</h2></div></div>
+    .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${esc(g.comp)} · ${g.ha==="A"?"@":"vs"} ${esc(g.opp)} · ${g.min} min · ${g.pts} pts ${g.reb} reb ${g.ast} ast</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr · break-even ${p.be}</small></div></div>`).join("");
+  const rested=P.filter(p=>orig.players.includes(p.id)&&p.dom[0]&&(p.dom[0].dnp||p.dom[0].min<8)).map(p=>`${plink(p,p.short)} (${p.dom[0].absent?"not in the box score":p.dom[0].dnp?"did not play":p.dom[0].min+" min"} vs ${esc(p.dom[0].opp)})`);
+  const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
+  const sum=(R.summary||[]).map(t=>`<li>${linkify(t)}</li>`).join("");
+  return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
   ${sum?`<div class="card" style="margin-bottom:16px"><h3>Bottom line</h3><ul class="bl">${sum}</ul></div>`:""}
   <div class="two">
     <div><div class="eyebrow" style="margin:0 0 6px">Top performers · last EuroLeague round</div><div class="panel list">${top}</div></div>
@@ -752,37 +1576,205 @@ function report(){
   </div></section>`;
 }
 function results(){
-  const dom=(D.domGames||[]).map(g=>({d:g.d,comp:g.comp,home:g.ha==="H"?g.team:null,away:g.ha==="A"?g.team:null,opp:g.opp,score:g.score,note:""}));
-  const res=D.results.concat(dom).sort((a,b)=>b.d.localeCompare(a.d)).map(r=>r.opp!==undefined?`<div class="lrow"><div><b>${r.home?TEAMS[r.home][0]+" – "+esc(r.opp):esc(r.opp)+" – "+TEAMS[r.away][0]}</b><small>${esc(r.comp)} · ${esc(r.d)} · domestic, doesn't score</small></div><span class="score">${esc(r.score)}</span></div>`:`<div class="lrow"><div><b>${TEAMS[r.home][0]} – ${TEAMS[r.away][0]}</b><small>${esc(r.comp)} · ${esc(r.d)} · ${esc(r.note||"")}</small></div><span class="score">${esc(r.score)}</span></div>`).join("");
-  const news=D.news.map(n=>`<div class="lrow"><div><span class="tag ${esc(n.tag)}">${esc(n.tag)}</span>${esc(n.txt)}</div></div>`).join("");
-  return `<section id="results"><div class="sec-head"><div><div class="eyebrow">All competitions</div><h2>Results &amp; news</h2></div></div><div class="two"><div class="panel list">${res}</div><div class="panel list">${news}</div></div></section>`;
+  // domestic games; when two EuroLeague clubs met each other, merge both entries into one game
+  const raw=(D.domGames||[]).map(g=>({d:g.d,comp:g.comp,dom:true,team:g.team,home:g.ha==="H"?g.team:null,away:g.ha==="A"?g.team:null,opp:g.opp,score:g.score,result:g.result,note:""}));
+  const used=new Set(),dom=[];
+  raw.forEach((g,i)=>{if(used.has(i))return;
+    const j=raw.findIndex((h,k)=>k!==i&&!used.has(k)&&h.d===g.d&&h.comp===g.comp&&h.score===g.score&&h.team!==g.team);
+    if(j>=0){const h=raw[j];used.add(i);used.add(j);const H=g.home?g:h,A=g.home?h:g;
+      dom.push({d:g.d,comp:g.comp,dom:true,both:true,home:H.team,away:A.team,parts:[H,A],score:g.score,note:""});}
+    else{used.add(i);dom.push(g);}});
+  const el=D.results.map(r=>({...r,dom:false}));
+  const mineT=new Set(orig.players.map(i=>byId[i]&&byId[i].team));
+  const f=state.rf||"all";
+  const all=el.concat(dom).sort((a,b)=>b.d.localeCompare(a.d)||(a.dom-b.dom));
+  const shown=all.filter(r=>f==="all"||(f==="el"&&!r.dom)||(f==="dom"&&r.dom)||(f==="mine"&&((r.dom&&!r.both)?mineT.has(r.team):(mineT.has(r.home)||mineT.has(r.away)))));
+  const key=r=>`${r.d}|${r.home||""}|${r.away||""}|${r.opp||""}`;
+  let lastD="";
+  const res=shown.map(r=>{
+    const k=key(r),open=state.rg===k;
+    const title=(r.dom&&!r.both)?(r.home?`${badge(r.home)}<b>${esc(TEAMS[r.home][0])}</b><span class="vs">vs</span><span class="opp">${esc(r.opp)}</span>`:`<span class="opp">${esc(r.opp)}</span><span class="vs">vs</span>${badge(r.away)}<b>${esc(TEAMS[r.away][0])}</b>`)
+      :`${badge(r.home)}<b>${esc(TEAMS[r.home][0])}</b><span class="vs">vs</span>${badge(r.away)}<b>${esc(TEAMS[r.away][0])}</b>`;
+    const head=r.d!==lastD?`<div class="rg-day">${esc(fmtShort(r.d))}</div>`:"";lastD=r.d;
+    const stats=gameStats(r);
+    const mine=stats.rows.some(x=>orig.players.includes(x.p.id));
+    return `${head}<div class="rg${open?" open":""}${r.dom?" dom":""}"><button type="button" class="rg-row" data-game="${esc(k)}" aria-expanded="${open}">
+      <span class="rg-t">${title}</span><span class="rg-meta">${r.dom?esc(shortComp(r.comp)):"EuroLeague"}${mine?' · <span class="rg-mine">your players</span>':""}${stats.rows.length?` · ${stats.rows.length} player${stats.rows.length===1?"":"s"}`:""}</span>
+      <span class="score">${esc(r.score)}</span><span class="chev" aria-hidden="true"></span></button>
+      ${open?gameBox(r,stats):""}</div>`;}).join("");
+  const seg=`<div class="seg sm" id="rf">${[["all","All"],["el","EuroLeague"],["dom","Domestic"],["mine","Your clubs"]].map(([v,l])=>`<button type="button" data-v="${v}" class="${f===v?"on":""}" aria-pressed="${f===v}">${l}</button>`).join("")}</div>`;
+  const news=newsPanel();
+  return `<section id="results"><div class="sec-head"><div><div class="eyebrow">All competitions</div><h2>Results &amp; news</h2></div></div><div class="two res-two"><div class="res-col">${seg}<div class="panel list rg-list">${res||'<p class="note" style="padding:14px">No games.</p>'}</div></div><div class="news-col">${news}</div></div></section>`;
+}
+function gameStats(r){
+  // EuroLeague fantasy players' lines from this game (EuroLeague: from game logs; domestic: from Sofascore box scores)
+  const rows=[],dnp=[];
+  if(r.both){
+    r.parts.forEach(part=>P.filter(p=>p.team===part.team).forEach(p=>{const g=(p.dom||[]).find(x=>x.d===part.d&&x.opp===part.opp);if(!g)return;
+      if(g.dnp||g.absent)dnp.push({p,why:g.absent?"not in the box score":"did not play"});else rows.push({p,g,team:p.team});}));
+  }else if(r.dom){
+    P.filter(p=>p.team===r.team).forEach(p=>{const g=(p.dom||[]).find(x=>x.d===r.d&&x.opp===r.opp);if(!g)return;
+      if(g.dnp||g.absent)dnp.push({p,why:g.absent?"not in the box score":"did not play"});else rows.push({p,g,team:p.team});});
+  }else{
+    P.filter(p=>p.team===r.home||p.team===r.away).forEach(p=>{const g=(p.log||[]).find(x=>x.d===r.d);if(g)rows.push({p,g,team:p.team});});
+  }
+  rows.sort((a,b)=>(b.g.pir??-99)-(a.g.pir??-99));
+  return {rows,dnp};
+}
+function gameBox(r,{rows,dnp}){
+  if(!rows.length&&!dnp.length)return `<div class="rg-box"><p class="note" style="margin:0">No box score for EuroLeague fantasy players in this game.</p></div>`;
+  const teams=(r.dom&&!r.both)?[r.team]:[r.home,r.away];
+  const two=teams.length>1;const k=`${r.d}|${r.home||""}|${r.away||""}|${r.opp||""}`;
+  const act=two?(state.rgt&&state.rgt.k===k&&teams.includes(state.rgt.t)?state.rgt.t:teams[0]):teams[0];
+  const tbl=t=>{const rs=rows.filter(x=>x.team===t);if(!rs.length)return "";
+    return `<div class="rg-team"><table class="rg-tbl"><thead><tr><th>Player</th><th class="n">Min</th><th class="n">Pts</th><th class="n">Reb</th><th class="n">Ast</th><th class="n">${r.dom?"PIR≈":"PIR"}</th>${r.dom?"":'<th class="n">FPT</th>'}<th class="n" title="Break-even: score needed for the price to hold">B-even</th></tr></thead><tbody>
+      ${rs.map(({p,g})=>{const val=r.dom?g.pir:g.fpt,ok=val!=null&&val>=p.be;const mine=orig.players.includes(p.id);
+        return `<tr class="${mine?"mine-r":""}"><td><span class="rg-p">${jersey(p.team,p.pos)}${plink(p,p.short)}${mine?'<span class="rg-you">yours</span>':""}</span></td><td class="n">${Math.round(g.min||0)}</td><td class="n">${g.pts??"–"}</td><td class="n">${g.reb!=null?Math.round(g.reb):"–"}</td><td class="n">${g.ast!=null?Math.round(g.ast):"–"}</td><td class="n"><b>${g.pir??"–"}</b></td>${r.dom?"":`<td class="n"><b>${g.fpt}</b></td>`}<td class="n ${ok?"pos":"neg"}">${p.be}</td></tr>`;}).join("")}</tbody></table></div>`;};
+  const tabs=two?`<div class="rg-tabs" role="tablist">${teams.map(t=>`<button type="button" role="tab" class="${t===act?"on":""}" aria-selected="${t===act}" data-rgt="${t}" data-rgk="${esc(k)}">${badge(t)}${esc(TEAMS[t][0])}<span>${rows.filter(x=>x.team===t).length}</span></button>`).join("")}</div>`:"";
+  const dn=dnp.filter(x=>!two||x.p.team===act);
+  return `<div class="rg-box">${tabs}${tbl(act)||'<p class="note" style="margin:8px 0 0">No box score for this team\'s fantasy players.</p>'}${dn.length?`<p class="rg-dnp">Did not play: ${dn.map(x=>`${plink(x.p,x.p.short)} <span class="muted">(${x.why})</span>`).join(", ")}</p>`:""}
+    ${r.dom?'<p class="note" style="margin:8px 0 0">Domestic games don\'t score in fantasy. PIR≈ is estimated (fouls drawn and blocks against are not published). Green break-even = he played at a level that would raise his price.</p>':(r.note?`<p class="note" style="margin:8px 0 0">${linkify(r.note)}</p>`:"")}</div>`;
+}
+function newsPanel(){
+  // absences: player statuses + names in "Out"/"Doubtful" news lines, grouped by club
+  const out=new Map();
+  P.forEach(p=>{if(p.status)out.set(p.id,{p,st:p.status});});
+  const byNameTeam=(n,t)=>P.find(p=>p.name===n&&(!t||p.team===t));
+  const extra=[];
+  (D.news||[]).filter(n=>/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag)).forEach(n=>{
+    n.txt.split(/,\s*/).forEach(part=>{const m=part.trim().match(/^(.+?)\s*\(([A-Z]{3})\)$/);if(!m)return;
+      const p=byNameTeam(m[1].trim(),m[2]);if(p){if(!out.has(p.id))out.set(p.id,{p,st:n.tag});}else extra.push({name:m[1].trim(),team:m[2],st:n.tag});});
+  });
+  const list=[...out.values()].map(x=>({name:x.p.name,team:x.p.team,st:x.st,p:x.p})).concat(extra);
+  const mineOut=list.filter(x=>x.p&&orig.players.includes(x.p.id));
+  const clubs={};list.forEach(x=>{(clubs[x.team]=clubs[x.team]||[]).push(x);});
+  const order=Object.keys(clubs).sort((a,b)=>clubs[b].length-clubs[a].length||(TEAMS[a]||[a])[0].localeCompare((TEAMS[b]||[b])[0]));
+  const chip=x=>{const p=x.p,mine=p&&orig.players.includes(p.id),st=String(x.st);
+    return `<li class="ab${mine?" mine-ab":""}"><span class="ab-pos">${p?p.pos:"–"}</span>${p?plink(p):esc(x.name)}${p?`<small>${p.price.toFixed(1)}</small>`:""}${/^out$/i.test(st)?"":`<span class="tag ${esc(st)}">${esc(st)}</span>`}</li>`;};
+  const groups=order.map(t=>`<div class="ab-club"><div class="ab-h">${badge(t)}<b>${esc((TEAMS[t]||[t])[0])}</b><span>${clubs[t].length}</span></div><ul>${clubs[t].map(chip).join("")}</ul></div>`).join("");
+  const other=(D.news||[]).filter(n=>!/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag));
+  return `<div class="panel news-card">
+      <div class="nc-h"><div><div class="eyebrow" style="margin:0">Injuries &amp; absences</div><h3>${list.length} players out</h3></div>
+      <span class="nc-mine ${mineOut.length?"bad":"ok"}">${mineOut.length?`${mineOut.length} in your team: ${mineOut.map(x=>plink(x.p,x.p.short)).join(", ")}`:"✓ None of your players"}</span></div>
+      <div class="ab-grid">${groups||'<p class="note">No absences reported.</p>'}</div>
+    </div>
+    ${other.length?`<div class="panel news-card"><div class="nc-h"><div><div class="eyebrow" style="margin:0">Other news</div></div></div><ul class="news-list">${other.map(n=>`<li><span class="tag ${esc(n.tag)}">${esc(n.tag)}</span><span>${linkify(n.txt)}</span></li>`).join("")}</ul></div>`:""}`;
+}
+function bindTeam(rerender){
+  const $=s=>document.querySelector(s);
+  const setPick=p=>{pick=p;rerender();setTimeout(()=>{const q=$("#pkq");if(q)q.focus();},0);};
+  document.querySelectorAll("[data-slot]").forEach(b=>{
+    const i=+b.dataset.slot;
+    b.onclick=()=>{
+      if(sel==null){ if(!team.slots[i])setPick({slot:i,q:"",pos:b.dataset.epos||"ALL"}); else {sel=i;rerender();} return; }
+      if(sel===i){sel=null;rerender();return;}
+      swapSlots(sel,i);sel=null;teamChanged();rerender();
+    };
+    b.ondragstart=e=>{e.dataTransfer.setData("text/plain",String(i));e.dataTransfer.effectAllowed="move";};
+    b.ondragover=e=>{e.preventDefault();b.classList.add("over");};
+    b.ondragleave=()=>b.classList.remove("over");
+    b.ondrop=e=>{e.preventDefault();const a=+e.dataTransfer.getData("text/plain");if(!isNaN(a)&&a!==i){swapSlots(a,i);sel=null;teamChanged();rerender();}};
+  });
+  document.querySelectorAll("#formSeg button").forEach(b=>b.onclick=()=>{applyForm(b.dataset.form.split("-").map(Number));sel=null;teamChanged();rerender();});
+  const at=$("#applyTrades");if(at)at.onclick=()=>{withMode(state.pmode==="m"?"m":"q",applyTrades);rerender();setTimeout(()=>{const m=$("#myteam");if(m)m.scrollIntoView({behavior:"smooth",block:"start"});},0);};
+  const cs=$("[data-coach-slot]");if(cs)cs.onclick=()=>setPick({slot:"coach",q:"",pos:"ALL"});
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.act,id=team.slots[sel];
+    if(a==="cap"){team.cap=id;sel=null;teamChanged();}
+    else if(a==="remove"){const s2=team.slots.slice();s2[sel]=null;team.slots=s2;if(team.cap===id)team.cap=null;sel=null;teamChanged();}
+    else if(a==="replace"){const i=sel;sel=null;setPick({slot:i,q:"",pos:byId[id].pos});return;}
+    else if(a==="suggest"){sug=sel;sel=null;rerender();setTimeout(()=>{const x=document.querySelector(".sugg .dr-x");if(x)x.focus();},0);return;}
+    else sel=null;
+    rerender();
+  });
+  const bank=$("#bank");if(bank)bank.onchange=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){team.bank=v;teamChanged();rerender();}};
+  const rs=$("#resetTeam");if(rs)rs.onclick=()=>{justApplied=0;team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=teamValue();rerender();};
+  const cf=$("#connectForm");if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#passIn").value.trim();if(!v)return;SYNC.pass=v;const m=$("#passMsg"),btn=cf.querySelector("button");m.textContent="Checking…";btn.disabled=true;
+    api("state").then(r=>{
+      if(r.status===401){m.textContent="Wrong passcode. Check capital letters (phones often capitalise the first letter).";btn.disabled=false;return;}
+      if(!r.ok)throw new Error("server "+r.status);
+      return r.json().then(j=>{try{localStorage.setItem(PASSK,v);}catch(e){}const sq=applyRemote(j);if(sq)SQUAD=sq;init(D);});
+    }).catch(err=>{btn.disabled=false;m.textContent=(err&&err.name==="AbortError")?"The server took too long. Try again.":"Could not connect ("+((err&&err.message)||"network")+"). Try again.";});};
+  const sv=$("#saveTeam");if(sv&&SYNC.mode==="on")sv.onclick=()=>{
+    if(!teamValid()){sv.textContent="Finish the team first";return;}
+    const tj=teamJSON();sv.disabled=true;sv.textContent="Saving…";
+    api("team",{method:"POST",body:JSON.stringify({team:tj})}).then(r=>r.json().then(j=>{if(!r.ok)throw new Error(j.error||r.status);
+      savedTeam=teamFrom(tj);team=teamFrom(tj);state.team=null;justApplied=0;teamChanged();state.team=null;rerender();
+      const b=document.getElementById("saveTeam");if(b){b.textContent="Saved ✓ the daily report will use it";}
+    })).catch(e=>{sv.disabled=false;sv.textContent="Save failed: "+(e.message||"try again");});
+  };
+  else if(sv)sv.onclick=()=>{
+    const ta=$("#teamJson"),box=$("#saveHelp");ta.value=JSON.stringify(teamJSON(),null,1);box.hidden=false;
+    const fallback=()=>{ta.focus();ta.select();};
+    try{navigator.clipboard.writeText(ta.value).then(()=>{sv.textContent="Copied ✓ now open GitHub";},fallback);}catch(e){fallback();}
+    box.scrollIntoView({block:"nearest",behavior:"smooth"});
+  };
+  // suggestions
+  document.querySelectorAll("[data-sg-close]").forEach(b=>b.onclick=()=>{sug=null;sugCmp=null;rerender();});
+  const sgScrollTop=()=>{const d=document.querySelector(".sugg");if(d)d.scrollTop=0;};
+  document.querySelectorAll("[data-sg-cmp]").forEach(b=>b.onclick=()=>{sugCmp=+b.dataset.sgCmp;rerender();sgScrollTop();});
+  document.querySelectorAll("[data-sg-back]").forEach(b=>b.onclick=()=>{sugCmp=null;rerender();sgScrollTop();});
+  document.querySelectorAll("[data-sg-pick]").forEach(b=>b.onclick=()=>{
+    const id=+b.dataset.sgPick,slot=sug,old=team.slots[slot],s2=team.slots.slice();s2[slot]=id;team.slots=s2;
+    team.bank=r1(team.bank+byId[old].price-byId[id].price);if(team.cap===old)team.cap=slot<5?id:null;
+    sug=null;sugCmp=null;teamChanged();rerender();});
+  const sa=$("[data-sg-all]");if(sa)sa.onclick=()=>{const slot=sug,pos=byId[team.slots[slot]].pos;sug=null;setPick({slot,q:"",pos});};
+  // picker
+  document.querySelectorAll("[data-pk-close]").forEach(b=>b.onclick=()=>{pick=null;rerender();});
+  document.querySelectorAll("[data-pk]").forEach(b=>b.onclick=()=>{
+    if(b.classList.contains("dis"))return;
+    const id=+b.dataset.pk,s2=team.slots.slice(),old=s2[pick.slot];s2[pick.slot]=id;team.slots=s2;
+    if(old&&byId[old])team.bank=r1(team.bank+byId[old].price-byId[id].price);
+    if(team.cap===old)team.cap=pick.slot<5?id:null;
+    if(!team.cap&&pick.slot<5&&team.slots.slice(0,5).filter(Boolean).length===5){}
+    pick=null;teamChanged();rerender();
+  });
+  document.querySelectorAll("[data-pk-coach]").forEach(b=>b.onclick=()=>{team.coach=b.dataset.pkCoach;pick=null;teamChanged();rerender();});
+  document.querySelectorAll("#pkpos button").forEach(b=>b.onclick=()=>{pick.pos=b.dataset.v;const q=$("#pkq");pick.q=q?q.value:pick.q;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);});
+  const q=$("#pkq");let t;
+  if(q)q.oninput=e=>{clearTimeout(t);t=setTimeout(()=>{pick.q=e.target.value;const pos=q.selectionStart;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);const n=$("#pkq");n.focus();n.setSelectionRange(pos,pos);},200);};
 }
 function bind(){
   const $=s=>document.querySelector(s);
-  const rerender=()=>{save();const y=window.scrollY;render();window.scrollTo(0,y);};
-  $("#budget").addEventListener("change",e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.budget=v;rerender();}});
-  // while dragging, redraw only the tiles and proposal; the full page (market highlights etc.) follows on release
-  $("#lam").addEventListener("input",e=>{
-    const i=+e.target.value;state.lam=STOPS[i];wmmSync(i);
-    result=optimiseCached();const parts=proposalParts(result);
-    $("#propTiles").innerHTML=parts.tiles;$("#propWarn").innerHTML=parts.warn;$("#propBody").innerHTML=parts.body;
-  });
-  $("#lam").addEventListener("change",()=>{rerender();$("#lam").focus({preventScroll:true});});
+  const rerender=()=>{save();const y=window.scrollY;const db=document.querySelector(".drawer");const dy=db?db.scrollTop:0;render();window.scrollTo(0,y);const nb=document.querySelector(".drawer");if(nb)nb.scrollTop=dy;};
+  bindTeam(rerender);
+  $("#budget")&&$("#budget").addEventListener("change",e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){state.budget=v;state.budgetTouched=true;rerender();}});
+  // while dragging, redraw only the tiles, trades and plan; the full page (mode summaries, market highlights) follows on release
+  const lam=$("#lam");
+  if(lam){
+    lam.addEventListener("input",e=>{
+      const i=+e.target.value;state.lam=STOPS[i];wmmSync(i);
+      const pm=state.pmode==="m"?"m":"q";
+      result=withMode(pm,optimise);const parts=withMode(pm,()=>proposalParts(result));
+      $("#propTiles").innerHTML=parts.tiles;$("#propWarn").innerHTML=parts.warn;$("#propTrades").innerHTML=parts.trades;$("#propBody").innerHTML=parts.body;
+    });
+    lam.addEventListener("change",()=>{rerender();const n=$("#lam");if(n)n.focus({preventScroll:true});});
+  }
   document.querySelectorAll("[data-stop]").forEach(b=>b.onclick=()=>{state.lam=STOPS[+b.dataset.stop];rerender();});
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
-  $("#sort").onchange=e=>{state.sort=e.target.value;rerender();};
+  const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
   document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{state.sort=b.dataset.sort;rerender();});
-  $("#only").onclick=()=>{state.only=!state.only;rerender();};
+  const on1=$("#only");if(on1)on1.onclick=()=>{state.only=!state.only;rerender();};
   const cl=$("#clear");if(cl)cl.onclick=()=>{state.pins=[];state.avoids=[];state.coachPin=null;rerender();};
-  const q=$("#q");let t;q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
+  const q=$("#q");let t;if(q)q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const id=+b.dataset.pin;state.avoids=state.avoids.filter(i=>i!==id);state.pins=state.pins.includes(id)?state.pins.filter(i=>i!==id):[...state.pins,id];rerender();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=state.avoids.includes(id)?state.avoids.filter(i=>i!==id):[...state.avoids,id];rerender();});
-  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{const id=+b.dataset.open;state.open=state.open===id?null:id;rerender();});
+  document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
+  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;rerender();});
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.dtab=b.dataset.tab;rerender();});
+  document.querySelectorAll("#allg button").forEach(b=>b.onclick=()=>{state.allGames=b.dataset.v==="1";rerender();});
+  const ct=$("#calToggle");if(ct)ct.onclick=()=>{state.calOpen=!state.calOpen;rerender();};
+  document.querySelectorAll("[data-pmode]").forEach(b=>b.onclick=()=>{state.pmode=b.dataset.pmode;justApplied=0;rerender();});
+  document.querySelectorAll("[data-team]").forEach(b=>{const go=e=>{e.stopPropagation();e.preventDefault();tp=b.dataset.team;rerender();setTimeout(()=>{const x=document.querySelector(".tpanel .dr-x");if(x)x.focus();},0);};b.onclick=go;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")go(e);};});
+  document.querySelectorAll("[data-tp-close]").forEach(b=>b.onclick=()=>{tp=null;rerender();});
+  document.querySelectorAll("[data-game]").forEach(b=>b.onclick=e=>{if(e.target.closest(".plink"))return;const k=b.dataset.game;state.rg=state.rg===k?null:k;rerender();});
+  document.querySelectorAll("[data-rgt]").forEach(b=>b.onclick=()=>{state.rgt={k:b.dataset.rgk,t:b.dataset.rgt};rerender();});
+  document.querySelectorAll("#rf button").forEach(b=>b.onclick=()=>{state.rf=b.dataset.v;rerender();});
+  document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const d=b.dataset.day;state.collapsed=state.collapsed.includes(d)?state.collapsed.filter(x=>x!==d):[...state.collapsed,d];rerender();});
   document.querySelectorAll("[data-coach]").forEach(b=>b.onclick=()=>{const t=b.dataset.coach;state.coachPin=state.coachPin===t?null:t;rerender();});
-  const links=[...document.querySelectorAll(".top nav a")];
-  links.forEach(a=>a.onclick=()=>{links.forEach(x=>x.classList.toggle("on",x===a));});
+  document.querySelectorAll('a[href="#myteam"],a[href="#team"]').forEach(a=>{if(!a.dataset.page)a.onclick=e=>{e.preventDefault();goPage("team","myteam");};});
 }
 })();
 </script>
