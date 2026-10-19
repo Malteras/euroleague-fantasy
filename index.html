@@ -185,7 +185,9 @@ section{padding-block:28px 8px}
 /* one Out / In caption over all trade tables; the 1px side padding matches the tables' border */
 .tcap{padding:0 1px;overflow:hidden}
 .tcap .tt thead th{padding-block:2px 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.tcap .tt th.o{color:var(--bad)} .tcap .tt th.i{color:var(--good)}
+.tcap .tt th.o,.tcap .tt th.i{color:var(--muted)}
+/* Out values end at the arrow and In values start after it, so the arrow sits midway between the two players */
+.tt th:nth-child(4),.tt td:nth-child(4){text-align:left}
 .tt th b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt th small{display:block;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt th.ar{text-align:center;color:var(--good);font-size:22px;font-weight:800;line-height:1}
