@@ -170,7 +170,22 @@ section{padding-block:28px 8px}
 .trade small{color:var(--muted);font-size:12px}
 .arrow{color:var(--faint);text-align:center}
 .ptrades{margin-top:16px}
-.trade.fresh{animation:fresh 1.4s ease-out}
+.trade.fresh,.ttbl.fresh{animation:fresh 1.4s ease-out}
+/* trade compare tables: Out → In, with the difference in the Change column */
+.ttbl{border:1px solid var(--line-soft);border-radius:12px;overflow-x:auto;margin-top:8px}
+.ttbl.ttot{border-color:var(--line);background:var(--raise)}
+.tt{width:100%;min-width:480px;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
+.tt col.c-l{width:27%} .tt col.c-o,.tt col.c-i{width:22%} .tt col.c-a{width:6%} .tt col.c-d{width:23%}
+.tt th,.tt td{padding:7px 10px;text-align:right;border-top:1px solid var(--line-soft);vertical-align:middle}
+.tt thead th{border-top:0;font-weight:700}
+.tt th:first-child,.tt td:first-child{text-align:left;color:var(--muted);font-weight:600}
+.tt thead th:first-child{color:var(--fg);font-family:var(--display);font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+.tt th.o b,.tt th.o .io{color:var(--bad)} .tt th.i b,.tt th.i .io{color:var(--good)}
+.tt th .io{display:block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.tt th b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt th small{display:block;font-weight:500;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt th.ar{text-align:center;color:var(--good);font-size:22px;font-weight:800;line-height:1}
+.tt td.d{font-weight:800} .tt .tp{color:var(--accent)} .tt .tc{color:var(--credit)} .tt td.neg{color:var(--bad)}
 @keyframes fresh{from{background:var(--accent-soft);box-shadow:0 0 0 6px var(--accent-soft)}to{background:transparent;box-shadow:0 0 0 6px transparent}}
 .coachline{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--raise);margin-top:6px;font-size:14px}
 .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:s}
@@ -528,7 +543,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .wmm-split{order:-1;flex-basis:100%}
   .wmm-stops button:not(.on):not(.first):not(.last){color:transparent}
 }
-@media (prefers-reduced-motion:reduce){.trade.fresh{animation:none}}
+@media (prefers-reduced-motion:reduce){.trade.fresh,.ttbl.fresh{animation:none}}
 @media (prefers-reduced-motion:no-preference){.pc,.mrow{transition:background .2s}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -1396,11 +1411,33 @@ function proposalParts(R){
   // flash trades that weren't in the previous proposal; the full redraw on release continues a running flash instead of cutting it off
   const ins=R.S.filter(i=>!orig.players.includes(i)).concat(coachChanged?["coach:"+R.coach]:[]);
   const prevIns=lastIns,now=Date.now();
-  const fresh=k=>{if(prevIns&&!prevIns.includes(k))flashAt[k]=now;const e=now-(flashAt[k]??-1e9);return e<1400?`class="trade fresh" style="animation-delay:-${e}ms"`:`class="trade"`;};
+  // returns the rest of a class attribute: ` fresh" style="…` while the flash runs, else ""
+  const fresh=k=>{if(k==null)return "";if(prevIns&&!prevIns.includes(k))flashAt[k]=now;const e=now-(flashAt[k]??-1e9);return e<1400?` fresh" style="animation-delay:-${e}ms`:"";};
   lastIns=ins;
   const mu=p=>state.pmode==="m"&&p.opp?` · ${p.opp.ha==="H"?"vs":"@"} ${p.opp.opp} ${matchup(p)!=null?(matchup(p)>0?"+":"")+matchup(p):""}`:"";
-  const tr=pairs.map(([o,i])=>{const a=byId[o],b=byId[i];return `<div ${b?fresh(i):'class="trade"'}><div class="o"><b>${a?plink(a):"—"}</b><small>${a?`${a.team} · ${a.price.toFixed(1)} cr · proj ${a.x}${mu(a)}`:""}</small></div><div class="arrow">→</div><div class="i"><b>${b?plink(b):"—"}</b><small>${b?`${b.team} · ${b.price.toFixed(1)} cr · proj ${b.x}${mu(b)}`:""}</small></div></div>`}).join("")
-   +(coachChanged?(()=>{const a=coachByTeam[orig.coach],b=coachByTeam[R.coach];return `<div ${fresh("coach:"+R.coach)}><div class="o"><b>${esc(a.name)}</b><small>Coach · ${a.price.toFixed(1)} cr</small></div><div class="arrow">→</div><div class="i"><b>${esc(b.name)}</b><small>Coach · ${b.price.toFixed(1)} cr · proj ${b.x}</small></div></div>`})():"");
+  // One compare table per trade: price, projection and expected price change for the player out and in, and the difference.
+  // All tables share the same column widths, so the total table underneath lines up with every Change column.
+  const cols='<colgroup><col class="c-l"><col class="c-o"><col class="c-a"><col class="c-i"><col class="c-d"></colgroup>';
+  const dcell=(v,unit,c)=>`<td class="d ${v<0?"neg":c}">${fmt(r1(v),1)}${unit}</td>`;
+  const bankCell=fr=>`<td class="d">${fr>=0?"frees":"costs"} ${Math.abs(r1(fr)).toFixed(1)}</td>`;
+  const tot={dp:0,dc:0,fr:0};
+  const table=(label,a,b,key,name,sub)=>{
+    const dp=(b?b.x:0)-(a?a.x:0),dc=(b?b.exp:0)-(a?a.exp:0),fr=(a?a.price:0)-(b?b.price:0);
+    tot.dp+=dp;tot.dc+=dc;tot.fr+=fr;
+    const who=(p,io)=>`<span class="io">${io}</span>`+(p?`<b>${name(p)}</b><small>${sub(p)}</small>`:"—");
+    const v=(p,f)=>p?f(p):"–";
+    return `<div class="ttbl${fresh(key)}"><table class="tt">${cols}<thead><tr><th>${label}</th><th class="o">${who(a,"Out")}</th><th class="ar" aria-label="traded for">→</th><th class="i">${who(b,"In")}</th><th>Change</th></tr></thead><tbody>
+      <tr><td>Price</td><td>${v(a,p=>p.price.toFixed(1))}</td><td></td><td>${v(b,p=>p.price.toFixed(1))}</td>${bankCell(fr)}</tr>
+      <tr><td>Projection</td><td>${v(a,p=>p.x)}</td><td></td><td>${v(b,p=>p.x)}</td>${dcell(dp," pts","tp")}</tr>
+      <tr><td>Expected price change</td><td>${v(a,p=>fmt(r1(p.exp),1))}</td><td></td><td>${v(b,p=>fmt(r1(p.exp),1))}</td>${dcell(dc," cr","tc")}</tr></tbody></table></div>`;
+  };
+  const nTr=pairs.length+(coachChanged?1:0);
+  let tr=pairs.map(([o,i],k)=>table(`Trade ${k+1}`,byId[o],byId[i],i??null,p=>plink(p),p=>p.team+mu(p))).join("")
+   +(coachChanged?table(`Trade ${pairs.length+1}`,coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),()=>"Coach"):"");
+  if(nTr>1)tr+=`<div class="ttbl ttot"><table class="tt">${cols}<thead><tr><th>All ${nTr} trades</th><th></th><th></th><th></th><th>Total</th></tr></thead><tbody>
+      <tr><td>Price</td><td></td><td></td><td></td>${bankCell(tot.fr)}</tr>
+      <tr><td>Projection</td><td></td><td></td><td></td>${dcell(tot.dp," pts","tp")}</tr>
+      <tr><td>Expected price change</td><td></td><td></td><td></td>${dcell(tot.dc," cr","tc")}</tr></tbody></table></div>`;
   const noTrades=!pairs.length&&!coachChanged;
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
