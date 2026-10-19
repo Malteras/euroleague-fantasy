@@ -63,4 +63,4 @@ Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the tea
 - Free-trade windows: the daily report writes `tradeWindow` into `data.json` (this round and the next: unlimited or not). The "Trades this round" switch follows it; a choice made by hand sticks until the report's answer changes.
 - Words: `GLOSSARY.md` lists the terms the site and the report use.
 - Domestic PIR is estimated from Sofascore box scores (fouls drawn and blocks against aren't published). Domestic games don't score in fantasy.
-- Picks (★ / ✕), budget and settings are saved in your browser only.
+- Picks (♥ / ⊘), budget and settings are saved in your browser only.

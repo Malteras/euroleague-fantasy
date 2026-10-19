@@ -285,6 +285,8 @@ section{padding-block:28px 8px}
 .ico{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--raise);cursor:pointer;display:grid;place-items:center;color:var(--muted);font-weight:800;font-size:15px;padding:0}
 .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.ico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ico.pin.on svg{fill:currentColor}
 .spark{display:block;width:150px;height:36px}
 .spark .bar{fill:var(--accent)}
 .spark .bar.lo{fill:var(--faint)}
@@ -669,6 +671,9 @@ let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let
 const STOPS=[0,10,20,35,60];
 const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
 const STOP_DESC=["Picks whoever should score most. Price changes are ignored.","Points come first. A likely price rise only settles a close call.","Weighs points and price rises evenly. This is the default.","Takes a few fewer points for players likely to go up in price.","Buys players likely to go up in price, even if they score less."];
+// Must have = heart, Leave out = ban sign, so neither looks like the drawer's close ✕
+const ICO_HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.7 7.8 3.9 4.5 7.3 4.5c2 0 3.6 1.1 4.7 2.8 1.1-1.7 2.7-2.8 4.7-2.8 3.4 0 5.6 3.3 4.5 6.6-1.7 4.8-9.2 9.4-9.2 9.4z"/></svg>';
+const ICO_BAN='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg>';
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
@@ -1511,7 +1516,7 @@ function drawer(){
   }
   // Must have / Leave out as icons beside the name; the tooltip says what each does
   const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
-  const icos=`<span class="dr-icos"><button type="button" class="ico pin${pinOn?" on":""}" data-pin="${p.id}" aria-pressed="${pinOn}" aria-label="Must have: always put this player in the proposal">★<span class="tip" aria-hidden="true"><b>Must have</b>Always put this player in the proposal.</span></button><button type="button" class="ico no${noOn?" on":""}" data-no="${p.id}" aria-pressed="${noOn}" aria-label="Leave out: never put this player in the proposal">✕<span class="tip" aria-hidden="true"><b>Leave out</b>Never put this player in the proposal.</span></button></span>`;
+  const icos=`<span class="dr-icos"><button type="button" class="ico pin${pinOn?" on":""}" data-pin="${p.id}" aria-pressed="${pinOn}" aria-label="Must have: always put this player in the proposal">${ICO_HEART}<span class="tip" aria-hidden="true"><b>Must have</b>Always put this player in the proposal.</span></button><button type="button" class="ico no${noOn?" on":""}" data-no="${p.id}" aria-pressed="${noOn}" aria-label="Leave out: never put this player in the proposal">${ICO_BAN}<span class="tip" aria-hidden="true"><b>Leave out</b>Never put this player in the proposal.</span></button></span>`;
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
   const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>Next game</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
@@ -1668,7 +1673,7 @@ function proposalParts(R){
   const pickChip=(id,verb)=>`<button type="button" class="chip-toggle sm on" data-pin="${id}" aria-pressed="true" title="Undo">${verb} ${esc(byId[id].short)} ✕</button>`;
   const cp=coachByTeam[state.coachPin];
   const coachChip=cp?`<button type="button" class="chip-toggle sm on" data-coach="${esc(state.coachPin)}" aria-pressed="true" title="Undo">Coach ${esc(cp.name)} ✕</button>`:"";
-  const picks=kept.length||pinned.length||cp?`<div class="tx-picks"><span class="muted">Your picks</span>${kept.map(i=>pickChip(i,"Keep")).join("")}${pinned.map(i=>pickChip(i,"★")).join("")}${coachChip}</div>`:"";
+  const picks=kept.length||pinned.length||cp?`<div class="tx-picks"><span class="muted">Your picks</span>${kept.map(i=>pickChip(i,"Keep")).join("")}${pinned.map(i=>pickChip(i,"♥")).join("")}${coachChip}</div>`:"";
   const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>${LA?`<span class="rb-h">Points over 2 rounds${rbInfo(rN,rN2)}</span><small>${rN2} counts half</small>`:"Projected points"}</th><th>Price rise</th><th><span class="sr">Remove</span></th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>${laNote}
     <div class="tx-act"><button type="button" class="btn-primary" data-apply>Apply trades to My team</button><span class="note">Also sets the turn-1 lineup and captain. Nothing is saved until you press Save on My team.</span></div>`;
   const tiles=`
@@ -1823,7 +1828,7 @@ function market(){
   rows.sort((a,b)=>key(b)-key(a));
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
-    <button type="button" class="ico pin${pins.has(p.id)?" on":""}" data-pin="${p.id}" aria-pressed="${pins.has(p.id)}" title="Must have">★</button>
+    <button type="button" class="ico pin${pins.has(p.id)?" on":""}" data-pin="${p.id}" aria-pressed="${pins.has(p.id)}" title="Must have" aria-label="Must have">${ICO_HEART}</button>
     <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
@@ -1831,9 +1836,9 @@ function market(){
     <span class="cell-num h-ch ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))}</span>
     <span class="h-sp">${spark(p)}</span>
     <span class="opp h-op"><b>${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}</b><small>${esc(dayLabel(p.day))}</small></span>
-    <button type="button" class="ico no${av.has(p.id)?" on":""}" data-no="${p.id}" aria-pressed="${av.has(p.id)}" title="Leave out">✕</button>
+    <button type="button" class="ico no${av.has(p.id)?" on":""}" data-no="${p.id}" aria-pressed="${av.has(p.id)}" title="Leave out" aria-label="Leave out">${ICO_BAN}</button>
   </div>`).join("");
-  return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">★ forces a player into the proposal, ✕ keeps him out. Tap a name for his last five games against break-even.</p></div>
+  return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">♥ forces a player into the proposal, ⊘ keeps him out. Tap a name for his last five games against break-even.</p></div>
   <div class="tools"><input id="q" class="search" type="search" placeholder="Search player or team" value="${esc(state.q)}" aria-label="Search players">
   <div class="seg" id="pos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${state.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>
   <div class="seg" id="day">${["ALL",...dayKeys].map(v=>`<button type="button" data-v="${v}" class="${state.day===v?"on":""}">${v==="ALL"?"Any day":esc(dayShort(v))}</button>`).join("")}</div>
