@@ -190,6 +190,7 @@ section{padding-block:28px 8px}
 .tx-p.o b,.tx-p.o .plink{color:var(--bad)} .tx-p.i b,.tx-p.i .plink{color:var(--good)}
 .tx-p small{display:block;font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-p small i{font-style:normal} .tx-p small i span{font-weight:700} .tx-p small i .up{color:var(--good)} .tx-p small i .dn{color:var(--bad)}
+.tx-cap td:first-child b{display:block} .tx-cap small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
 .tx .was{display:block;font-size:11.5px;font-weight:500;color:var(--faint);white-space:nowrap}
 .tx .tp{color:var(--accent)} .tx .tc{color:var(--credit)} .tx .neg{color:var(--bad)} .tx .z{color:var(--faint)}
 .tx tfoot td{border-top:2px solid var(--line);font-weight:800}
@@ -727,6 +728,7 @@ function init(data){
   const lt=state.team;
   team=(lt&&lt.base===(savedTeam.updated||"")&&Array.isArray(lt.slots))?teamFrom(lt):teamFrom(savedTeam);
   orig={players:teamIds(),coach:team.coach};
+  P.forEach(p=>{p.sd=spreadOf(p);});
   // captain options: two best projections per day
   dayKeys.forEach(d=>P.filter(p=>p.day===d).sort((a,b)=>b.x-a.x).slice(0,2).forEach(p=>capOpt.add(p.id)));
   P.forEach(p=>{p.tags=tagsFor(p);});
@@ -1064,14 +1066,42 @@ function lineup(ids){
 function evalSquad(ids,coach){
   const L=lineup(ids);
   const all=ids.reduce((a,i)=>a+byId[i].x,0);
-  const cc=coachByTeam[coach];
-  const pts=.5*all+.5*L.s+L.cap.x+(cc?cc.x:0);
+  const cc=coachByTeam[coach],cap=capPlan(ids);
+  const pts=.5*all+.5*L.s+cap.v+(cc?cc.x:0);
   const cred=ids.reduce((a,i)=>a+byId[i].exp,0)+(cc?cc.exp:0);
-  return {pts,cred,obj:pts+state.lam*cred,L};
+  return {pts,cred,obj:pts+state.lam*cred,L,cap};
 }
 const cost=(ids,coach)=>ids.reduce((a,i)=>a+byId[i].price,0)+(coachByTeam[coach]?coachByTeam[coach].price:0);
 const trades=(ids,coach)=>ids.filter(i=>!orig.players.includes(i)).length+(coach!==orig.coach?1:0);
 function clubOk(ids){const n={};for(const i of ids){const t=byId[i].team;n[t]=(n[t]||0)+1;if(n[t]>6)return false;}return true;}
+
+/* ---------- captain plan ----------
+   Between the turns of a round you can move the armband to anyone in the squad who has not played yet; the first
+   captain's score then counts once. So an early captain is a free shot: keep him after a big game, move on after a
+   quiet one. Worked back from the last turn, each turn's captain is worth E[max(his score, what the later turns are
+   still worth)], with his score ~ Normal(projection, spread). A streaky scorer is worth more as an early captain. */
+const SPREAD_K=3; // the typical spread (half the projection) counts as this many games next to his own recent games
+function spreadOf(p){
+  const v=(p.log||[]).slice(0,8).map(g=>g.fpt).filter(f=>f!=null),n=v.length,pr=.5*Math.max(p.x,4);
+  if(n<2)return pr;
+  const m=v.reduce((a,b)=>a+b,0)/n,s2=v.reduce((a,b)=>a+(b-m)**2,0)/(n-1);
+  return Math.sqrt((n*s2+SPREAD_K*pr*pr)/(n+SPREAD_K));
+}
+const nPdf=z=>.3989423*Math.exp(-z*z/2);
+function nCdf(z){const t=1/(1+.2316419*Math.abs(z)),q=nPdf(z)*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-q:q;}
+const eMax=(mu,sd,c)=>{const z=(mu-c)/sd;return c+(mu-c)*nCdf(z)+sd*nPdf(z);}; // E[max(score, c)]
+// v: expected captain points (the extra x1 on top of his normal score); path: one captain per turn from the first,
+// keepAt = keep the armband if he scores at least this, else move it to the next one
+function capPlan(ids){
+  let v=null;const path=[];
+  for(let k=dayKeys.length-1;k>=0;k--){
+    let best=null,bv=-Infinity;
+    for(const i of ids){const p=byId[i];if(p.day!==dayKeys[k]||p.out)continue;
+      const e=v==null?p.x:eMax(p.x,p.sd||.5*Math.max(p.x,4),v);if(e>bv){bv=e;best=p;}}
+    if(best){path.unshift({p:best,keepAt:v});v=bv;}
+  }
+  return {v:v??0,path};
+}
 
 const MW=0.12; // matchup weight: PIR the opponent allows to his position (vs average) x 0.12
 const mBonus=p=>{const m=matchup(p);return m==null||p.out?0:r1(MW*m);};
@@ -1086,12 +1116,11 @@ function withMode(mode,fn){
 }
 let resultAlt=null;
 // Search score: the same number as evalSquad(ids,coach).obj at this lam, without building the lineup (the search calls it tens of thousands of times).
-// The captain is always the squad's top projection, since every formation starts the best player at each position.
 const qPos={G:[],F:[],C:[]};
 function quickObj(ids,coach,lam){
-  const g=qPos.G,f=qPos.F,c=qPos.C;g.length=f.length=c.length=0;let all=0,cred=0,cap=-Infinity;
+  const g=qPos.G,f=qPos.F,c=qPos.C;g.length=f.length=c.length=0;let all=0,cred=0;
   for(const i of ids){
-    const p=byId[i],a=qPos[p.pos];all+=p.x;cred+=p.exp;if(p.x>cap)cap=p.x;
+    const p=byId[i],a=qPos[p.pos];all+=p.x;cred+=p.exp;
     let k=a.length;while(k>0&&a[k-1]<p.x){a[k]=a[k-1];k--;}a[k]=p.x; // keep each position sorted high to low
   }
   let best=-Infinity;
@@ -1102,7 +1131,7 @@ function quickObj(ids,coach,lam){
     s+=six>-Infinity?six:0;if(s>best)best=s;
   }
   const cc=coachByTeam[coach];
-  return .5*all+.5*best+cap+(cc?cc.x:0)+lam*(cred+(cc?cc.exp:0));
+  return .5*all+.5*best+capPlan(ids).v+(cc?cc.x:0)+lam*(cred+(cc?cc.exp:0));
 }
 // One local search for one "What matters more" stop: the squad with the most points + lam × expected credit change.
 function searchPlan(lam){
@@ -1524,8 +1553,14 @@ function proposalParts(R){
   const nTr=pairs.length+(coachChanged?1:0);
   const rows=pairs.map(([o,i])=>row(byId[o],byId[i],i??null,p=>plink(p),""))
     .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach")]:[]).join("");
-  const foot=nTr>1?`<tfoot><tr><td>Total · ${nTr} trades</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${num(tot.dp,"tp")}<span class="u"> pts</span></td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td></tr></tfoot>`:"";
-  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>Projected points</th><th>Price rise</th></tr></thead><tbody>${rows}</tbody>${foot}</table></div>`;
+  // the captain plan is part of the projected points too (see capPlan): show what the trades do to it
+  const ca=capPlan(orig.players.filter(i=>byId[i])),cb=capPlan(R.S),dcap=cb.v-ca.v;
+  const capWho=c=>c.path.length?`${esc(c.path[0].p.short)} first (${esc(turnOf2(c.path[0].p.day))})`:"–";
+  let capRow="";
+  if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
+    capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td></tr>`;}
+  const foot=nTr>1||capRow?`<tfoot><tr><td>Total · ${nTr} trade${nTr===1?"":"s"}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${num(tot.dp,"tp")}<span class="u"> pts</span></td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td></tr></tfoot>`:"";
+  const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>Projected points</th><th>Price rise</th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>`;
   const noTrades=!pairs.length&&!coachChanged;
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
@@ -1539,8 +1574,13 @@ function proposalParts(R){
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
   return {tiles,warn,trades,body};
 }
+// "If X scores 24+, keep the armband. Otherwise move it to Y (Turn 2, proj 20.5)." for each captain on the path but the last
+function capSteps(capPath,name,turn){
+  return capPath.slice(0,-1).map(({p,keepAt},k)=>{const n=capPath[k+1].p;
+    return {day:p.day,txt:`${k?`If the armband is on ${name(p)} now: keep it if he scores`:`If ${name(p)} scores`} <b>${Math.round(keepAt)}+</b>${k?"":", keep the armband"}. Otherwise move it to ${name(n)} (${esc(turn(n.day))}, proj ${n.x}). Bring him into the starting five first if needed.`};});
+}
 function planView(R,L,{tr,noTrades,pairs,coachChanged}){
-  const {ps,finalDay,init,cap0,capByDay,reserves}=initPlan(R,L);
+  const {ps,finalDay,init,cap0,capPath,reserves}=initPlan(R,L);
   const isNew=p=>!orig.players.includes(p.id);
   const T=d=>turnOf2(d).replace("Turn ","T");
   const name=p=>`<b>${plink(p,p.short)}</b>`;
@@ -1560,8 +1600,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
     +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">Set the lineup · ${form}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
-  const later=capByDay.filter(p=>p.day>cap0.day);
-  const keepAt=later.length?Math.round(Math.max(...later.map(p=>p.x))*1.15):null;
+  const capActs=capSteps(capPath,name,turnOf2);
   const lateRes=reserves.filter(p=>p.day===finalDay);
   const secondLast=dayKeys[dayKeys.length-2];
   const coach=coachByTeam[R.coach];
@@ -1572,7 +1611,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     const role=p=>p===cap0?"cap":st.includes(p)?"start":p===six?"six":"bench";
     const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${p.x}${role(p)==="cap"?" · C":role(p)==="bench"?" · bench":role(p)==="six"?" · 6th":""}</small></span>`).join("");
     const acts=[];
-    if(d===cap0.day&&later.length)acts.push(`If ${name(cap0)} scores <b>${keepAt}+</b>, keep the armband. Otherwise move it to ${later.map(p=>`${name(p)} (${esc(turnOf2(p.day))}, ${p.x})`).join(", then ")}. Bring a bench player into the starting five first if needed.`);
+    capActs.filter(a=>a.day===d).forEach(a=>acts.push(a.txt));
     if(d===secondLast&&lateRes.length)acts.push(`Swap in ${lateRes.map(p=>`${name(p)} ${p.x}`).join(", ")} for anyone who scored below his projection. Match positions or change the formation.`);
     if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (proj ${coach.x}).</span>`);
     const rk=risky.filter(p=>p.day===d);
@@ -1598,27 +1637,20 @@ function initPlan(R,L){
   const stNames=init.st.map(name).join(", ");
   const reserves=ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x);
   const lateRes=reserves.filter(p=>p.day===finalDay);
-  // captain path by day
-  const capByDay=dayKeys.map(d=>ps.filter(p=>p.day===d).sort((a,b)=>b.x-a.x)[0]).filter(Boolean);
-  // Captain the strongest player on the EARLIEST day: if he goes big you keep the double,
-  // if not you move the armband to a later player at no cost.
-  const bestX=Math.max(...ps.map(p=>p.x));
-  const cap0=capByDay.find(p=>p.x>=Math.max(12,.6*bestX))||capByDay[0];
+  // captain path, one per turn (see capPlan): the first one gets the armband, the rest are where it moves after a quiet game
+  const capPath=capPlan(R.S).path;
+  const cap0=capPath[0].p;
   if(!init.st.includes(cap0)){const k=init.st.findIndex(p=>p.pos===cap0.pos);if(k>=0){if(init.six===cap0)init.six=init.st[k];init.st[k]=cap0;}}
-  return {ps,finalDay,init,cap0,capByDay,reserves:ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x)};
+  return {ps,finalDay,init,cap0,capPath,reserves:ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x)};
 }
 function planSteps(R,L){
-  const {ps,finalDay,init,cap0,capByDay,reserves}=initPlan(R,L);
+  const {ps,finalDay,init,cap0,capPath,reserves}=initPlan(R,L);
   const name=p=>`<b>${plink(p,p.short)}</b>`;
   const lateRes=reserves.filter(p=>p.day===finalDay);
   const stNames2=init.st.map(name).join(", ");
   const steps=[];
   steps.push(`Before ${esc(dayShort(dayKeys[0]))}: start ${stNames2}${init.six?`, 6th man ${name(init.six)}`:""}. Captain ${name(cap0)} (${esc(dayShort(cap0.day))}, proj ${cap0.x}) because he plays first: a big game is doubled, a quiet one costs nothing since you can still move the armband.`);
-  const later=capByDay.filter(p=>p.day>cap0.day);
-  if(later.length){
-    const keepAt=Math.round(Math.max(...later.map(p=>p.x))*1.15);
-    steps.push(`After ${esc(dayShort(cap0.day))}: keep ${name(cap0)} as captain if he scored ${keepAt}+ FPT. Otherwise move it to ${later.map(p=>`${name(p)} (${esc(dayShort(p.day))}, proj ${p.x})`).join(", then ")}. Bring a bench player into the starting five first if needed.`);
-  }
+  capSteps(capPath,name,dayShort).forEach(a=>steps.push(`After ${esc(dayShort(a.day))}: ${a.txt}`));
   if(lateRes.length){
     const weakest=init.st.concat(init.six?[init.six]:[]).sort((a,b)=>a.x-b.x).slice(0,lateRes.length);
     steps.push(`After ${esc(dayShort(dayKeys[dayKeys.length-2]||dayKeys[0]))}: keep ${lateRes.map(name).join(", ")} on the bench until you see Thursday's scores, then swap them in for whoever scored below their projection (${lateRes.map(p=>`${esc(p.short)} ${p.x}`).join(", ")}). Match positions or change the formation.`);
