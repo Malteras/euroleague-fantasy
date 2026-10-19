@@ -1355,14 +1355,16 @@ function wmmText(i){
   const g=i*25;
   return {a:`Points ${100-g}%<small>this round</small>`,b:`${g}% Growth<small>credit value</small>`,ex:`<b>${esc(STOP_NAMES[i])}.</b> ${esc(STOP_DESC[i])}`,vt:`${STOP_NAMES[i]}: points ${100-g}%, growth ${g}%`};
 }
+// The teal part of the bar is as long as the points share, so the points end is on the right: bar position = 4 - stop index.
+const wmmPos=i=>4-i;
 function wmmField(){
   const i=stopIdx(),t=wmmText(i);
-  const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===0?"first":j===4?"last":""}${j===i?" on":""}" style="left:${j*25}%">${esc(n)}</button>`).join("");
-  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="a" id="wmmA">${t.a}</span><span class="b" id="wmmB">${t.b}</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${i}" style="--f:${i/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
+  const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===4?"first":j===0?"last":""}${j===i?" on":""}" style="left:${wmmPos(j)*25}%">${esc(n)}</button>`).join("");
+  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="a" id="wmmA">${t.a}</span><span class="b" id="wmmB">${t.b}</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p></div>`;
 }
 function wmmSync(i){
   const t=wmmText(i),r=document.getElementById("lam");
-  r.value=i;r.style.setProperty("--f",i/4);r.setAttribute("aria-valuetext",t.vt);
+  r.value=wmmPos(i);r.style.setProperty("--f",wmmPos(i)/4);r.setAttribute("aria-valuetext",t.vt);
   document.getElementById("wmmA").innerHTML=t.a;document.getElementById("wmmB").innerHTML=t.b;document.getElementById("wmmExplain").innerHTML=t.ex;
   document.querySelectorAll("#wmmStops button").forEach(b=>b.classList.toggle("on",+b.dataset.stop===i));
 }
@@ -1752,7 +1754,7 @@ function bind(){
   const lam=$("#lam");
   if(lam){
     lam.addEventListener("input",e=>{
-      const i=+e.target.value;state.lam=STOPS[i];wmmSync(i);
+      const i=wmmPos(+e.target.value);state.lam=STOPS[i];wmmSync(i);
       const pm=state.pmode==="m"?"m":"q";
       result=withMode(pm,optimise);const parts=withMode(pm,()=>proposalParts(result));
       $("#propTiles").innerHTML=parts.tiles;$("#propWarn").innerHTML=parts.warn;$("#propTrades").innerHTML=parts.trades;$("#propBody").innerHTML=parts.body;
