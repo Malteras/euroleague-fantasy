@@ -10,6 +10,7 @@ Run on the finished data.json: saves history/round-N.json before the deadline an
 
        python3 -I elbuild.py --alerts <previous data.json> <data.json>
 Run on the finished data.json: writes `alerts`, the players whose status changed since the previous one.
+When the previous one is from the same day, its alerts are kept (the deadline-day afternoon check).
 """
 import sys, os, re, json, html, subprocess, datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -298,6 +299,14 @@ def status_alerts(old, new):
         if was != now:
             out.append({'id': p['id'], 'name': p['name'], 'team': p['team'], 'from': was, 'to': now, 'src': src,
                         'd': new.get('updated'), 'mine': p['id'] in mine})
+    # a second run on the same day (the deadline-day afternoon check) keeps the morning's alerts:
+    # a player who changed twice gets one alert from his morning status, and none if he is back where he was
+    if old.get('updated') == new.get('updated'):
+        for a in old.get('alerts') or []:
+            later = next((x for x in out if x['id'] == a['id']), None)
+            if later: later['from'] = a['from']
+            else: out.append(a)
+        out = [a for a in out if a['from'] != a['to']]
     return out
 
 def save(path, obj):
