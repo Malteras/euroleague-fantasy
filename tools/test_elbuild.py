@@ -196,6 +196,32 @@ class StatusAlertsTest(unittest.TestCase):
         self.assertEqual(elbuild.status_alerts(alert_data('2026-10-19', {654: None}, []),
                                                alert_data('2026-10-21', {655: 'Out'}, [])), [])
 
+    def test_same_day_rerun_keeps_the_morning_alerts(self):
+        morning = {**alert_data('2026-10-21', {654: 'Out', 655: None}, []),
+                   'alerts': [{'id': 654, 'name': 'P 654', 'team': 'EFS', 'from': 'Doubtful', 'to': 'Out',
+                               'src': 'FantaSheet', 'd': '2026-10-21', 'mine': True}]}
+        got = elbuild.status_alerts(morning, alert_data('2026-10-21', {654: 'Out', 655: 'Doubtful'}, []))
+        self.assertEqual([(a['id'], a['from'], a['to']) for a in got], [(655, 'Available', 'Doubtful'), (654, 'Doubtful', 'Out')])
+
+    def test_same_day_rerun_joins_two_changes_of_one_player(self):
+        morning = {**alert_data('2026-10-21', {654: 'Doubtful'}, []),
+                   'alerts': [{'id': 654, 'name': 'P 654', 'team': 'EFS', 'from': 'Available', 'to': 'Doubtful',
+                               'src': 'FantaSheet', 'd': '2026-10-21', 'mine': True}]}
+        got = elbuild.status_alerts(morning, alert_data('2026-10-21', {654: 'Out'}, []))
+        self.assertEqual([(a['from'], a['to']) for a in got], [('Available', 'Out')])
+
+    def test_same_day_change_back_drops_the_alert(self):
+        morning = {**alert_data('2026-10-21', {654: 'Doubtful'}, []),
+                   'alerts': [{'id': 654, 'name': 'P 654', 'team': 'EFS', 'from': 'Available', 'to': 'Doubtful',
+                               'src': 'FantaSheet', 'd': '2026-10-21', 'mine': True}]}
+        self.assertEqual(elbuild.status_alerts(morning, alert_data('2026-10-21', {654: None}, [])), [])
+
+    def test_alerts_from_an_earlier_day_are_not_kept(self):
+        old = {**alert_data('2026-10-19', {654: 'Out'}, []),
+               'alerts': [{'id': 654, 'name': 'P 654', 'team': 'EFS', 'from': 'Doubtful', 'to': 'Out',
+                           'src': 'FantaSheet', 'd': '2026-10-19', 'mine': True}]}
+        self.assertEqual(elbuild.status_alerts(old, alert_data('2026-10-21', {654: 'Out'}, [])), [])
+
     def test_command_line_writes_alerts_into_the_data_file(self):
         with tempfile.TemporaryDirectory() as d:
             prev, cur = os.path.join(d, 'prev.json'), os.path.join(d, 'data.json')
