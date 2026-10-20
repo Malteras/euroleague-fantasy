@@ -11,7 +11,7 @@ Live site: https://malteras.github.io/euroleague-fantasy/
 | `index.html` | The whole site: proposal, day-by-day lineup and captain plan, round report, player market, coaches, results. No build step. |
 | `data.json` | Everything the page shows. Rebuilt every morning. |
 | `tools/elbuild.py` | Builds `data.json` from FantaSheet (prices, EuroLeague game logs, projections, injuries, PIR allowed by position, coaches) and Sofascore (domestic league box scores for all 20 clubs). |
-| `history/round-N.json` | A record of each round, to test the model's weights later: the inputs before the deadline (players with their last 5 games, defence, fixtures, each club's next 2 EuroLeague games, coaches, trade window, injuries, his squad) and, after the round, `actual`: each player's FPT and minutes (`null` = did not play) and each coach's points. |
+| `history/round-N.json` | A record of each round, to test the model's weights later: the inputs before the deadline (players with their last 5 games, defence, fixtures, each club's next 2 EuroLeague games, coaches, trade window, injuries, his squad) and, after the round, `actual`: each player's FPT and minutes (`null` = did not play) and each coach's points. The Round report's "How the projections did" card scores each version of the projection against these. |
 
 ## Sync across devices (Vercel)
 

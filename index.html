@@ -636,6 +636,22 @@ html.locked,html.locked body{overflow:hidden}
 .dsec h4{font-family:var(--display);font-size:18px;font-weight:800;text-transform:uppercase;margin:0}
 .dsec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .seg.sm button{padding:4px 10px;font-size:13px}
+/* how the projections did: points only, so teal bars; no credits here */
+.sc{margin-bottom:16px}
+.sc-top{margin:0 0 10px;line-height:1.45}
+.sc-ctl{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.sc-h,.sc-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.9fr);gap:10px;align-items:center}
+.sc-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
+.sc-row{padding:7px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
+.sc-row.best{background:var(--accent-soft);border-radius:8px}
+.sc-row.best .sc-v{font-weight:700}
+.sc-v small,.sc-b small{display:block;font-size:12px;color:var(--muted)}
+.sc-m{display:flex;align-items:center;gap:8px}
+.sc-bar{flex:1;height:8px;border-radius:4px;background:var(--line-soft);overflow:hidden;min-width:24px}
+.sc-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.sc-m b{color:var(--accent);font-variant-numeric:tabular-nums;min-width:2.6em;text-align:right}
+.sc-co{margin:10px 0 0}
+.sc-foot{margin:8px 0 0;font-size:12.5px}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
@@ -846,20 +862,33 @@ function teamModel(data){
 }
 // teamModel:end
 
-function init(data){
-  D=data;
-  document.getElementById("teamName").textContent=D.team;
-  D.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
-  dayKeys=[...new Set(D.fixtures.map(f=>f[0]))].sort();
-  const TM=teamModel(D);
-  nextRound();
-  const TW=D.tradeWindow;
-  LOOK_ON=!(TW&&TW.round===D.round&&TW.nextUnlimited===true);
-  // The daily report says whether this round is a free-trade window: follow it whenever that answer changes,
-  // otherwise keep whatever was picked by hand
-  if(TW&&TW.round===D.round&&typeof TW.unlimited==="boolean"){const k=D.round+":"+TW.unlimited;
-    if(state.maxTAuto!==k){state.maxT=TW.unlimited?99:4;state.maxTAuto=k;save();}}
-  P=D.players.map(p=>{
+// project:begin
+// How much more (+) or less (-) PIR, in %, opponent o allows to his position than an average team. def: the data's defence table.
+function matchup(p,o=p.opp,def=D.defence){
+  if(!o||!def||!def[o.opp])return null;
+  const v=def[o.opp]["vs_"+p.pos.toLowerCase()];return v==null?null:v;
+}
+/* ---------- look-ahead ----------
+   A trade stays after this round, so Proposal 2 also counts half of his next-round projection: his quality with next round's
+   matchup (coaches: half of next round's game, in both proposals). See docs/adr/0001. Off when the next round is a
+   free-trade window, where any trade can be undone for free. */
+const LOOK=0.5;
+// Each club's first EuroLeague game after this round. Sofascore gives the opponent's full name; newer data has its code (oc),
+// older data is matched by the names this round's games use.
+function nextRound(data,dayKeys){
+  const TN=data.teamNext||{},last=dayKeys[dayKeys.length-1]||"",code={},next={};
+  data.fixtures.forEach(([d,h,a])=>[[h,a],[a,h]].forEach(([c,o])=>{const g=(TN[c]||[]).find(g=>g.el&&g.d===d);if(g)code[g.opp]=o;}));
+  for(const c in TN){const g=TN[c].find(g=>g.el&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])next[c]={opp:o,ha:g.ha,d:g.d};}
+  return next;
+}
+// The projections for one round's data: the live data.json, or a history/round-N.json snapshot. Touches no globals.
+function project(data){
+  const turnOf={},oppOf={};
+  data.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
+  const dayKeys=[...new Set(data.fixtures.map(f=>f[0]))].sort();
+  const TM=teamModel(data),nextOf=nextRound(data,dayKeys);
+  const TW=data.tradeWindow,look=!(TW&&TW.round===data.round&&TW.nextUnlimited===true);
+  const players=data.players.map(p=>{
     const l=(p.log||[]).map(g=>g.fpt);
     const l3=l.length?l.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,l.length):(p.fpt??0);
     const own=r1(.6*l3+.4*(p.fpt??l3));
@@ -871,16 +900,80 @@ function init(data){
     const be=r1(1.1*p.price);
     const exp=(x-1.1*p.price)/25;
     const t=turnOf[p.team];
-    p.log=p.log||[];p.dom=p.dom||[];
-    return {...p,l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],nx:0,val:(p.fpt||0)/p.price,wa,wa2};
+    return {...p,log:p.log||[],dom:p.dom||[],l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],
+      mu:matchup(p,oppOf[p.team],data.defence),nx:0,val:(p.fpt||0)/p.price,wa,wa2};
   });
-  byId=Object.fromEntries(P.map(p=>[p.id,p]));
-  C=D.coaches.map(c=>{
+  const coaches=data.coaches.map(c=>{
     const o=oppOf[c.team],pr=TM.winP(c.team,o),x=TM.coachPts(c.team,o);
     // the look-ahead counts half of next round's game too, in both proposals (docs/adr/0001)
     const o2=nextOf[c.team],pw2=o2?TM.winP(c.team,o2):null,x2=o2?TM.coachPts(c.team,o2):0;
-    return {...c,pw:pr,mg:TM.margin(c.team,o),x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:TM.rec(c.team),opp2:o2,pw2,x2,nx:LOOK_ON&&o2?LOOK*x2:0};
+    return {...c,pw:pr,mg:TM.margin(c.team,o),x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:TM.rec(c.team),opp2:o2,pw2,x2,nx:look&&o2?LOOK*x2:0};
   });
+  return {players,coaches,dayKeys,turnOf,oppOf,nextOf,look,TM};
+}
+// project:end
+
+// scorecard:begin
+// How each version of the projection did against what really happened, from the history/round-N.json files once their
+// actuals are in. Measuring only: the live weights stay as they are. Only players who played are scored; an Out player who
+// still played counts as a 0 projection in every version, and a player without an xPTS uses his form in every version.
+const SC_VERSIONS=[["xpts","FantaSheet xPTS alone"],["form","Form alone"],["today","Today's projection"],
+  ["m25","+ matchup, trust 0.25"],["m50","+ matchup, trust 0.5"],["m75","+ matchup, trust 0.75"],["look","Look-ahead"]];
+const SC_BANDS={all:()=>true,lo:pr=>pr<8,mid:pr=>pr>=8&&pr<14,hi:pr=>pr>=14};
+// rows: [projected, actual, price] → per price band: n, average miss (mae) and bias (+ = projected too high)
+function scStats(rows){
+  const out={};
+  for(const b in SC_BANDS){const q=rows.filter(r=>SC_BANDS[b](r[2])),n=q.length;
+    out[b]={n,mae:n?q.reduce((a,[x,y])=>a+Math.abs(x-y),0)/n:null,bias:n?q.reduce((a,[x,y])=>a+x-y,0)/n:null};}
+  return out;
+}
+function scoreRounds(snaps){
+  const done=s=>!!(s&&s.actual&&s.actual.players),byRound={};snaps.forEach(s=>byRound[s.round]=s);
+  const rounds=snaps.filter(done).map(s=>s.round).sort((a,b)=>a-b),last=rounds.length?rounds[rounds.length-1]:null;
+  if(last==null)return {rounds,last};
+  const got={coach:{}};SC_VERSIONS.forEach(([k])=>got[k]={}); // version → round → rows
+  const add=(k,rnd,x,y,price)=>(got[k][rnd]=got[k][rnd]||[]).push([x,y,price]);
+  for(const s of snaps){
+    const R=project(s),N=s.round,nx=byRound[N+1];
+    // a version's base plus the same win adjustment today's projection gets
+    const won=(p,b)=>p.out?0:r1(b+R.TM.winAdj(p.team,R.oppOf[p.team],b));
+    for(const p of R.players){
+      const a=done(s)?s.actual.players[p.id]:null;
+      if(a){
+        const m=t=>p.mu==null||p.out?p.x:r1(p.x+r1(t*p.x*p.mu/100));
+        add("xpts",N,won(p,p.xpts>0?p.xpts:p.own),a.fpt,p.price);
+        add("form",N,won(p,p.own),a.fpt,p.price);
+        add("today",N,p.x,a.fpt,p.price);
+        add("m25",N,m(.25),a.fpt,p.price);add("m50",N,m(.5),a.fpt,p.price);add("m75",N,m(.75),a.fpt,p.price);
+      }
+      // the look-ahead: his next-round projection (as nProj) against what he scored next round
+      const a2=done(nx)?nx.actual.players[p.id]:null;
+      if(a2&&p.opp2){const x=p.x-p.wa+p.wa2,mm=matchup(p,p.opp2,s.defence);add("look",N+1,p.out?0:r1(x+(mm==null?0:MT*x*mm/100)),a2.fpt,p.price);}
+    }
+    const ac=done(s)&&s.actual.coaches;
+    if(ac)R.coaches.filter(c=>c.opp&&ac[c.team]!=null).forEach(c=>add("coach",N,c.x,ac[c.team],c.price));
+  }
+  const both=k=>({last:scStats(got[k][last]||[]),season:scStats(Object.values(got[k]).flat())});
+  const rows=SC_VERSIONS.map(([key,label])=>({key,label,...both(key)}));
+  const best=rows.filter(r=>r.key!=="look"&&r.season.all.n).sort((a,b)=>a.season.all.mae-b.season.all.mae)[0]||null;
+  const co=both("coach");
+  return {rounds,last,rows,best,coaches:{last:co.last.all,season:co.season.all}};
+}
+// scorecard:end
+
+function init(data){
+  D=data;
+  document.getElementById("teamName").textContent=D.team;
+  const R=project(D);
+  ({dayKeys,turnOf,oppOf,nextOf}=R);LOOK_ON=R.look;
+  const TW=D.tradeWindow;
+  // The daily report says whether this round is a free-trade window: follow it whenever that answer changes,
+  // otherwise keep whatever was picked by hand
+  if(TW&&TW.round===D.round&&typeof TW.unlimited==="boolean"){const k=D.round+":"+TW.unlimited;
+    if(state.maxTAuto!==k){state.maxT=TW.unlimited?99:4;state.maxTAuto=k;save();}}
+  P=R.players;
+  byId=Object.fromEntries(P.map(p=>[p.id,p]));
+  C=R.coaches;
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   savedTeam=teamFrom(SQUAD||D.squad);
   const lt=state.team;
@@ -1178,22 +1271,7 @@ function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];
 
 /* ---------- tags ---------- */
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
-function matchup(p,o=p.opp){
-  if(!o||!D.defence||!D.defence[o.opp])return null;
-  const v=D.defence[o.opp]["vs_"+p.pos.toLowerCase()];return v==null?null:v;
-}
-/* ---------- look-ahead ----------
-   A trade stays after this round, so Proposal 2 also counts half of his next-round projection: his quality with next round's
-   matchup (coaches: half of next round's game, in both proposals). See docs/adr/0001. Off when the next round is a
-   free-trade window, where any trade can be undone for free. */
-const LOOK=0.5;let LOOK_ON=true;const nextOf={};
-// Each club's first EuroLeague game after this round. Sofascore gives the opponent's full name; newer data has its code (oc),
-// older data is matched by the names this round's games use.
-function nextRound(){
-  const TN=D.teamNext||{},last=dayKeys[dayKeys.length-1]||"",code={};
-  D.fixtures.forEach(([d,h,a])=>[[h,a],[a,h]].forEach(([c,o])=>{const g=(TN[c]||[]).find(g=>g.el&&g.d===d);if(g)code[g.opp]=o;}));
-  for(const c in TN){const g=TN[c].find(g=>g.el&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])nextOf[c]={opp:o,ha:g.ha,d:g.d};}
-}
+let LOOK_ON=true,nextOf={};
 const lookOn=()=>LOOK_ON&&state.pmode==="m";
 function domRecent(p){return (p.dom||[]).filter(g=>!g.dnp&&g.pir!=null).slice(0,2);}
 // absenceOf:begin
@@ -2038,6 +2116,40 @@ function coaches(){
   const list=C.slice().sort((a,b)=>b.x-a.x).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${c.x}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
   return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">Win by 1–10 +10 · 11–20 +20 · 21+ +25</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
 }
+/* ---------- how the projections did ---------- */
+const HIST_FROM=7; // the first round with a history/round-N.json (#19)
+let HIST=null,histLoading=false;const scView={span:"season",band:"all"};
+function loadHistory(){
+  if(HIST||histLoading)return;histLoading=true;
+  const ns=[];for(let n=HIST_FROM;n<=(D.round||0);n++)ns.push(n);
+  Promise.all(ns.map(n=>fetch(`history/round-${n}.json`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)))
+    .then(a=>{HIST=a.filter(Boolean);redrawScore();});
+}
+function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
+const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",look:"next round"};
+function scoreCard(){
+  const head=`<div class="card sc" id="scCard"><h3>How the projections did</h3>`;
+  if(!HIST){loadHistory();return head+`<p class="note">Loading the past rounds…</p></div>`;}
+  const S=scoreRounds(HIST);
+  if(S.last==null)return head+`<p class="note">Nothing to score yet: no round on record has finished.</p></div>`;
+  const sp=scView.span,bd=scView.band,f=v=>v.toFixed(1);
+  const bias=b=>Math.abs(b)<0.05?"spot on":`${f(Math.abs(b))} too ${b>0?"high":"low"}`;
+  const span=S.rounds.length>1?`over rounds ${S.rounds[0]}–${S.last}`:`in round ${S.last}`;
+  const B=S.best&&S.best.season.all;
+  const top=B?`<p class="sc-top">So far the version that missed least is <b>${esc(S.best.label)}</b>${SC_NOTE[S.best.key]?` (${SC_NOTE[S.best.key]})`:""}: off by ${f(B.mae)} points a player on average ${span}.</p>`:"";
+  const seg=(k,opts)=>`<div class="seg sm" role="group">${opts.map(([v,l])=>`<button type="button" data-sc-${k}="${v}" class="${scView[k]===v?"on":""}" aria-pressed="${scView[k]===v}">${l}</button>`).join("")}</div>`;
+  const ctl=`<div class="sc-ctl">${seg("span",[["last",`Round ${S.last}`],["season","Season"]])}${seg("band",[["all","All"],["lo","Under 8"],["mid","8–14"],["hi","14+"]])}</div>`;
+  const st=S.rows.map(r=>[r,r[sp][bd]]),max=Math.max(...st.map(([,s])=>s.mae||0),1);
+  const rows=st.map(([r,s])=>`<div class="sc-row${S.best&&r.key===S.best.key?" best":""}"><span class="sc-v">${esc(r.label)}${SC_NOTE[r.key]?`<small>${SC_NOTE[r.key]}</small>`:""}</span>`+
+    (s.n?`<span class="sc-m"><span class="sc-bar"><i style="width:${(100*s.mae/max).toFixed(1)}%"></i></span><b>${f(s.mae)}</b></span><span class="sc-b">${bias(s.bias)}<small>${s.n} player${s.n>1?"s":""}</small></span>`
+      :`<span class="sc-m muted">–</span><span class="sc-b muted">${r.key==="look"?"needs two rounds in a row":"no players"}</span>`)+`</div>`).join("");
+  const c=S.coaches[sp];
+  const co=c.n?`<p class="note sc-co">Coaches: off by ${f(c.mae)} points a club on average, ${bias(c.bias)} (${c.n} club${c.n>1?"s":""}).</p>`:"";
+  return head+top+ctl+`<div class="sc-h"><span>Version</span><span>Average miss (points)</span><span>Bias</span></div>${rows}${co}
+    <p class="note sc-foot">Only players who played. Bias “too high” means the projection was above what he scored. Look-ahead: the round before's projection for this round. An Out player counts as 0; a player without an xPTS uses his form in every version.</p></div>`;
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sc-span],[data-sc-band]");if(!b)return;
+  if(b.dataset.scSpan)scView.span=b.dataset.scSpan;else scView.band=b.dataset.scBand;redrawScore();});
 function report(){
   const R=D.report||{};
   const elDates=[...new Set(P.flatMap(p=>p.log.map(g=>g.d)))].sort();
@@ -2055,6 +2167,7 @@ function report(){
   const sum=(R.summary||[]).map(t=>`<li>${linkify(t)}</li>`).join("");
   return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
   ${sum?`<div class="card" style="margin-bottom:16px"><h3>Bottom line</h3><ul class="bl">${sum}</ul></div>`:""}
+  ${scoreCard()}
   <div class="two">
     <div><div class="eyebrow" style="margin:0 0 6px">Top performers · last EuroLeague round</div><div class="panel list">${top}</div></div>
     <div><div class="eyebrow" style="margin:0 0 6px">Below break-even · 8+ credit players</div><div class="panel list">${low}</div></div>
