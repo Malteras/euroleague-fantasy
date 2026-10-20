@@ -817,16 +817,38 @@ fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
 });
 
+// teamModel:begin
+// Club strength from the final scores in the player logs. o is the opponent as {opp, ha}.
+// This game's margin ~ Normal(expected margin, 12); a coach scores by the margin (see coachPts).
+function teamModel(data){
+  const HOME=3,SD=12,PRIOR=6;
+  const games={};
+  data.players.forEach(p=>(p.log||[]).forEach(g=>{
+    const s=(g.res||"").slice(2).split("-").map(Number);if(s.length!==2||s.some(isNaN))return;
+    const w=g.res[0]==="W";games[p.team+g.d]={t:p.team,w,m:(w?1:-1)*Math.abs(s[0]-s[1])};
+  }));
+  const rec={};Object.values(games).forEach(g=>{const r=rec[g.t]=rec[g.t]||{w:0,n:0,sum:0};r.n++;r.sum+=g.m;if(g.w)r.w++;});
+  // average margin, counted as if the club had also played PRIOR games at 0, so six games say half as much as their raw average
+  const rating=t=>rec[t]?rec[t].sum/(rec[t].n+PRIOR):0;
+  const margin=(t,o)=>o?rating(t)-rating(o.opp)+(o.ha==="H"?HOME:-HOME):0;
+  // standard normal CDF (Abramowitz-Stegun 7.1.26)
+  const cdf=z=>{const x=Math.abs(z)/Math.SQRT2,k=1/(1+.3275911*x);
+    const e=1-k*(.254829592+k*(-.284496736+k*(1.421413741+k*(-1.453152027+k*1.061405429))))*Math.exp(-x*x);return z<0?(1-e)/2:(1+e)/2;};
+  const winP=(t,o)=>o?cdf(margin(t,o)/SD):.5;
+  // win by 1-10 (or OT) +10, 11-20 +20, 21+ +25; lose by 1-10 (or OT) -5, 11-20 -10, 21+ -20
+  const TIERS=[[-Infinity,-20,-20],[-20,-10,-10],[-10,0,-5],[0,10,10],[10,20,20],[20,Infinity,25]];
+  const coachPts=(t,o)=>{const m=margin(t,o),F=v=>cdf((v-m)/SD);
+    return Math.round(TIERS.reduce((a,[lo,hi,pts])=>a+pts*(F(hi)-F(lo)),0)*10)/10;};
+  return {rec:t=>rec[t]?{w:rec[t].w,n:rec[t].n}:undefined,margin,winP,coachPts};
+}
+// teamModel:end
+
 function init(data){
   D=data;
   document.getElementById("teamName").textContent=D.team;
   D.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
   dayKeys=[...new Set(D.fixtures.map(f=>f[0]))].sort();
-  // team records from logs
-  const games={};
-  D.players.forEach(p=>(p.log||[]).forEach(g=>{games[p.team+g.d]={t:p.team,w:g.res[0]==="W"};}));
-  const rec={};Object.values(games).forEach(g=>{rec[g.t]=rec[g.t]||{w:0,n:0};rec[g.t].n++;if(g.w)rec[g.t].w++;});
-  const wp=t=>rec[t]?rec[t].w/rec[t].n:.5;
+  const TM=teamModel(D);
   nextRound();
   const TW=D.tradeWindow;
   LOOK_ON=!(TW&&TW.round===D.round&&TW.nextUnlimited===true);
@@ -848,14 +870,11 @@ function init(data){
     return {...p,l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],nx:0,val:(p.fpt||0)/p.price};
   });
   byId=Object.fromEntries(P.map(p=>[p.id,p]));
-  // a coach's projection is his win chance against that opponent: both teams' records plus home court
-  const winP=(t,o)=>{if(!o)return .5;const pr=.5+.35*(wp(t)-wp(o.opp))+(o.ha==="H"?.07:-.07);return Math.min(.85,Math.max(.15,pr));};
-  const cProj=pr=>r1(pr*13-(1-pr)*8);
   C=D.coaches.map(c=>{
-    const o=oppOf[c.team],pr=winP(c.team,o),x=cProj(pr);
+    const o=oppOf[c.team],pr=TM.winP(c.team,o),x=TM.coachPts(c.team,o);
     // the look-ahead counts half of next round's game too, in both proposals (docs/adr/0001)
-    const o2=nextOf[c.team],pw2=o2?winP(c.team,o2):null;
-    return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:rec[c.team],opp2:o2,pw2,x2:o2?cProj(pw2):0,nx:LOOK_ON&&o2?LOOK*cProj(pw2):0};
+    const o2=nextOf[c.team],pw2=o2?TM.winP(c.team,o2):null,x2=o2?TM.coachPts(c.team,o2):0;
+    return {...c,pw:pr,mg:TM.margin(c.team,o),x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:TM.rec(c.team),opp2:o2,pw2,x2,nx:LOOK_ON&&o2?LOOK*x2:0};
   });
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   savedTeam=teamFrom(SQUAD||D.squad);
@@ -1544,7 +1563,7 @@ function render(){
   const body={
     team:()=>alertBox()+watchBox()+hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
-  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection = expected points from the likely final margin: both clubs' average margins plus home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
 }
 function hero(){
@@ -1963,7 +1982,7 @@ function market(){
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
 }
 function coaches(){
-  const list=C.slice().sort((a,b)=>b.x-a.x).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}% · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${c.x}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
+  const list=C.slice().sort((a,b)=>b.x-a.x).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${c.x}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
   return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">Win by 1–10 +10 · 11–20 +20 · 21+ +25</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
 }
 function report(){
