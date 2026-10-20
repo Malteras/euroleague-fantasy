@@ -757,7 +757,7 @@ function pickBtn(k,p,on){
   const P_=PICKS[k],mine=orig.players.includes(p.id),txt=mine?P_.mine:P_.other;
   return `<button type="button" class="ico ${k}${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On · tap again to undo</i>":""}</span></button>`;
 }
-let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
+let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,buyLow:false,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -889,6 +889,8 @@ function init(data){
   P.forEach(p=>{p.sd=spreadOf(p);});
   // captain options: two best projections per day
   dayKeys.forEach(d=>P.filter(p=>p.day===d).sort((a,b)=>b.x-a.x).slice(0,2).forEach(p=>capOpt.add(p.id)));
+  const clubDates={};P.forEach(p=>p.log.forEach(g=>(clubDates[p.team]=clubDates[p.team]||new Set()).add(g.d)));
+  P.forEach(p=>{p.abs=absenceOf(p,[...(clubDates[p.team]||[])].sort());});
   P.forEach(p=>{p.tags=tagsFor(p);});
   if(state.budget==null||!state.budgetTouched)state.budget=teamValue();
   window.__planner={get result(){return result},get state(){return state},get byId(){return byId},get orig(){return orig},get coaches(){return coachByTeam},get days(){return dayKeys},withMode,evalSquad,quickObj};
@@ -1194,6 +1196,27 @@ function nextRound(){
 }
 const lookOn=()=>LOOK_ON&&state.pmode==="m";
 function domRecent(p){return (p.dom||[]).filter(g=>!g.dnp&&g.pir!=null).slice(0,2);}
+// absenceOf:begin
+// His latest run of missed club EuroLeague games, if it ended within the club's last three. dates: the club's game dates, oldest first,
+// one a round, so the game at index i is round i+1 and hist row i+1 holds his price after it. A round without him costs 0.1 cr.
+function absenceOf(p,dates){
+  const played=new Set((p.log||[]).map(g=>g.d)),n=dates.length,rd=v=>Math.round(v*10)/10;
+  let last=-1;for(let i=n-1;i>=0;i--)if(!played.has(dates[i])){last=i;break;}
+  if(last<0||last<n-3)return null;
+  let first=last;while(first>0&&!played.has(dates[first-1]))first--;
+  const h=(p.hist||[]).find(h=>h[0]===first),before=first===0?p.start:h?h[1]:null;
+  if(before==null)return null;
+  // his usual level: average FPT before he went out, or last season's PIR when he went out before playing
+  const pre=(p.log||[]).filter(g=>g.d<dates[first]&&g.fpt!=null).map(g=>g.fpt);
+  const usual=pre.length?rd(pre.reduce((a,b)=>a+b,0)/pre.length):p.pir2526??null;
+  // back: he played his latest game, EuroLeague or domestic, or the injury list says Return
+  const latest=[...dates.map(d=>({d,on:played.has(d)})),...(p.dom||[]).map(g=>({d:g.d,on:!g.dnp}))].sort((a,b)=>b.d.localeCompare(a.d))[0];
+  return {first:first+1,last:last+1,missed:last-first+1,before,drop:rd(before-p.price),usual,usualSrc:pre.length?"before":usual!=null?"last season":null,
+    back:p.status==="Return"||!!(latest&&latest.on)};
+}
+// Buy low · back: he is back, not Out or Doubtful, at least 0.3 cr under his price before the absence, and his usual level reaches his break-even now
+function buyLow(p,a){return !!a&&a.back&&!p.out&&p.status!=="Doubtful"&&a.drop>=0.3-1e-9&&a.usual!=null&&a.usual>=p.be;}
+// absenceOf:end
 function tagsFor(p){
   const T=[];const mine=orig.players.includes(p.id);
   const l2=avg(p.log.slice(0,2).map(g=>g.fpt));
@@ -1207,6 +1230,7 @@ function tagsFor(p){
     if(p.x>=18&&p.exp>=0.15)T.push(["Must have","accent"]);
     else if(p.exp>=0.12&&p.x>=9)T.push(["Consider for next round","accent"]);
   }
+  if(buyLow(p,p.abs))T.push(["Buy low · back","good"]);
   if(!p.out&&p.price<=8&&p.exp>=0.1)T.push(["Credit gainer","good"]);
   if(dA!=null&&p.price<=9&&dA>=1.1*p.price+3)T.push(["Domestic form","good"]);
   if(capOpt.has(p.id)&&!p.out)T.push(["Captain option","warn"]);
@@ -1222,6 +1246,9 @@ function tagTip(p,t){
   const opp=p.opp&&TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:"His opponent",pos=POSN[p.pos].toLowerCase()+"s";
   if(/^Rise /.test(t))return ["Price",`FantaSheet gives him a ${Math.round(p.rise)}% chance of a price rise after this round.`,ex];
   if(t===p.status&&!p.out)return ["Injury news",`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
+  if(t==="Buy low · back"){const a=p.abs,g=a.missed===1?"game":"games";
+    return ["Price",`He missed ${a.missed} of his club's recent EuroLeague ${g} and is back. His price has fallen ${a.drop.toFixed(1)} cr since then (a round without him costs 0.1 cr), while his ${a.usualSrc==="before"?"average before the absence":"PIR last season"} still reaches his break-even.`,
+      `${a.before.toFixed(1)} → ${p.price.toFixed(1)} cr · ${a.usualSrc==="before"?"average before":"last season"} ${a.usual} vs break-even ${p.be} · expected ${fmt(r1(p.exp))} cr`];}
   if(t==="Status changed"){const a=alertOf(p);return ["Injury news",`${a.from} → ${a.to} since the last daily report.`,`${a.src} · ${fmtDate(a.d)}`];}
   return ({
     "Out":["Injury news","Listed out for this round's game.",null],
@@ -1961,7 +1988,7 @@ function detail(p){
 }
 function market(){
   const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
-  let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
+  let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.buyLow||p.tags.some(t=>t[0]==="Buy low · back"))&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>p.x,exp:p=>p.exp,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
@@ -1983,6 +2010,7 @@ function market(){
   <div class="seg" id="day">${["ALL",...dayKeys].map(v=>`<button type="button" data-v="${v}" class="${state.day===v?"on":""}">${v==="ALL"?"Any day":esc(dayShort(v))}</button>`).join("")}</div>
   <select id="sort" aria-label="Sort by">${[["x","Projection"],["exp","Expected price change"],["val","Points per credit"],["price","Price"],["min","Minutes"],["pop","Ownership"]].map(([v,l])=>`<option value="${v}" ${state.sort===v?"selected":""}>Sort: ${l}</option>`).join("")}</select>
   <button type="button" class="chip-toggle${state.only?" on":""}" id="only" aria-pressed="${state.only}">My squad &amp; picks</button>
+  <button type="button" class="chip-toggle${state.buyLow?" on":""}" id="buyLow" aria-pressed="${!!state.buyLow}" title="Players back from an absence, priced under where they were before it">Buy low</button>
   ${(state.pins.length||state.avoids.length||state.coachPin)?'<button type="button" class="chip-toggle" id="clear">Clear picks</button>':""}</div>
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
 }
@@ -2298,6 +2326,7 @@ function bind(){
   const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
   document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{state.sort=b.dataset.sort;rerender();});
   const on1=$("#only");if(on1)on1.onclick=()=>{state.only=!state.only;rerender();};
+  const bl=$("#buyLow");if(bl)bl.onclick=()=>{state.buyLow=!state.buyLow;rerender();};
   const cl=$("#clear");if(cl)cl.onclick=()=>{state.pins=[];state.avoids=[];state.coachPin=null;rerender();};
   const q=$("#q");let t;if(q)q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
   document.querySelectorAll("[data-pin]").forEach(b=>b.onclick=()=>{const id=+b.dataset.pin;state.avoids=state.avoids.filter(i=>i!==id);state.pins=state.pins.includes(id)?state.pins.filter(i=>i!==id):[...state.pins,id];rerender();});
