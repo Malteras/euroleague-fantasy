@@ -839,7 +839,10 @@ function teamModel(data){
   const TIERS=[[-Infinity,-20,-20],[-20,-10,-10],[-10,0,-5],[0,10,10],[10,20,20],[20,Infinity,25]];
   const coachPts=(t,o)=>{const m=margin(t,o),F=v=>cdf((v-m)/SD);
     return Math.round(TIERS.reduce((a,[lo,hi,pts])=>a+pts*(F(hi)-F(lo)),0)*10)/10;};
-  return {rec:t=>rec[t]?{w:rec[t].w,n:rec[t].n}:undefined,margin,winP,coachPts};
+  // player win bonus: FPT = PIR + 10% of |PIR| on a win, and his average already holds the club's win rate so far,
+  // so a projection x moves by 0.1 × |x| × (this game's win chance − that win rate)
+  const winAdj=(t,o,x)=>x&&o&&rec[t]?.1*Math.abs(x)*(winP(t,o)-rec[t].w/rec[t].n):0;
+  return {rec:t=>rec[t]?{w:rec[t].w,n:rec[t].n}:undefined,margin,winP,coachPts,winAdj};
 }
 // teamModel:end
 
@@ -862,12 +865,14 @@ function init(data){
     const own=r1(.6*l3+.4*(p.fpt??l3));
     const out=p.status==="Out";
     const src=p.xpts!=null&&p.xpts>0?"FantaSheet":"form";
-    const x=out?0:(src==="FantaSheet"?r1(.5*p.xpts+.5*own):own);
+    const base=out?0:(src==="FantaSheet"?r1(.5*p.xpts+.5*own):own);
+    // this game's win chance against his club's win rate so far; wa2 is the same for next round's game (look-ahead)
+    const wa=TM.winAdj(p.team,oppOf[p.team],base),wa2=TM.winAdj(p.team,nextOf[p.team],base),x=r1(base+wa);
     const be=r1(1.1*p.price);
     const exp=(x-1.1*p.price)/25;
     const t=turnOf[p.team];
     p.log=p.log||[];p.dom=p.dom||[];
-    return {...p,l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],nx:0,val:(p.fpt||0)/p.price};
+    return {...p,l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],nx:0,val:(p.fpt||0)/p.price,wa,wa2};
   });
   byId=Object.fromEntries(P.map(p=>[p.id,p]));
   C=D.coaches.map(c=>{
@@ -1310,7 +1315,7 @@ const mBonus=(p,x=p.x)=>{const m=matchup(p);return m==null||p.out?0:r1(MT*x*m/10
 // next round's part of the look-ahead: half its matchup bonus. Out this round counts as out next round too.
 // next round's projection: his normal projection with next round's matchup bonus. Out this round counts as out next round too,
 // and no next game found means nothing to count.
-const nProj=p=>{if(p.out||!p.opp2)return 0;const x=p.xq??p.x,m=matchup(p,p.opp2);return r1(x+(m==null?0:MT*x*m/100));};
+const nProj=p=>{if(p.out||!p.opp2)return 0;const x=(p.xq??p.x)-(p.wa||0)+(p.wa2||0),m=matchup(p,p.opp2);return r1(x+(m==null?0:MT*x*m/100));};
 let curMode="q"; // which proposal's projections P.x holds right now; part of the optimiser cache key
 function withMode(mode,fn){
   const prev=curMode;curMode=mode==="m"?"m":"q";
