@@ -123,7 +123,7 @@ def parse_coaches(f):
     t = txt(f)
     i = t.find('Coaches'); s = t[i:]
     out = []
-    for m in re.finditer(r'\| ([^|]+?) \| ([^|]+?) \| ([\d.]+) \| ([\d.]+) \| ([+−±-]?[\d.]+) \| (-?\d+) \|', s):
+    for m in re.finditer(r'\| ([^|]+?) \| ([^|]+?) \| ([\d.]+) \| ([\d.]+) \| ([+−±-]?[\d.]+) \| (-?\d+)(?= \|)', s):
         out.append({'name':m.group(1).strip(),'teamname':m.group(2).strip(),'price':num(m.group(4)),'chg':num(m.group(5)),'pts':int(m.group(6))})
     return out
 
