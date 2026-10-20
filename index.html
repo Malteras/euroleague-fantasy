@@ -312,7 +312,7 @@ section{padding-block:28px 8px}
 .chip-toggle{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted)}
 .chip-toggle.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .mkt{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.mrow{display:grid;grid-template-columns:40px minmax(150px,1.6fr) 62px 62px 70px 64px 150px minmax(110px,1fr) 40px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line-soft)}
+.mrow{display:grid;grid-template-columns:40px minmax(150px,1.6fr) 62px 62px 70px 64px 64px 150px minmax(110px,1fr) 40px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line-soft)}
 .mrow.head{border-top:0;background:var(--raise);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding-block:9px}
 .mrow.head .sortable{cursor:pointer}
 .mrow.head .sortable.on{color:var(--accent)}
@@ -325,6 +325,8 @@ section{padding-block:28px 8px}
 .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cell-num{font-weight:600;text-align:right}
+.cell-num .own-chg{display:block;font-size:11px;font-weight:600;color:var(--muted)}
+.cell-num .own-chg.pos{color:var(--good)}.cell-num .own-chg.neg{color:var(--bad)}
 .cell-num.big{font-family:var(--display);font-size:18px;font-weight:700}
 .opp{font-size:13px;min-width:0}
 .opp b{display:block}
@@ -668,8 +670,8 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 }
 @media (max-width:980px){
   .mrow{grid-template-columns:36px minmax(0,1fr) 58px 64px 36px}
-  .mrow .h-be,.mrow .h-ch,.mrow .h-sp,.mrow .h-op{display:none}
-  .mrow.head .h-be,.mrow.head .h-ch,.mrow.head .h-sp,.mrow.head .h-op{display:none}
+  .mrow .h-be,.mrow .h-ch,.mrow .h-ow,.mrow .h-sp,.mrow .h-op{display:none}
+  .mrow.head .h-be,.mrow.head .h-ch,.mrow.head .h-ow,.mrow.head .h-sp,.mrow.head .h-op{display:none}
   .mobile-only{display:block}
 }
 @media (max-width:760px){
@@ -1597,6 +1599,8 @@ function bars(items,{be=null,h=170,unit=""}={}){
   const bl=be!=null?`<line class="bel" x1="${pad}" x2="${W-6}" y1="${y(be)}" y2="${y(be)}"></line><text class="belt" x="${W-8}" y="${y(be)-4}" text-anchor="end">break-even ${be}</text>`:"";
   return `<div class="chart-scroll"><svg class="chart" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img">${grid}<line class="z" x1="${pad}" x2="${W-6}" y1="${y(0)}" y2="${y(0)}"></line>${b}${bl}</svg></div>`;
 }
+// ownership: share of fantasy teams that hold him, and the change since last round
+function ownTxt(p){return p.pop==null?"":`${p.pop}%${p.popChg?` (${p.popChg>0?"▲":"▼"}${Math.abs(p.popChg)})`:""}`;}
 function playerGames(p){
   const el=(p.log||[]).map(g=>({...g,comp:"EuroLeague",el:true}));
   const dom=state.allGames?(p.dom||[]).map(g=>({...g,el:false})):[];
@@ -1637,7 +1641,7 @@ function drawer(){
   const stats=[["Price",p.price.toFixed(1)+" cr",(p.chg!=null?fmt(p.chg):"")+" last round"],["Last 3 FPT",p.l3??"–","last 3 EuroLeague games"],["Season FPT",p.fpt??"–",`${p.gp} games`],["PIR avg",p.pir??"–",p.pir2526!=null?`25-26: ${p.pir2526}`:""],["Minutes",p.min??"–","per game"],["Pts / Reb / Ast",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`,"per game"]];
   const inner=`
    <div class="dr-top" style="--tc:${TEAMS[p.team][1]}"><button type="button" class="dr-x" data-close aria-label="Close">✕</button>
-    <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="dr-nmrow"><h3>${esc(p.name)}</h3>${icos}</div><div class="muted">${tname(p.team)} · ${POSN[p.pos]}${p.status?` · <b class="neg">${esc(p.status)}</b>`:""}</div></div></div>
+    <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="dr-nmrow"><h3>${esc(p.name)}</h3>${icos}</div><div class="muted">${tname(p.team)} · ${POSN[p.pos]}${p.status?` · <b class="neg">${esc(p.status)}</b>`:""}${p.pop!=null?` · Owned by ${ownTxt(p)}`:""}</div></div></div>
     <div class="ptags">${tagTipHtml(p)}</div>
     ${nextGame}
    </div>
@@ -1749,7 +1753,7 @@ function proposalParts(R){
   const row=(a,b,key,name,role,x)=>{
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?b.exp:0)-(a?a.exp:0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
-    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">· ${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${[role,game(p)].filter(Boolean).join(" · ")}</small>`}</span></span>`:`<span class="tx-p ${side}">—</span>`;
+    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">· ${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${[role,game(p)].filter(Boolean).join(" · ")}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
     // grey out → in beside the bars: this round's projections, then next round's (the striped bar is half the difference)
     const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>(p.x2||0).toFixed(1),a)} → ${ow(p=>(p.x2||0).toFixed(1),b)}`;
@@ -1934,16 +1938,17 @@ function detail(p){
 function market(){
   const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
-  const key={x:p=>p.x,exp:p=>p.exp,val:p=>p.val,price:p=>p.price,min:p=>p.min||0}[state.sort];
+  const key={x:p=>p.x,exp:p=>p.exp,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
-  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
+  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
-    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr</small><span class="ptags">${tagHtml(p)}</span></span></button>
+    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
     <span class="cell-num big">${p.x}</span>
     <span class="cell-num h-ch ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))}</span>
+    <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
     <span class="opp h-op"><b>${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}</b><small>${esc(dayLabel(p.day))}</small></span>
     ${pickBtn("no",p,av.has(p.id))}
@@ -1952,7 +1957,7 @@ function market(){
   <div class="tools"><input id="q" class="search" type="search" placeholder="Search player or team" value="${esc(state.q)}" aria-label="Search players">
   <div class="seg" id="pos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${state.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>
   <div class="seg" id="day">${["ALL",...dayKeys].map(v=>`<button type="button" data-v="${v}" class="${state.day===v?"on":""}">${v==="ALL"?"Any day":esc(dayShort(v))}</button>`).join("")}</div>
-  <select id="sort" aria-label="Sort by">${[["x","Projection"],["exp","Expected price change"],["val","Points per credit"],["price","Price"],["min","Minutes"]].map(([v,l])=>`<option value="${v}" ${state.sort===v?"selected":""}>Sort: ${l}</option>`).join("")}</select>
+  <select id="sort" aria-label="Sort by">${[["x","Projection"],["exp","Expected price change"],["val","Points per credit"],["price","Price"],["min","Minutes"],["pop","Ownership"]].map(([v,l])=>`<option value="${v}" ${state.sort===v?"selected":""}>Sort: ${l}</option>`).join("")}</select>
   <button type="button" class="chip-toggle${state.only?" on":""}" id="only" aria-pressed="${state.only}">My squad &amp; picks</button>
   ${(state.pins.length||state.avoids.length||state.coachPin)?'<button type="button" class="chip-toggle" id="clear">Clear picks</button>':""}</div>
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;

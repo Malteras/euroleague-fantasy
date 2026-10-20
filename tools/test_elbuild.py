@@ -15,6 +15,33 @@ class ParseCoachesTest(unittest.TestCase):
         self.assertEqual(got[2], {'name': 'Coach 2', 'teamname': 'Club 2', 'price': 5.2, 'chg': 0.2, 'pts': 2})
 
 
+class ParsePlayerTest(unittest.TestCase):
+    def parse(self, header):
+        with tempfile.TemporaryDirectory() as d:
+            f = os.path.join(d, '654.html')
+            open(f, 'w', encoding='utf-8').write(
+                '<p>EuroLeague 2026-27 EuroLeague Anadolu Efes Istanbul #22 Cameron Payne ☆ ⇄ Fantasy Guard</p>'
+                f'<p>{header}</p><p>Price ? 9.2 (+0.2)</p>')
+            return elbuild.parse_player(f, 'EFS')
+
+    def test_reads_ownership_and_its_rise(self):
+        p = self.parse('Pop 1.4% ▲1.1')
+        self.assertEqual((p['pop'], p['popChg']), (1.4, 1.1))
+        self.assertEqual((p['pos'], p['price']), ('G', 9.2))
+
+    def test_a_fall_is_negative(self):
+        p = self.parse('Pop 12.5% ▼0.3')
+        self.assertEqual((p['pop'], p['popChg']), (12.5, -0.3))
+
+    def test_no_arrow_means_no_change(self):
+        p = self.parse('Pop 0.2%')
+        self.assertEqual((p['pop'], p['popChg']), (0.2, None))
+
+    def test_no_ownership_on_the_page(self):
+        p = self.parse('')
+        self.assertEqual((p['pop'], p['popChg']), (None, None))
+
+
 class CarriedTest(unittest.TestCase):
     def test_report_fields_pass_through_unchanged(self):
         old = {'results': [{'h': 'RMB'}], 'news': ['n'], 'report': {'bottom': 'x'},
@@ -41,7 +68,7 @@ def player(pid, team, log):
     return {'id': pid, 'status': None, 'name': f'P {pid}', 'short': f'{pid}', 'team': team, 'pos': 'G', 'price': 9.2,
             'chg': 0.2, 'gp': 3, 'fpt': 11.1, 'pir': 10.7, 'min': 18.4, 'pts': 15.3, 'reb': 1.3, 'ast': 3.7,
             'log': log, 'next': {'opp': 'BJK', 'ha': 'H', 'date': '2026-10-22', 'round': 7}, 'hist': [[6, 9.0, 0.2]],
-            'start': 9.0, 'pir2526': None, 'domLeague': 'BSL', 'dom': [{'d': '2026-10-18'}], 'xpts': 8.3, 'rise': 29.0}
+            'start': 9.0, 'pir2526': None, 'pop': 1.4, 'popChg': 1.1, 'domLeague': 'BSL', 'dom': [{'d': '2026-10-18'}], 'xpts': 8.3, 'rise': 29.0}
 
 
 def data_for(updated, players=(), coaches=(), coach_round=None):
@@ -74,7 +101,7 @@ class SnapshotTest(unittest.TestCase):
 
     def test_player_keeps_listed_fields_and_last_five_games(self):
         p = self.snap['players'][0]
-        self.assertEqual(sorted(p), ['fpt', 'gp', 'id', 'log', 'name', 'next', 'pos', 'price', 'rise', 'status', 'team', 'xpts'])
+        self.assertEqual(sorted(p), ['fpt', 'gp', 'id', 'log', 'name', 'next', 'pop', 'pos', 'price', 'rise', 'status', 'team', 'xpts'])
         self.assertEqual(len(p['log']), 5)
         self.assertEqual(p['log'][0], {'d': '2026-10-16', 'fpt': 10.0, 'min': 20.0, 'opp': 'ZAL', 'ha': 'H', 'res': 'W 80-70'})
 

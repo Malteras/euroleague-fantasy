@@ -76,6 +76,10 @@ def parse_player(f, team_code):
     pos = {'Guard':'G','Forward':'F','Center':'C'}[pm_.group(1)]
     sm = re.search(r'\b(Out|Doubtful|Questionable|Day to day|Injured)\b', pm_.group(2))
     status = ('Out' if 'Out' in pm_.group(2) else sm.group(1)) if sm else None
+    # ownership: share of fantasy teams holding him, and its change since last round
+    po = re.search(r'Pop ([\d.]+) ?%(?: ?([▲▼]) ?([\d.]+))?', t)
+    pop = num(po.group(1)) if po else None
+    pop_chg = (-1 if po.group(2) == '▼' else 1) * num(po.group(3)) if po and po.group(2) else None
     m = re.search(r'Price \? '+N+r'( \( ?([+−-]) ?([\d.]+) ?\))?', t)
     price = num(m.group(1)) if m else None
     chg = num(m.group(3)+m.group(4)) if m and m.group(2) else None
@@ -94,7 +98,8 @@ def parse_player(f, team_code):
             'fpt':num(fm.group(1)) if fm else None,'pir':num(pm.group(1)) if pm else None,
             'min':st('MIN'),'pts':st('PTS'),'reb':st('REB'),'ast':st('AST'),
             'log':parse_log(t),'next':nxt,'hist':[[int(r_),num(p_),num(c_)] for p_,c_,r_ in hist],
-            'start':num(re.search(r'([\d.]+) Start', t).group(1)) if re.search(r'([\d.]+) Start', t) else None,'pir2526':num(p25.group(1)) if p25 else None}
+            'start':num(re.search(r'([\d.]+) Start', t).group(1)) if re.search(r'([\d.]+) Start', t) else None,'pir2526':num(p25.group(1)) if p25 else None,
+            'pop':pop,'popChg':pop_chg}
 
 def parse_domestic(f):
     t = flat(txt(f))
@@ -225,7 +230,7 @@ def carried(old):
 
 def snapshot(data):
     """The inputs the planner projects a round from, as they stood before its deadline (history/round-N.json)."""
-    keep = ('id', 'name', 'team', 'pos', 'price', 'status', 'xpts', 'rise', 'fpt', 'gp', 'next')
+    keep = ('id', 'name', 'team', 'pos', 'price', 'status', 'xpts', 'rise', 'fpt', 'gp', 'next', 'pop')
     lineup = data.get('lineup') or {}
     return {
         'round': data.get('round'), 'deadline': data.get('deadline'), 'taken': data.get('updated'),
@@ -429,7 +434,7 @@ def main():
         **carried(old),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
-    print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)}')
+    print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)} ownership {sum(p.get("pop") is not None for p in players)}')
     for b in bad[:15]: print('  bad', b)
 
 if __name__ == '__main__':
