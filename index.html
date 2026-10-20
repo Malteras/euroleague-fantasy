@@ -580,14 +580,17 @@ html.locked,html.locked body{overflow:hidden}
 .dr-icos .ico:hover,.dr-icos .ico:focus-visible{color:var(--fg);border-color:var(--faint)}
 .dr-icos .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .dr-icos .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
-.ico .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
-.ico .tip b{display:block}
-.ico:hover .tip,.ico:focus-visible .tip{opacity:1}
-/* Must have / Leave out tooltips: who it applies to, the name, what it does */
-.ico .tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.ico .tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
-.ico .tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
-.ico .tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
+.ico .tip,.ptag .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
+.ico .tip b,.ptag .tip b{display:block}
+.ico:hover .tip,.ico:focus-visible .tip,.ptag:hover .tip,.ptag:focus-visible .tip{opacity:1}
+/* Must have / Leave out and tag tooltips: who or what it is about, the name, what it means */
+.ico .tip-pick,.ptag .tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.ico .tip-pick small,.ptag .tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
+.ico .tip-pick b,.ptag .tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
+.ico .tip-pick i,.ptag .tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
+/* Tag tooltips open from the tag's left edge; the script nudges them back inside the drawer */
+.ptag.has-tip{position:relative;cursor:help}
+.ptag .tip{left:0;transform:none;text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
 .mrow .ico{position:relative}
 .mrow .ico.pin .tip{left:0;transform:none}.mrow .ico.no .tip{left:auto;right:0;transform:none}
 /* next game strip under the tags */
@@ -1179,6 +1182,33 @@ function tagsFor(p){
   return T;
 }
 const tagHtml=(p,n=3)=>p.tags.slice(0,n).map(([t,c])=>`<span class="ptag ${c}">${esc(t)}</span>`).join("");
+// What each tag means, for its tooltip in the player panel: [what it is about, the rule in plain words, this player's numbers]. Same thresholds as tagsFor.
+function tagTip(p,t){
+  const ex=`Expected ${fmt(r1(p.exp))} cr after this round`,pb=`Projection ${p.x} · break-even ${p.be}`,mu=matchup(p);
+  const opp=p.opp&&TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:"His opponent",pos=POSN[p.pos].toLowerCase()+"s";
+  if(/^Rise /.test(t))return ["Price",`FantaSheet gives him a ${Math.round(p.rise)}% chance of a price rise after this round.`,ex];
+  if(t===p.status&&!p.out)return ["Injury news",`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
+  return ({
+    "Out":["Injury news","Listed out for this round's game.",null],
+    "Consider dropping":["In your squad","He is out, his price is expected to fall by 0.25 cr or more, or his last two games averaged over 4 points under break-even while his price is falling.",ex],
+    "Keep · gaining":["In your squad","His price is expected to go up by 0.15 cr or more after this round.",ex],
+    "Keep · price steady":["In your squad","He is projected close to his break-even, so his price should barely move.",pb],
+    "Must have":["Not in your squad","Projected 18 points or more, and his price is expected to go up by 0.15 cr or more.",`${pb} · ${fmt(r1(p.exp))} cr`],
+    "Consider for next round":["Not in your squad","Projected 9 points or more, and his price is expected to go up by 0.12 cr or more.",`${pb} · ${fmt(r1(p.exp))} cr`],
+    "Credit gainer":["Price","Costs 8 cr or less and his price is expected to go up by 0.1 cr or more. A cheap way to grow team value.",ex],
+    "Domestic form":["Form","Costs 9 cr or less and scored well above his price in his last two domestic league games.",null],
+    "Captain option":["Captain",`One of the two highest projections on ${dayLabel(p.day)}, so a strong captain pick for that turn.`,`Projection ${p.x}`],
+    "Soft matchup":["Matchup",`${opp} let ${pos} score ${mu}% more than an average team.`,null],
+    "Tough matchup":["Matchup",`${opp} let ${pos} score ${mu!=null?-mu:""}% less than an average team.`,null],
+    "Minutes risk":["Form","He played under 12 minutes in his last game.",p.log[0]?`Last game: ${p.log[0].min} min`:null]
+  })[t]||null;
+}
+// Header tags with their tooltip, in the style of the Must have / Leave out tooltips
+const tagTipHtml=p=>p.tags.map(([t,c])=>{const x=tagTip(p,t);return x?`<span class="ptag ${c} has-tip" tabindex="0">${esc(t)}<span class="tip tip-pick" role="tooltip"><small>${esc(x[0])}</small><b>${esc(t)}</b><span>${esc(x[1])}</span>${x[2]?`<i>${esc(x[2])}</i>`:""}</span></span>`:`<span class="ptag ${c}">${esc(t)}</span>`;}).join("");
+// Keep a tag tooltip inside the drawer: shift it left when it would run past the right edge
+function fitTip(e){const g=e.target.closest&&e.target.closest(".ptag.has-tip");if(!g)return;const tip=g.querySelector(".tip"),box=g.closest(".drawer");if(!tip||!box)return;
+  tip.style.left="";const over=tip.getBoundingClientRect().right-(box.getBoundingClientRect().right-12);if(over>0)tip.style.left=-over+"px";}
+document.addEventListener("pointerover",fitTip);document.addEventListener("focusin",fitTip);
 
 /* ---------- scoring ---------- */
 function lineup(ids){
@@ -1599,7 +1629,7 @@ function drawer(){
   const inner=`
    <div class="dr-top" style="--tc:${TEAMS[p.team][1]}"><button type="button" class="dr-x" data-close aria-label="Close">✕</button>
     <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="dr-nmrow"><h3>${esc(p.name)}</h3>${icos}</div><div class="muted">${tname(p.team)} · ${POSN[p.pos]}${p.status?` · <b class="neg">${esc(p.status)}</b>`:""}</div></div></div>
-    <div class="ptags">${tagHtml(p,10)}</div>
+    <div class="ptags">${tagTipHtml(p)}</div>
     ${nextGame}
    </div>
    <div class="dr-stats">${stats.map(([k,v,s])=>`<div><small>${k}</small><b>${v}</b><span>${esc(s)}</span></div>`).join("")}</div>
