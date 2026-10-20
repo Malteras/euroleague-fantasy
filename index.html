@@ -1762,10 +1762,22 @@ function wmmSync(i){
   document.getElementById("wmmSplit").innerHTML=t.split;document.getElementById("wmmExplain").innerHTML=t.ex;
   document.querySelectorAll("#wmmStops button").forEach(b=>b.classList.toggle("on",+b.dataset.stop===i));
 }
-// what the daily report found out about free-trade windows (data.json tradeWindow), said under the switch
+// nextWindow:begin
+// the season's 6 free-trade window rounds (data.json tradeWindows, null until the daily report has a reliable list)
+function nextWindow(tw,round){
+  const rs=tw&&Array.isArray(tw.rounds)?tw.rounds.filter(Number.isInteger):[];
+  if(!rs.length)return "Next free-trade window: not known yet.";
+  const n=Math.min(...rs.filter(r=>r>=round));
+  if(!isFinite(n))return "No free-trade windows left this season.";
+  const k=n-round;
+  return `Next free-trade window: round ${n} (${k===0?"this round":k===1?"next round":`in ${k} rounds`}).`;
+}
+// nextWindow:end
+// what the daily report found out about free-trade windows (data.json tradeWindow and tradeWindows), said under the switch
 function twNote(){
-  const T=D.tradeWindow;if(!T||T.round!==D.round||typeof T.unlimited!=="boolean")return "";
-  return ` The daily report says round ${D.round} is ${T.unlimited?"":"not "}a free-trade window${T.nextUnlimited===true?`, and round ${D.round+1} is one`:""}.`;
+  const T=D.tradeWindow,next=" "+nextWindow(D.tradeWindows,D.round);
+  if(!T||T.round!==D.round||typeof T.unlimited!=="boolean")return next;
+  return ` The daily report says round ${D.round} is ${T.unlimited?"":"not "}a free-trade window${T.nextUnlimited===true?`, and round ${D.round+1} is one`:""}.`+next;
 }
 function proposal(){
   const parts=proposalParts(result);

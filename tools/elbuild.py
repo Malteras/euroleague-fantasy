@@ -224,6 +224,8 @@ def carried(old):
         'results': old.get('results', []), 'news': old.get('news', []), 'report': old.get('report', {}),
         # free-trade windows for this round and the next; the planner sets its switch from it
         'tradeWindow': old.get('tradeWindow'),
+        # the season's 6 free-trade window rounds with where they came from; null until a reliable source lists them
+        'tradeWindows': old.get('tradeWindows'),
         # who is out or doubtful, for the "Watch before the deadline" card
         'injuries': old.get('injuries'),
     }
