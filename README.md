@@ -34,7 +34,8 @@ A scheduled Claude task runs Monday–Friday at 08:58 (Europe/Sarajevo). Monday 
 1. runs `python3 -I tools/elbuild.py <work_dir> data.json data.json.new`,
 2. adds the written bits the script can't produce: EuroLeague results, news, the bottom-line summary, the free-trade windows and the injury list (`results`, `news`, `report`, `tradeWindow`, `injuries` in `data.json`),
 3. runs `python3 -I tools/elbuild.py --history data.json history` on the finished `data.json`. On or before a round's deadline day it writes `history/round-N.json` once (never overwritten); after the round's last game day it fills that file's `actual` (each part only once),
-4. commits `data.json` and `history/` to `main`. GitHub Pages republishes the site within a minute or two.
+4. runs `python3 -I tools/elbuild.py --alerts <previous data.json> data.json` (the previous one is `git show HEAD:data.json`). It writes `alerts`: players whose status (injury list entry, else FantaSheet flag, else Available) changed since then. The site shows his players' alerts in a "Status changed" banner at the top of My team and tags the others in the Player market,
+5. commits `data.json` and `history/` to `main`. GitHub Pages republishes the site within a minute or two.
 
 ## Run it yourself
 
