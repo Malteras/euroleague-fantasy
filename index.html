@@ -126,7 +126,6 @@ section{padding-block:28px 8px}
 .game{display:grid;grid-template-columns:42px minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:6px;padding:8px 14px;position:relative}
 .game+.game{border-top:1px solid var(--line-soft)}
 .game.has-mine{background:linear-gradient(90deg,var(--accent-soft),transparent 70%)}
-.game.has-mine::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
 .gt{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted)}
 .gside{display:flex;align-items:center;gap:7px;min-width:0}
 .gside.away{justify-content:flex-end}
@@ -606,6 +605,11 @@ html.locked,html.locked body{overflow:hidden}
 .ng-who span:not(.tb){display:block;font-size:12px;color:var(--muted)}
 .ng-none{font-size:13px;color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:520px){.ng-s{grid-template-columns:repeat(3,minmax(0,1fr))}.ng-s .ng-who{grid-column:1/-1;border-bottom:1px solid var(--line-soft)}.ng-s .ng-who+div{border-left:0}}
+/* The header is tinted by the club colour: tags get a solid background and text uses full strength, so they read on every club */
+.dr-top .ptag{--k:var(--faint);background:var(--surface);border:1px solid color-mix(in srgb,var(--k) 45%,transparent);color:var(--fg);padding:1px 7px}
+.dr-top .ptag.good{--k:var(--good);background:var(--surface);color:var(--good)} .dr-top .ptag.bad{--k:var(--bad);background:var(--surface);color:var(--bad)}
+.dr-top .ptag.warn{--k:var(--warn);background:var(--surface);color:var(--warn)} .dr-top .ptag.accent{--k:var(--accent);background:var(--surface);color:var(--accent)}
+.dr-top .ng-h,.dr-top .dr-id .muted{color:var(--fg)}
 .dr-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
 .dr-stats div{background:var(--surface);padding:10px 14px;min-width:0}
 .dr-stats small{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
