@@ -2187,11 +2187,16 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 const blNum=v=>(v>0?"+":v<0?"−":"")+Math.abs(Math.round(v*10)/10).toFixed(1);
 function blItems(o){
   const items=[];
-  o.trades.forEach(({out:a,in:b})=>items.push({id:`${o.round}:trade:${a.id}>${b.id}`,kind:"trade",title:`Trade ${a.short} → ${b.short}`,ps:[a,b],
+  // No trades between turns: a trade that only pays if a teammate (ifOut) misses the game is decided before trades close,
+  // so it gets one check on that teammate, due at the deadline, with both calls spelled out
+  o.trades.forEach(({out:a,in:b,ifOut:t})=>{
+    if(t)items.push({id:`${o.round}:ifout:${t.id}:${b.id}`,kind:"check",title:`Check ${t.short} before ${o.deadline}`,ps:[t],
+      detail:[["",`100% out → trade ${a.short} → ${b.short} · uncertain or plays → keep ${a.short}`]]});
+    items.push({id:`${o.round}:trade:${a.id}>${b.id}`,kind:"trade",title:`Trade ${a.short} → ${b.short}`,ps:[a,b],
     // nx: the half of next round's projection the look-ahead counts (Proposal 2), shown when the trade changes it
-    detail:[["pts",`${blNum(b.x-a.x)} pts`],[""," this round · "],
+    detail:[...(t?[["",`only if ${t.short} is 100% out · `]]:[]),["pts",`${blNum(b.x-a.x)} pts`],[""," this round · "],
       ...(Math.abs((b.nx||0)-(a.nx||0))>=0.05?[["pts",blNum((b.nx||0)-(a.nx||0))],[""," next round · "]]:[]),
-      ["cr",`${blNum(a.price-b.price)} cr`],[""," bank"]]}));
+      ["cr",`${blNum(a.price-b.price)} cr`],[""," bank"]]});});
   if(!o.trades.length)items.push({id:`${o.round}:none`,kind:"none",title:"No trades",
     detail:o.near?[["","Best trade adds "],["pts",`${blNum(o.near.g)} pts`],["",`, under the ${o.bar}-point bar`]]:[["",o.why]]});
   // the captain plan: first captain, then who takes the armband if he scores under what the later turns are still worth
@@ -2204,7 +2209,8 @@ function blItems(o){
   if(L){const sum=L.st.reduce((a,p)=>a+p.x,0);
     items.push({id:`${o.round}:lineup:${L.st.map(p=>p.id).join(",")}`,kind:"lineup",title:`Start ${L.st.map(p=>p.short).join(", ")}`,ps:L.st,
       detail:[["pts",`${sum.toFixed(1)} pts`],["",` projected from the five · ${L.form.join("-")}${L.six?` · 6th ${L.six.short}`:""}`]]});}
-  o.checks.forEach(k=>items.push({id:`${o.round}:check:${k.p.id}`,kind:"check",title:`Check ${k.p.short} before ${o.dayName(k.p.day)}`,ps:[k.p],
+  // every check is due before trades close: after the deadline the squad is fixed, so there is nothing left to decide
+  o.checks.forEach(k=>items.push({id:`${o.round}:check:${k.p.id}`,kind:"check",title:`Check ${k.p.short} before ${o.deadline}`,ps:[k.p],
     detail:[["pts",`${k.p.x.toFixed(1)} pts`],["",` at risk · ${k.why}${k.swap?` · swap ${k.swap.short}`:""}`]]}));
   return items;
 }
@@ -2233,17 +2239,22 @@ function blInputs(){
     const st=plan?plan.init.st:L.st,six=plan?plan.init.six:L.six,cap=plan?plan.capPath:capPlan(R.S).path;
     const form=["G","F","C"].map(k=>st.filter(p=>p.pos===k).length);
     const starters=new Set(st.map(p=>p.id)),subs=(plan?[six,...plan.reserves]:[L.six,...L.bench]).filter(Boolean);
-    // one check per player: injury status first, then a sat-out game with injury news, then a key teammate's absence
-    const seen=new Set(),checks=[];
-    const why=x=>x.kind==="status"?x.st+(x.inj&&x.inj.reason?` (${x.inj.reason})`:""):x.kind==="rest"?`sat out ${fmtShort(x.sat)}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`
-      :`if ${x.t.short} plays (${x.t.out?"listed out":"missed his last game"}): ${x.w.toFixed(1)} with him, ${x.wo.toFixed(1)} without`;
+    // Checks come from the Watch card and are all due before trades close: the squad is fixed after the deadline (GLOSSARY).
+    // An incoming player who only pays while a teammate is out makes that trade conditional on the teammate (ifOut).
+    // A kept player's teammate check is left on the Watch card: there is no trade to decide, only less to expect.
     const W=watchItems();
-    ["status","rest","mate"].forEach(k=>W.filter(x=>x.kind===k&&(k!=="rest"||x.inj)).forEach(x=>{
+    W.filter(x=>x.kind==="mate"&&x.incoming).sort((a,b)=>(b.wo-b.w)-(a.wo-a.w)).forEach(x=>{
+      const tr=trades.find(t=>t.in.id===x.p.id);if(tr&&!tr.ifOut)tr.ifOut=x.t;});
+    // one status check per player: injury status first, then a sat-out game with injury news
+    const seen=new Set(),checks=[];
+    const why=x=>x.kind==="status"?x.st+(x.inj&&x.inj.reason?` (${x.inj.reason})`:""):`sat out ${fmtShort(x.sat)}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`;
+    ["status","rest"].forEach(k=>W.filter(x=>x.kind===k&&(k!=="rest"||x.inj)).forEach(x=>{
       if(seen.has(x.p.id))return;seen.add(x.p.id);
       const swap=starters.has(x.p.id)?subs.filter(q=>!q.out&&q.day>=x.p.day).sort((a,b)=>b.x-a.x)[0]||null:null;
       checks.push({p:x.p,why:why(x),swap});}));
     const near=(R.near||[])[0];
-    return {round:D.round,trades,near:near?{g:near.g}:null,bar:tradeBar(),why:"no trade beats what you have under these settings",
+    const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+    return {round:D.round,deadline:dayShort(D.deadline)+(tip?" "+tip:""),trades,near:near?{g:near.g}:null,bar:tradeBar(),why:"no trade beats what you have under these settings",
       cap,lineup:{st,six,form},checks,dayName:dayShort};
   });
 }

@@ -13,7 +13,7 @@ const pl = (id, short, x, price, day = "2026-10-21") => ({ id, short, x, price, 
 const Bryant = pl(73, "Bryant", 23.4, 17.4), Maledon = pl(23, "Maledon", 19.8, 15, "2026-10-22"), Madar = pl(91, "Madar", 18.1, 14, "2026-10-22");
 const Feliz = pl(8, "Feliz", 9.3, 6.2), Etienne = pl(245, "Etienne", 13.5, 6.8);
 const base = {
-  round: 7, trades: [], near: null, bar: 3, why: "every player in your squad is at or above break-even",
+  round: 7, deadline: "Wed 18:00", trades: [], near: null, bar: 3, why: "every player in your squad is at or above break-even",
   cap: [{ p: Bryant, keepAt: 21.6 }, { p: Maledon, keepAt: 18.4 }, { p: Madar, keepAt: null }],
   lineup: { st: [Bryant, Maledon, Madar, pl(165, "Ndiaye", 12.6, 9), pl(118, "Diarra", 14.2, 10)], six: Feliz, form: [3, 1, 1] },
   checks: [], dayName: d => ({ "2026-10-21": "Wed", "2026-10-22": "Thu" })[d],
@@ -72,7 +72,7 @@ test("lineup: the five starters, their projected total, formation and 6th man", 
 test("check: the player, the points at risk, why, and who to swap in", () => {
   const items = blItems({ ...base, checks: [{ p: Madar, why: "missed Maccabi's Sunday game", swap: pl(38, "Ojeleye", 8, 5) }] });
   const t = items.find(i => i.kind === "check");
-  assert.equal(t.title, "Check Madar before Thu");
+  assert.equal(t.title, "Check Madar before Wed 18:00");
   assert.equal(text(t), "18.1 pts at risk · missed Maccabi's Sunday game · swap Ojeleye");
   assert.equal(t.id, "7:check:91");
   assert.deepEqual(items.map(i => i.kind), ["none", "captain", "lineup", "check"]);
@@ -105,4 +105,24 @@ test("a trade made for next round (Proposal 2) also says what it adds then", () 
   const out = { ...Feliz, nx: 3.0 }, inn = { ...Etienne, x: 7.0, nx: 9.1 };
   const t = blItems({ ...base, trades: [{ out, in: inn }] })[0];
   assert.equal(text(t), "−2.3 pts this round · +6.1 next round · −0.6 cr bank");
+});
+
+// No trades between turns: a check that decides a trade is due before trades close, not on the player's game day.
+const Hifi = pl(500, "Hifi", 0, 16, "2026-10-23"), EtienneFri = pl(245, "Etienne", 18.6, 6.8, "2026-10-23");
+const deadline = { ...base, deadline: "Wed 18:00" };
+
+test("a trade that depends on a teammate: one check on him before trades close, with both calls", () => {
+  const items = blItems({ ...deadline, trades: [{ out: Madar, in: EtienneFri, ifOut: Hifi }] });
+  assert.deepEqual(items.map(i => i.kind), ["check", "trade", "captain", "lineup"]);
+  const [c, t] = items;
+  assert.equal(c.title, "Check Hifi before Wed 18:00");
+  assert.equal(text(c), "100% out → trade Madar → Etienne · uncertain or plays → keep Madar");
+  assert.equal(c.id, "7:ifout:500:245");
+  assert.equal(t.title, "Trade Madar → Etienne");
+  assert.equal(text(t), "only if Hifi is 100% out · +0.5 pts this round · +7.2 cr bank");
+});
+
+test("every check is due before trades close, even for a player you keep", () => {
+  const t = blItems({ ...deadline, checks: [{ p: Madar, why: "Doubtful", swap: null }] }).find(i => i.kind === "check");
+  assert.equal(t.title, "Check Madar before Wed 18:00");
 });
