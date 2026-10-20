@@ -25,7 +25,7 @@ test("a trade: who goes out and in, the points it adds and what it does to the b
   const t = items[0];
   assert.equal(t.kind, "trade");
   assert.equal(t.title, "Trade Feliz → Etienne");
-  assert.equal(text(t), "+4.2 pts this round · −0.6 cr bank");
+  assert.equal(text(t), "+4.2 pts this round, −0.6 cr bank");
   assert.deepEqual(t.detail.filter(([c]) => c).map(([c]) => c), ["pts", "cr"]);
   assert.equal(t.id, "7:trade:8>245");
 });
@@ -47,7 +47,7 @@ test("no trades and no near miss: the proposal's reason", () => {
 test("captain: his projection and day, then the fallbacks if he scores under the keep-at score", () => {
   const t = blItems(base).find(i => i.kind === "captain");
   assert.equal(t.title, "Captain Bryant");
-  assert.equal(text(t), "23.4 projected, best on Wed · under 22+ → Maledon 19.8 → Madar 18.1");
+  assert.equal(text(t), "23.4 projected, best on Wed\nUnder 22+ → Maledon 19.8 → Madar 18.1");
   assert.equal(t.id, "7:captain:73");
 });
 
@@ -65,7 +65,7 @@ test("a new captain is a new item, so an old tick does not carry over", () => {
 test("lineup: the five starters, their projected total, formation and 6th man", () => {
   const t = blItems(base).find(i => i.kind === "lineup");
   assert.equal(t.title, "Start Bryant, Maledon, Madar, Ndiaye, Diarra");
-  assert.equal(text(t), "88.1 pts projected from the five · 3-1-1 · 6th Feliz");
+  assert.equal(text(t), "88.1 pts projected from the five\n3-1-1, 6th man Feliz");
   assert.equal(t.id, "7:lineup:73,23,91,165,118");
 });
 
@@ -73,14 +73,14 @@ test("check: the player, the points at risk, why, and who to swap in", () => {
   const items = blItems({ ...base, checks: [{ p: Madar, why: "missed Maccabi's Sunday game", swap: pl(38, "Ojeleye", 8, 5) }] });
   const t = items.find(i => i.kind === "check");
   assert.equal(t.title, "Check Madar before Wed 18:00");
-  assert.equal(text(t), "18.1 pts at risk · missed Maccabi's Sunday game · swap Ojeleye");
+  assert.equal(text(t), "18.1 pts at risk: missed Maccabi's Sunday game\nIf he is out, start Ojeleye");
   assert.equal(t.id, "7:check:91");
   assert.deepEqual(items.map(i => i.kind), ["none", "captain", "lineup", "check"]);
 });
 
 test("check with nobody to swap in", () => {
   const t = blItems({ ...base, checks: [{ p: Madar, why: "Doubtful", swap: null }] }).find(i => i.kind === "check");
-  assert.equal(text(t), "18.1 pts at risk · Doubtful");
+  assert.equal(text(t), "18.1 pts at risk: Doubtful");
 });
 
 test("credit gainers from the routine's line: name, club, price and why", () => {
@@ -104,7 +104,7 @@ test("only this round's ticks count", () => {
 test("a trade made for next round (Proposal 2) also says what it adds then", () => {
   const out = { ...Feliz, nx: 3.0 }, inn = { ...Etienne, x: 7.0, nx: 9.1 };
   const t = blItems({ ...base, trades: [{ out, in: inn }] })[0];
-  assert.equal(text(t), "−2.3 pts this round · +6.1 next round · −0.6 cr bank");
+  assert.equal(text(t), "−2.3 pts this round, +6.1 next round, −0.6 cr bank");
 });
 
 // No trades between turns: a check that decides a trade is due before trades close, not on the player's game day.
@@ -116,13 +116,21 @@ test("a trade that depends on a teammate: one check on him before trades close, 
   assert.deepEqual(items.map(i => i.kind), ["check", "trade", "captain", "lineup"]);
   const [c, t] = items;
   assert.equal(c.title, "Check Hifi before Wed 18:00");
-  assert.equal(text(c), "100% out → trade Madar → Etienne · uncertain or plays → keep Madar");
+  assert.equal(text(c), "100% out → trade Madar → Etienne\nUncertain or plays → keep Madar");
   assert.equal(c.id, "7:ifout:500:245");
   assert.equal(t.title, "Trade Madar → Etienne");
-  assert.equal(text(t), "only if Hifi is 100% out · +0.5 pts this round · +7.2 cr bank");
+  assert.equal(text(t), "Only if Hifi is 100% out\n+0.5 pts this round, +7.2 cr bank");
 });
 
 test("every check is due before trades close, even for a player you keep", () => {
   const t = blItems({ ...deadline, checks: [{ p: Madar, why: "Doubtful", swap: null }] }).find(i => i.kind === "check");
   assert.equal(t.title, "Check Madar before Wed 18:00");
+});
+
+test("no to-do separates its pieces with dots: one piece of information per line", () => {
+  const all = [
+    ...blItems({ ...deadline, trades: [{ out: Madar, in: EtienneFri, ifOut: Hifi }], checks: [{ p: Maledon, why: "Doubtful", swap: Feliz }] }),
+    ...blItems({ ...base, near: { g: 1.4 } }),
+  ];
+  for (const it of all) assert.ok(!text(it).includes("·") && !it.title.includes("·"), `${it.title}: ${text(it)}`);
 });

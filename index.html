@@ -652,7 +652,7 @@ html.locked,html.locked body{overflow:hidden}
 .bl-i:hover{background:var(--raise)}
 .bl-i.bl-al{background:var(--bad-soft)}
 .bl-i input{width:17px;height:17px;margin:2px 0 0;accent-color:var(--accent)}
-.bl-i small{display:block;color:var(--muted);font-size:12.5px}
+.bl-i small{display:block;color:var(--muted);font-size:12.5px;white-space:pre-line}
 .bl-i.done{padding-block:3px}
 .bl-i.done small{display:none}
 .bl-i.done > span{opacity:.45}
@@ -2191,27 +2191,28 @@ function blItems(o){
   // so it gets one check on that teammate, due at the deadline, with both calls spelled out
   o.trades.forEach(({out:a,in:b,ifOut:t})=>{
     if(t)items.push({id:`${o.round}:ifout:${t.id}:${b.id}`,kind:"check",title:`Check ${t.short} before ${o.deadline}`,ps:[t],
-      detail:[["",`100% out → trade ${a.short} → ${b.short} · uncertain or plays → keep ${a.short}`]]});
+      detail:[["",`100% out → trade ${a.short} → ${b.short}\nUncertain or plays → keep ${a.short}`]]});
     items.push({id:`${o.round}:trade:${a.id}>${b.id}`,kind:"trade",title:`Trade ${a.short} → ${b.short}`,ps:[a,b],
     // nx: the half of next round's projection the look-ahead counts (Proposal 2), shown when the trade changes it
-    detail:[...(t?[["",`only if ${t.short} is 100% out · `]]:[]),["pts",`${blNum(b.x-a.x)} pts`],[""," this round · "],
-      ...(Math.abs((b.nx||0)-(a.nx||0))>=0.05?[["pts",blNum((b.nx||0)-(a.nx||0))],[""," next round · "]]:[]),
+    // detail text: one piece of information per line (\n), never dot-separated
+    detail:[...(t?[["",`Only if ${t.short} is 100% out\n`]]:[]),["pts",`${blNum(b.x-a.x)} pts`],[""," this round, "],
+      ...(Math.abs((b.nx||0)-(a.nx||0))>=0.05?[["pts",blNum((b.nx||0)-(a.nx||0))],[""," next round, "]]:[]),
       ["cr",`${blNum(a.price-b.price)} cr`],[""," bank"]]});});
   if(!o.trades.length)items.push({id:`${o.round}:none`,kind:"none",title:"No trades",
     detail:o.near?[["","Best trade adds "],["pts",`${blNum(o.near.g)} pts`],["",`, under the ${o.bar}-point bar`]]:[["",o.why]]});
   // the captain plan: first captain, then who takes the armband if he scores under what the later turns are still worth
   const [c,...later]=o.cap;
   if(c){const detail=[["pts",`${c.p.x.toFixed(1)} projected`],["",`, best on ${o.dayName(c.p.day)}`]];
-    if(later.length&&c.keepAt!=null){detail.push(["",` · under ${Math.ceil(c.keepAt)}+`]);
+    if(later.length&&c.keepAt!=null){detail.push(["",`\nUnder ${Math.ceil(c.keepAt)}+`]);
       later.forEach(s=>detail.push(["",` → ${s.p.short} `],["pts",s.p.x.toFixed(1)]));}
     items.push({id:`${o.round}:captain:${c.p.id}`,kind:"captain",title:`Captain ${c.p.short}`,ps:[c.p],detail});}
   const L=o.lineup;
   if(L){const sum=L.st.reduce((a,p)=>a+p.x,0);
     items.push({id:`${o.round}:lineup:${L.st.map(p=>p.id).join(",")}`,kind:"lineup",title:`Start ${L.st.map(p=>p.short).join(", ")}`,ps:L.st,
-      detail:[["pts",`${sum.toFixed(1)} pts`],["",` projected from the five · ${L.form.join("-")}${L.six?` · 6th ${L.six.short}`:""}`]]});}
+      detail:[["pts",`${sum.toFixed(1)} pts`],["",` projected from the five\n${L.form.join("-")}${L.six?`, 6th man ${L.six.short}`:""}`]]});}
   // every check is due before trades close: after the deadline the squad is fixed, so there is nothing left to decide
   o.checks.forEach(k=>items.push({id:`${o.round}:check:${k.p.id}`,kind:"check",title:`Check ${k.p.short} before ${o.deadline}`,ps:[k.p],
-    detail:[["pts",`${k.p.x.toFixed(1)} pts`],["",` at risk · ${k.why}${k.swap?` · swap ${k.swap.short}`:""}`]]}));
+    detail:[["pts",`${k.p.x.toFixed(1)} pts`],["",` at risk: ${k.why}${k.swap?`\nIf he is out, start ${k.swap.short}`:""}`]]}));
   return items;
 }
 // The routine's "Credit gainers to watch: Name (CLUB, price) why; …" line as rows; text when it can't be split; null when there is none.
@@ -2271,7 +2272,7 @@ function bottomLine(){
   const mRows=ms.map(({p,m})=>`<div class="bl-r"><span>${plink(p,p.short)} <span class="muted">${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</span></span><b class="${m>0?"up":"dn"}">${m>0?"+":"−"}${Math.abs(m)}%</b><small>${POSW[p.pos]}</small></div>`).join("");
   const G=blGainers(sum),byName=nm=>P.find(p=>p.name===nm);
   const gRows=G?G.rows.length?G.rows.map(g=>`<div class="bl-r"><span>${byName(g.name)?plink(byName(g.name),g.name):esc(g.name)} <span class="muted">${esc(g.team)}</span></span><b class="bl-cr">${g.price.toFixed(1)}</b><small>${esc(g.why)}</small></div>`).join(""):`<p class="bl-txt">${linkify(G.text)}</p>`:"";
-  const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">Matchups · your players</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
+  const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">Your players' matchups</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
   return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">⏱ Trades close ${esc(deadlineRel())}</span></div>
     <div class="bl-cols${know?"":" one"}"><div class="bl-todo">${prog}${rows}</div>${know}</div></div>`;
 }
