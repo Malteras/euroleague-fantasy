@@ -4,6 +4,9 @@
 Usage: python3 -I elbuild.py <work_dir> <old_data.json or -> <out_data.json>
 Downloads go into <work_dir>/pages (keep it separate from this script's folder).
 The daily report's fields (see carried()) and squad are carried over from the old data.json; edit them afterwards.
+
+       python3 -I elbuild.py --history <data.json> <history_dir>
+Run on the finished data.json: saves history/round-N.json before the deadline and fills its actuals after the round.
 """
 import sys, os, re, json, html, subprocess, datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -123,7 +126,7 @@ def parse_coaches(f):
     t = txt(f)
     i = t.find('Coaches'); s = t[i:]
     out = []
-    for m in re.finditer(r'\| ([^|]+?) \| ([^|]+?) \| ([\d.]+) \| ([\d.]+) \| ([+−±-]?[\d.]+) \| (-?\d+) \|', s):
+    for m in re.finditer(r'\| ([^|]+?) \| ([^|]+?) \| ([\d.]+) \| ([\d.]+) \| ([+−±-]?[\d.]+) \| (-?\d+)(?= \|)', s):
         out.append({'name':m.group(1).strip(),'teamname':m.group(2).strip(),'price':num(m.group(4)),'chg':num(m.group(5)),'pts':int(m.group(6))})
     return out
 
@@ -215,6 +218,66 @@ def carried(old):
         # who is out or doubtful, for the "Watch before the deadline" card
         'injuries': old.get('injuries'),
     }
+
+def snapshot(data):
+    """The inputs the planner projects a round from, as they stood before its deadline (history/round-N.json)."""
+    keep = ('id', 'name', 'team', 'pos', 'price', 'status', 'xpts', 'rise', 'fpt', 'gp', 'next')
+    lineup = data.get('lineup') or {}
+    return {
+        'round': data.get('round'), 'deadline': data.get('deadline'), 'taken': data.get('updated'),
+        'players': [{**{k: p.get(k) for k in keep},
+                     'log': [{k: g.get(k) for k in ('d', 'fpt', 'min', 'opp', 'ha', 'res')} for g in p.get('log', [])[:5]]}
+                    for p in data.get('players', [])],
+        'defence': data.get('defence'), 'fixtures': data.get('fixtures'), 'coaches': data.get('coaches'),
+        # each club's next two EuroLeague games: this round and the look-ahead round
+        'teamNext': {c: [{k: v for k, v in g.items() if k not in ('comp', 'el')} for g in gs if g.get('el')][:2]
+                     for c, gs in (data.get('teamNext') or {}).items()},
+        'tradeWindow': data.get('tradeWindow'), 'injuries': data.get('injuries'),
+        'squad': {**(data.get('squad') or {}), **{k: lineup.get(k) for k in ('slots', 'cap', 'bank')}},
+    }
+
+def write_history(data, hist_dir):
+    """Keep a record of each round: the snapshot on the first run on or before its deadline day, never overwritten."""
+    os.makedirs(hist_dir, exist_ok=True)
+    rnd, today = data.get('round'), data.get('updated')
+    path = os.path.join(hist_dir, f'round-{rnd}.json')
+    if rnd and data.get('deadline') and today <= data['deadline'] and not os.path.exists(path):
+        save(path, snapshot(data))
+        print(f'history: wrote {path}')
+    for name in sorted(os.listdir(hist_dir)):
+        if not re.fullmatch(r'round-\d+\.json', name): continue
+        p = os.path.join(hist_dir, name)
+        snap = json.load(open(p, encoding='utf-8'))
+        if fill_actual(snap, data):
+            save(p, snap)
+            print(f'history: actuals in {p}')
+
+def fill_actual(snap, data):
+    """After the round's last game day, add what happened: each player's FPT and minutes (None = did not play)
+    and each coach's points. Parts already filled are left alone. Returns True when something was added."""
+    fixtures = snap.get('fixtures') or []
+    if not fixtures or data.get('updated') <= max(f[0] for f in fixtures): return False
+    actual = snap.setdefault('actual', {'players': None, 'coaches': None})
+    added = False
+    if actual['players'] is None:
+        day = {}  # club -> date of its game this round (one EuroLeague game a day, so the date finds it in the log)
+        for d, h, a, *_ in fixtures: day[h] = day[a] = d
+        now = {p['id']: p for p in data.get('players', [])}
+        actual['players'] = {}
+        for p in snap.get('players', []):
+            if p['team'] not in day: continue
+            g = next((g for g in now.get(p['id'], {}).get('log', []) if g['d'] == day[p['team']]), None)
+            actual['players'][str(p['id'])] = {'fpt': g['fpt'], 'min': g['min']} if g else None
+        added = True
+    # coaches[].last = points in [coachRound, the round before]
+    back = (data.get('coachRound') or 0) - snap.get('round', 0)
+    if actual['coaches'] is None and back in (0, 1):
+        actual['coaches'] = {c['team']: c['last'][back] for c in data.get('coaches', []) if len(c.get('last', [])) > back}
+        added = True
+    return added
+
+def save(path, obj):
+    with open(path, 'w', encoding='utf-8') as f: json.dump(obj, f, ensure_ascii=False, separators=(',', ':'))
 
 def main():
     work, oldp, outp = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -337,4 +400,7 @@ def main():
     for b in bad[:15]: print('  bad', b)
 
 if __name__ == '__main__':
-    main()
+    if sys.argv[1:2] == ['--history']:
+        write_history(json.load(open(sys.argv[2], encoding='utf-8')), sys.argv[3])
+    else:
+        main()
