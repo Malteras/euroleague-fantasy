@@ -4,6 +4,12 @@ A planner for one EuroLeague Fantasy team: who to trade, who to start and who to
 
 ## Rounds and trades
 
+> ## ⚠️ NO TRADES BETWEEN TURNS. EVERY TRADE (THE 10 PLAYERS AND THE COACH) IS MADE BEFORE THE ROUND'S DEADLINE.
+>
+> **Once the first game of the round tips off, the squad is fixed until the next round.** Between turns you can only move players between bench and court and move the captain.
+>
+> So anything that decides a trade (an injury, a teammate who might be out, a doubtful player) must be checked **before the deadline**, never on the player's own game day. A check that says "before Fri" for a trade decision is wrong.
+
 **Round**:
 One fantasy scoring period with one deadline (the first tip-off). Each club plays one EuroLeague game in it.
 _Avoid_: Week, gameweek, matchday

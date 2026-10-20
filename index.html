@@ -636,6 +636,36 @@ html.locked,html.locked body{overflow:hidden}
 .dsec h4{font-family:var(--display);font-size:18px;font-weight:800;text-transform:uppercase;margin:0}
 .dsec-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .seg.sm button{padding:4px 10px;font-size:13px}
+/* bottom line: a checklist of the round's to-dos (points teal, credits amber) and the good-to-know lists */
+.bl-card{margin-bottom:16px}
+.bl-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.bl-h h3{margin:0}
+.bl-cols{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+.bl-cols.one{grid-template-columns:1fr}
+@media (max-width:600px){.bl-cols{grid-template-columns:1fr}}
+.bl-todo{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bl-prog{display:flex;align-items:center;gap:10px;padding:2px 8px 8px;font-size:13.5px}
+.bl-prog.all{color:var(--good)}
+.bl-bar{flex:1;height:8px;border-radius:4px;background:var(--line-soft);overflow:hidden}
+.bl-bar i{display:block;height:100%;background:var(--good);transition:width .25s}
+.bl-i{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer;align-items:start}
+.bl-i:hover{background:var(--raise)}
+.bl-i.bl-al{background:var(--bad-soft)}
+.bl-i input{width:17px;height:17px;margin:2px 0 0;accent-color:var(--accent)}
+.bl-i small{display:block;color:var(--muted);font-size:12.5px;white-space:pre-line}
+.bl-i.done{padding-block:3px}
+.bl-i.done small{display:none}
+.bl-i.done > span{opacity:.45}
+.bl-pts{color:var(--accent);font-weight:700}
+.bl-cr{color:var(--credit);font-weight:700}
+.bl-know{background:var(--raise);border-radius:12px;padding:10px 12px;min-width:0}
+.bl-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:5px 0;border-bottom:1px solid var(--line-soft);align-items:baseline}
+.bl-r:last-child{border-bottom:0}
+.bl-r b{font-family:var(--display);font-size:17px}
+.bl-r b.up{color:var(--accent)} .bl-r b.dn{color:var(--bad)}
+.bl-r small{grid-column:1/-1;color:var(--muted);font-size:12px}
+.bl-txt{margin:4px 0 0}
+@media (prefers-reduced-motion:reduce){.bl-bar i{transition:none}}
 /* how the projections did: points only, so teal bars; no credits here */
 .sc{margin-bottom:16px}
 .sc-top{margin:0 0 10px;line-height:1.45}
@@ -2150,6 +2180,106 @@ function scoreCard(){
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sc-span],[data-sc-band]");if(!b)return;
   if(b.dataset.scSpan)scView.span=b.dataset.scSpan;else scView.band=b.dataset.scBand;redrawScore();});
+// bottomLine:begin
+// The Bottom line checklist's to-dos, from the live proposal (#42): each {id, kind, title, detail}.
+// title is plain text; detail is a list of [class, text] parts, "pts" for points (teal) and "cr" for credits (amber).
+// A tick belongs to an item's id, which names the round and the item's content, so a changed item comes back unticked.
+const blNum=v=>(v>0?"+":v<0?"−":"")+Math.abs(Math.round(v*10)/10).toFixed(1);
+function blItems(o){
+  const items=[];
+  // No trades between turns: a trade that only pays if a teammate (ifOut) misses the game is decided before trades close,
+  // so it gets one check on that teammate, due at the deadline, with both calls spelled out
+  o.trades.forEach(({out:a,in:b,ifOut:t})=>{
+    if(t)items.push({id:`${o.round}:ifout:${t.id}:${b.id}`,kind:"check",title:`Check ${t.short} before ${o.deadline}`,ps:[t],
+      detail:[["",`100% out → trade ${a.short} → ${b.short}\nUncertain or plays → keep ${a.short}`]]});
+    items.push({id:`${o.round}:trade:${a.id}>${b.id}`,kind:"trade",title:`Trade ${a.short} → ${b.short}`,ps:[a,b],
+    // nx: the half of next round's projection the look-ahead counts (Proposal 2), shown when the trade changes it
+    // detail text: one piece of information per line (\n), never dot-separated
+    detail:[...(t?[["",`Only if ${t.short} is 100% out\n`]]:[]),["pts",`${blNum(b.x-a.x)} pts`],[""," this round, "],
+      ...(Math.abs((b.nx||0)-(a.nx||0))>=0.05?[["pts",blNum((b.nx||0)-(a.nx||0))],[""," next round, "]]:[]),
+      ["cr",`${blNum(a.price-b.price)} cr`],[""," bank"]]});});
+  if(!o.trades.length)items.push({id:`${o.round}:none`,kind:"none",title:"No trades",
+    detail:o.near?[["","Best trade adds "],["pts",`${blNum(o.near.g)} pts`],["",`, under the ${o.bar}-point bar`]]:[["",o.why]]});
+  // the captain plan: first captain, then who takes the armband if he scores under what the later turns are still worth
+  const [c,...later]=o.cap;
+  if(c){const detail=[["pts",`${c.p.x.toFixed(1)} projected`],["",`, best on ${o.dayName(c.p.day)}`]];
+    if(later.length&&c.keepAt!=null){detail.push(["",`\nUnder ${Math.ceil(c.keepAt)}+`]);
+      later.forEach(s=>detail.push(["",` → ${s.p.short} `],["pts",s.p.x.toFixed(1)]));}
+    items.push({id:`${o.round}:captain:${c.p.id}`,kind:"captain",title:`Captain ${c.p.short}`,ps:[c.p],detail});}
+  const L=o.lineup;
+  if(L){const sum=L.st.reduce((a,p)=>a+p.x,0);
+    items.push({id:`${o.round}:lineup:${L.st.map(p=>p.id).join(",")}`,kind:"lineup",title:`Start ${L.st.map(p=>p.short).join(", ")}`,ps:L.st,
+      detail:[["pts",`${sum.toFixed(1)} pts`],["",` projected from the five\n${L.form.join("-")}${L.six?`, 6th man ${L.six.short}`:""}`]]});}
+  // every check is due before trades close: after the deadline the squad is fixed, so there is nothing left to decide
+  o.checks.forEach(k=>items.push({id:`${o.round}:check:${k.p.id}`,kind:"check",title:`Check ${k.p.short} before ${o.deadline}`,ps:[k.p],
+    detail:[["pts",`${k.p.x.toFixed(1)} pts`],["",` at risk: ${k.why}${k.swap?`\nIf he is out, start ${k.swap.short}`:""}`]]}));
+  return items;
+}
+// The routine's "Credit gainers to watch: Name (CLUB, price) why; …" line as rows; text when it can't be split; null when there is none.
+function blGainers(summary){
+  const line=(summary||[]).find(t=>/^Credit gainers to watch:/i.test(t));if(!line)return null;
+  const body=line.replace(/^Credit gainers to watch:\s*/i,""),parts=body.replace(/\.\s*$/,"").split(/;\s*/);
+  const rows=parts.map(t=>t.match(/^(.+?) \(([A-Z]{3}), ([\d.]+)\)\s*(.*)$/)).filter(Boolean)
+    .map(m=>({name:m[1],team:m[2],price:+m[3],why:m[4]}));
+  return rows.length===parts.length?{rows,text:null}:{rows:[],text:body};
+}
+// the ticked item ids that belong to this round; older rounds' ticks are dropped
+const blTicks=(ids,round)=>new Set((ids||[]).filter(id=>id.startsWith(round+":")));
+// bottomLine:end
+
+/* ---------- bottom line: the round's to-dos from the live proposal, and the routine's good-to-know ---------- */
+// blItems' inputs, read in the proposal's own mode so every number matches My team
+function blInputs(){
+  const pm=state.pmode==="m"?"m":"q";
+  return withMode(pm,()=>{
+    const R=result,L=R.ev.L,asCoach=c=>c&&{id:"coach-"+c.team,short:c.name||c.team,x:c.x,price:c.price};
+    const trades=tradePairs(R).filter(([a,b])=>a!=null&&b!=null&&byId[a]&&byId[b]).map(([a,b])=>({out:byId[a],in:byId[b]}));
+    if(R.coach!==orig.coach&&coachByTeam[orig.coach]&&coachByTeam[R.coach])trades.push({out:asCoach(coachByTeam[orig.coach]),in:asCoach(coachByTeam[R.coach])});
+    // the plan's day-one lineup and captain path, the same ones "Plan for the round" on My team shows
+    let plan=null;try{plan=initPlan(R,L);}catch(e){}
+    const st=plan?plan.init.st:L.st,six=plan?plan.init.six:L.six,cap=plan?plan.capPath:capPlan(R.S).path;
+    const form=["G","F","C"].map(k=>st.filter(p=>p.pos===k).length);
+    const starters=new Set(st.map(p=>p.id)),subs=(plan?[six,...plan.reserves]:[L.six,...L.bench]).filter(Boolean);
+    // Checks come from the Watch card and are all due before trades close: the squad is fixed after the deadline (GLOSSARY).
+    // An incoming player who only pays while a teammate is out makes that trade conditional on the teammate (ifOut).
+    // A kept player's teammate check is left on the Watch card: there is no trade to decide, only less to expect.
+    const W=watchItems();
+    W.filter(x=>x.kind==="mate"&&x.incoming).sort((a,b)=>(b.wo-b.w)-(a.wo-a.w)).forEach(x=>{
+      const tr=trades.find(t=>t.in.id===x.p.id);if(tr&&!tr.ifOut)tr.ifOut=x.t;});
+    // one status check per player: injury status first, then a sat-out game with injury news
+    const seen=new Set(),checks=[];
+    const why=x=>x.kind==="status"?x.st+(x.inj&&x.inj.reason?` (${x.inj.reason})`:""):`sat out ${fmtShort(x.sat)}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`;
+    ["status","rest"].forEach(k=>W.filter(x=>x.kind===k&&(k!=="rest"||x.inj)).forEach(x=>{
+      if(seen.has(x.p.id))return;seen.add(x.p.id);
+      const swap=starters.has(x.p.id)?subs.filter(q=>!q.out&&q.day>=x.p.day).sort((a,b)=>b.x-a.x)[0]||null:null;
+      checks.push({p:x.p,why:why(x),swap});}));
+    const near=(R.near||[])[0];
+    const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
+    return {round:D.round,deadline:dayShort(D.deadline)+(tip?" "+tip:""),trades,near:near?{g:near.g}:null,bar:tradeBar(),why:"no trade beats what you have under these settings",
+      cap,lineup:{st,six,form},checks,dayName:dayShort};
+  });
+}
+function bottomLine(){
+  const sum=(D.report||{}).summary||[];
+  if(!result)return sum.length?`<div class="card" style="margin-bottom:16px"><h3>Bottom line</h3><ul class="bl">${sum.map(t=>`<li>${linkify(t)}</li>`).join("")}</ul></div>`:"";
+  const items=blItems(blInputs()),done=blTicks(state.blTicks,D.round),n=items.filter(i=>done.has(i.id)).length,all=n===items.length;
+  const title=it=>{let h=esc(it.title);(it.ps||[]).filter(p=>p.pos).forEach(p=>{h=h.replace(esc(p.short),plink(p,p.short));});return h;};
+  const det=it=>it.detail.map(([c,t])=>c?`<span class="${c==="pts"?"bl-pts":"bl-cr"}">${esc(t)}</span>`:esc(t)).join("");
+  const rows=items.map(it=>`<label class="bl-i${it.kind==="check"?" bl-al":""}${done.has(it.id)?" done":""}"><input type="checkbox" data-bl="${esc(it.id)}" id="bl-${esc(it.id)}"${done.has(it.id)?" checked":""}><span><b>${title(it)}</b><small>${det(it)}</small></span></label>`).join("");
+  const prog=`<div class="bl-prog${all?" all":""}"><span>${all?`<b>✓ All done for Round ${D.round}</b>`:`<b>${n} of ${items.length}</b> done`}</span><span class="bl-bar"><i style="width:${items.length?(100*n/items.length).toFixed(1):0}%"></i></span></div>`;
+  // good to know: this round's matchups for the proposed squad (±15% and more, as the Soft/Tough tags), best first
+  const ms=result.S.map(i=>byId[i]).filter(p=>p&&!p.out&&p.opp).map(p=>({p,m:matchup(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
+  const mRows=ms.map(({p,m})=>`<div class="bl-r"><span>${plink(p,p.short)} <span class="muted">${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</span></span><b class="${m>0?"up":"dn"}">${m>0?"+":"−"}${Math.abs(m)}%</b><small>${POSW[p.pos]}</small></div>`).join("");
+  const G=blGainers(sum),byName=nm=>P.find(p=>p.name===nm);
+  const gRows=G?G.rows.length?G.rows.map(g=>`<div class="bl-r"><span>${byName(g.name)?plink(byName(g.name),g.name):esc(g.name)} <span class="muted">${esc(g.team)}</span></span><b class="bl-cr">${g.price.toFixed(1)}</b><small>${esc(g.why)}</small></div>`).join(""):`<p class="bl-txt">${linkify(G.text)}</p>`:"";
+  const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">Your players' matchups</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
+  return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">⏱ Trades close ${esc(deadlineRel())}</span></div>
+    <div class="bl-cols${know?"":" one"}"><div class="bl-todo">${prog}${rows}</div>${know}</div></div>`;
+}
+document.addEventListener("change",e=>{const id=e.target.dataset&&e.target.dataset.bl;if(id==null)return;
+  const keep=[...blTicks(state.blTicks,D.round)].filter(x=>x!==id);if(e.target.checked)keep.push(id);
+  state.blTicks=keep;save();const y=window.scrollY;render();window.scrollTo(0,y);});
+
 function report(){
   const R=D.report||{};
   const elDates=[...new Set(P.flatMap(p=>p.log.map(g=>g.d)))].sort();
@@ -2164,9 +2294,8 @@ function report(){
     .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${esc(g.comp)} · ${g.ha==="A"?"@":"vs"} ${esc(g.opp)} · ${g.min} min · ${g.pts} pts ${g.reb} reb ${g.ast} ast</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr · break-even ${p.be}</small></div></div>`).join("");
   const rested=P.filter(p=>orig.players.includes(p.id)&&p.dom[0]&&(p.dom[0].dnp||p.dom[0].min<8)).map(p=>`${plink(p,p.short)} (${p.dom[0].absent?"not in the box score":p.dom[0].dnp?"did not play":p.dom[0].min+" min"} vs ${esc(p.dom[0].opp)})`);
   const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
-  const sum=(R.summary||[]).map(t=>`<li>${linkify(t)}</li>`).join("");
   return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
-  ${sum?`<div class="card" style="margin-bottom:16px"><h3>Bottom line</h3><ul class="bl">${sum}</ul></div>`:""}
+  ${bottomLine()}
   ${scoreCard()}
   <div class="two">
     <div><div class="eyebrow" style="margin:0 0 6px">Top performers · last EuroLeague round</div><div class="panel list">${top}</div></div>
