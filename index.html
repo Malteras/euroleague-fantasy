@@ -846,20 +846,33 @@ function teamModel(data){
 }
 // teamModel:end
 
-function init(data){
-  D=data;
-  document.getElementById("teamName").textContent=D.team;
-  D.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
-  dayKeys=[...new Set(D.fixtures.map(f=>f[0]))].sort();
-  const TM=teamModel(D);
-  nextRound();
-  const TW=D.tradeWindow;
-  LOOK_ON=!(TW&&TW.round===D.round&&TW.nextUnlimited===true);
-  // The daily report says whether this round is a free-trade window: follow it whenever that answer changes,
-  // otherwise keep whatever was picked by hand
-  if(TW&&TW.round===D.round&&typeof TW.unlimited==="boolean"){const k=D.round+":"+TW.unlimited;
-    if(state.maxTAuto!==k){state.maxT=TW.unlimited?99:4;state.maxTAuto=k;save();}}
-  P=D.players.map(p=>{
+// project:begin
+// How much more (+) or less (-) PIR, in %, opponent o allows to his position than an average team. def: the data's defence table.
+function matchup(p,o=p.opp,def=D.defence){
+  if(!o||!def||!def[o.opp])return null;
+  const v=def[o.opp]["vs_"+p.pos.toLowerCase()];return v==null?null:v;
+}
+/* ---------- look-ahead ----------
+   A trade stays after this round, so Proposal 2 also counts half of his next-round projection: his quality with next round's
+   matchup (coaches: half of next round's game, in both proposals). See docs/adr/0001. Off when the next round is a
+   free-trade window, where any trade can be undone for free. */
+const LOOK=0.5;
+// Each club's first EuroLeague game after this round. Sofascore gives the opponent's full name; newer data has its code (oc),
+// older data is matched by the names this round's games use.
+function nextRound(data,dayKeys){
+  const TN=data.teamNext||{},last=dayKeys[dayKeys.length-1]||"",code={},next={};
+  data.fixtures.forEach(([d,h,a])=>[[h,a],[a,h]].forEach(([c,o])=>{const g=(TN[c]||[]).find(g=>g.el&&g.d===d);if(g)code[g.opp]=o;}));
+  for(const c in TN){const g=TN[c].find(g=>g.el&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])next[c]={opp:o,ha:g.ha,d:g.d};}
+  return next;
+}
+// The projections for one round's data: the live data.json, or a history/round-N.json snapshot. Touches no globals.
+function project(data){
+  const turnOf={},oppOf={};
+  data.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
+  const dayKeys=[...new Set(data.fixtures.map(f=>f[0]))].sort();
+  const TM=teamModel(data),nextOf=nextRound(data,dayKeys);
+  const TW=data.tradeWindow,look=!(TW&&TW.round===data.round&&TW.nextUnlimited===true);
+  const players=data.players.map(p=>{
     const l=(p.log||[]).map(g=>g.fpt);
     const l3=l.length?l.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,l.length):(p.fpt??0);
     const own=r1(.6*l3+.4*(p.fpt??l3));
@@ -871,16 +884,32 @@ function init(data){
     const be=r1(1.1*p.price);
     const exp=(x-1.1*p.price)/25;
     const t=turnOf[p.team];
-    p.log=p.log||[];p.dom=p.dom||[];
-    return {...p,l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],nx:0,val:(p.fpt||0)/p.price,wa,wa2};
+    return {...p,log:p.log||[],dom:p.dom||[],l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],
+      mu:matchup(p,oppOf[p.team],data.defence),nx:0,val:(p.fpt||0)/p.price,wa,wa2};
   });
-  byId=Object.fromEntries(P.map(p=>[p.id,p]));
-  C=D.coaches.map(c=>{
+  const coaches=data.coaches.map(c=>{
     const o=oppOf[c.team],pr=TM.winP(c.team,o),x=TM.coachPts(c.team,o);
     // the look-ahead counts half of next round's game too, in both proposals (docs/adr/0001)
     const o2=nextOf[c.team],pw2=o2?TM.winP(c.team,o2):null,x2=o2?TM.coachPts(c.team,o2):0;
-    return {...c,pw:pr,mg:TM.margin(c.team,o),x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:TM.rec(c.team),opp2:o2,pw2,x2,nx:LOOK_ON&&o2?LOOK*x2:0};
+    return {...c,pw:pr,mg:TM.margin(c.team,o),x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:TM.rec(c.team),opp2:o2,pw2,x2,nx:look&&o2?LOOK*x2:0};
   });
+  return {players,coaches,dayKeys,turnOf,oppOf,nextOf,look,TM};
+}
+// project:end
+
+function init(data){
+  D=data;
+  document.getElementById("teamName").textContent=D.team;
+  const R=project(D);
+  ({dayKeys,turnOf,oppOf,nextOf}=R);LOOK_ON=R.look;
+  const TW=D.tradeWindow;
+  // The daily report says whether this round is a free-trade window: follow it whenever that answer changes,
+  // otherwise keep whatever was picked by hand
+  if(TW&&TW.round===D.round&&typeof TW.unlimited==="boolean"){const k=D.round+":"+TW.unlimited;
+    if(state.maxTAuto!==k){state.maxT=TW.unlimited?99:4;state.maxTAuto=k;save();}}
+  P=R.players;
+  byId=Object.fromEntries(P.map(p=>[p.id,p]));
+  C=R.coaches;
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   savedTeam=teamFrom(SQUAD||D.squad);
   const lt=state.team;
@@ -1178,22 +1207,7 @@ function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];
 
 /* ---------- tags ---------- */
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
-function matchup(p,o=p.opp){
-  if(!o||!D.defence||!D.defence[o.opp])return null;
-  const v=D.defence[o.opp]["vs_"+p.pos.toLowerCase()];return v==null?null:v;
-}
-/* ---------- look-ahead ----------
-   A trade stays after this round, so Proposal 2 also counts half of his next-round projection: his quality with next round's
-   matchup (coaches: half of next round's game, in both proposals). See docs/adr/0001. Off when the next round is a
-   free-trade window, where any trade can be undone for free. */
-const LOOK=0.5;let LOOK_ON=true;const nextOf={};
-// Each club's first EuroLeague game after this round. Sofascore gives the opponent's full name; newer data has its code (oc),
-// older data is matched by the names this round's games use.
-function nextRound(){
-  const TN=D.teamNext||{},last=dayKeys[dayKeys.length-1]||"",code={};
-  D.fixtures.forEach(([d,h,a])=>[[h,a],[a,h]].forEach(([c,o])=>{const g=(TN[c]||[]).find(g=>g.el&&g.d===d);if(g)code[g.opp]=o;}));
-  for(const c in TN){const g=TN[c].find(g=>g.el&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])nextOf[c]={opp:o,ha:g.ha,d:g.d};}
-}
+let LOOK_ON=true,nextOf={};
 const lookOn=()=>LOOK_ON&&state.pmode==="m";
 function domRecent(p){return (p.dom||[]).filter(g=>!g.dnp&&g.pir!=null).slice(0,2);}
 // absenceOf:begin
