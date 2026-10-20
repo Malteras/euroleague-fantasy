@@ -32,7 +32,7 @@ Vercel environment variables: `APP_PASS` (the passcode) and `GITHUB_TOKEN` (fine
 A scheduled Claude task runs Monday–Friday at 08:58 (Europe/Sarajevo). Monday is always a full run (weekend domestic games + next-round trades); Tuesday–Friday it only does a full run when a EuroLeague game is played that day or the day before, otherwise it sends a one-line "no games" note. A full run:
 
 1. runs `python3 -I tools/elbuild.py <work_dir> data.json data.json.new`,
-2. adds the written bits the script can't produce: EuroLeague results, news, the bottom-line summary, the free-trade windows and the injury list (`results`, `news`, `report`, `tradeWindow`, `injuries` in `data.json`),
+2. adds the written bits the script can't produce: EuroLeague results, news, the bottom-line summary, the free-trade windows and the injury list (`results`, `news`, `report`, `tradeWindow`, `tradeWindows`, `injuries` in `data.json`),
 3. runs `python3 -I tools/elbuild.py --history data.json history` on the finished `data.json`. On or before a round's deadline day it writes `history/round-N.json` once (never overwritten); after the round's last game day it fills that file's `actual` (each part only once),
 4. runs `python3 -I tools/elbuild.py --alerts <previous data.json> data.json` (the previous one is `git show HEAD:data.json`). It writes `alerts`: players whose status (injury list entry, else FantaSheet flag, else Available) changed since then. The site shows his players' alerts in a "Status changed" banner at the top of My team and tags the others in the Player market,
 5. commits `data.json` and `history/` to `main`. GitHub Pages republishes the site within a minute or two.
@@ -45,7 +45,7 @@ mv data.json.new data.json
 python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-The daily report's fields `results`, `news`, `report`, `tradeWindow` and `injuries` are carried over from the old `data.json` unchanged, and so are `team`, `squadNote` and the Sofascore id cache `sofaIds`.
+The daily report's fields `results`, `news`, `report`, `tradeWindow`, `tradeWindows` and `injuries` are carried over from the old `data.json` unchanged, and so are `team`, `squadNote` and the Sofascore id cache `sofaIds`.
 `squad`, `budget` and `lineup` come from `squad.json` when it is there, otherwise from the old `data.json`.
 Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the team changes.
 
@@ -66,7 +66,7 @@ Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the tea
 - Matchup bonus (Proposal 2) = projection × how much more (or less) PIR the opponent allows to his position than an average team × ½. A share of his own projection, so a player who barely plays gains almost nothing.
 - Look-ahead: a trade stays after this round, so Proposal 2 also counts half of each player's next-round projection: his quality with next round's matchup (see `docs/adr/0001`). Coaches count half of their next game in both proposals. Captain, lineup and price rise use this round only. It is off when the next round is a free-trade window. Next fixtures come from `teamNext` in `data.json`.
 - Coach trades: a new coach must have at least the same win chance this round as yours, so the planner never gives up this round's coach game for credits or for next round. A coach you pin yourself is your call.
-- Free-trade windows: the daily report writes `tradeWindow` into `data.json` (this round and the next: unlimited or not). The "Trades this round" switch follows it; a choice made by hand sticks until the report's answer changes.
+- Free-trade windows: the daily report writes `tradeWindow` into `data.json` (this round and the next: unlimited or not). The "Trades this round" switch follows it; a choice made by hand sticks until the report's answer changes. It also writes `tradeWindows` once a season: `{"rounds": [all 6 window rounds], "source": url, "checked": "YYYY-MM-DD"}`, or `null` until a reliable source lists them (never guessed). The note under the switch shows the next one ("Next free-trade window: round 9 (in 2 rounds).") or "not known yet". Code: `nextWindow()` in `index.html`; tests: `node --test tools/test_tradewindows.mjs`.
 - Words: `GLOSSARY.md` lists the terms the site and the report use.
 - Domestic PIR is estimated from Sofascore box scores (fouls drawn and blocks against aren't published). Domestic games don't score in fantasy.
 - Picks (♥ / ⊘), budget and settings are saved in your browser only.
