@@ -31,7 +31,7 @@ Vercel environment variables: `APP_PASS` (the passcode) and `GITHUB_TOKEN` (fine
 A scheduled Claude task runs Monday–Friday at 08:58 (Europe/Sarajevo). Monday is always a full run (weekend domestic games + next-round trades); Tuesday–Friday it only does a full run when a EuroLeague game is played that day or the day before, otherwise it sends a one-line "no games" note. A full run:
 
 1. runs `python3 -I tools/elbuild.py <work_dir> data.json data.json.new`,
-2. adds the written bits the script can't produce: EuroLeague results, news and the bottom-line summary (`results`, `news`, `report` in `data.json`),
+2. adds the written bits the script can't produce: EuroLeague results, news, the bottom-line summary, the free-trade windows and the injury list (`results`, `news`, `report`, `tradeWindow`, `injuries` in `data.json`),
 3. commits `data.json` to `main`. GitHub Pages republishes the site within a minute or two.
 
 ## Run it yourself
@@ -42,7 +42,8 @@ mv data.json.new data.json
 python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-`results`, `news`, `report`, `squad` and `budget` are carried over from the old `data.json`.
+The daily report's fields `results`, `news`, `report`, `tradeWindow` and `injuries` are carried over from the old `data.json` unchanged, and so are `team`, `squadNote` and the Sofascore id cache `sofaIds`.
+`squad`, `budget` and `lineup` come from `squad.json` when it is there, otherwise from the old `data.json`.
 Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the team changes.
 
 ## Game rules the planner follows

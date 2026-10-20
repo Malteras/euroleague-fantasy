@@ -3,7 +3,7 @@
 
 Usage: python3 -I elbuild.py <work_dir> <old_data.json or -> <out_data.json>
 Downloads go into <work_dir>/pages (keep it separate from this script's folder).
-results/news/squad are carried over from the old data.json; edit them afterwards.
+The daily report's fields (see carried()) and squad are carried over from the old data.json; edit them afterwards.
 """
 import sys, os, re, json, html, subprocess, datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -206,6 +206,16 @@ def sofa_domestic(players, cache, since):
     for p in players: p['dom'].sort(key=lambda x: x['d'], reverse=True)
     return sorted(games, key=lambda x: x['d'], reverse=True)
 
+def carried(old):
+    """The parts of data.json the daily report writes; this script can't produce them, so they pass through as they are."""
+    return {
+        'results': old.get('results', []), 'news': old.get('news', []), 'report': old.get('report', {}),
+        # free-trade windows for this round and the next; the planner sets its switch from it
+        'tradeWindow': old.get('tradeWindow'),
+        # who is out or doubtful, for the "Watch before the deadline" card
+        'injuries': old.get('injuries'),
+    }
+
 def main():
     work, oldp, outp = sys.argv[1], sys.argv[2], sys.argv[3]
     pages = os.path.join(work, 'pages'); os.makedirs(pages, exist_ok=True)
@@ -319,10 +329,8 @@ def main():
         'deadline': days[0] if days else old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
-        'coachRound': old.get('coachRound'), 'results': old.get('results', []), 'news': old.get('news', []),
-        'report': old.get('report', {}), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
-        # free-trade windows for this round and the next, written by the daily report; the planner sets its switch from it
-        'tradeWindow': old.get('tradeWindow'),
+        'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
+        **carried(old),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
     print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)}')
