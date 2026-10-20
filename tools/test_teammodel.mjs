@@ -50,3 +50,25 @@ test("a big favourite projects clearly above a narrow one", () => {
   assert.ok(big - narrow >= 8, `${big} vs ${narrow}`);
   assert.ok(M.coachPts("KBA", { opp: "PAO", ha: "A" }) < -8);
 });
+
+// Player win bonus: FPT = PIR + 10% of |PIR| on a win. His average already holds his club's win rate so far,
+// so the projection moves by 0.1 × |projection| × (this game's win chance − win rate so far).
+test("win adjustment: a star on a big underdog loses a little, on a big favourite gains a little", () => {
+  const M = teamModel(D);
+  // KBA 1-5, win chance @ PAO 0.098: 0.1 × 20 × (0.098 − 0.167)
+  near(M.winAdj("KBA", { opp: "PAO", ha: "A" }, 20), -0.137, 2e-3);
+  // PAO 5-1, win chance vs KBA 0.902: 0.1 × 20 × (0.902 − 0.833)
+  near(M.winAdj("PAO", { opp: "KBA", ha: "H" }, 20), 0.137, 2e-3);
+});
+
+test("win adjustment is a share of the projection: about 0 for a bench player, 0 when Out", () => {
+  const M = teamModel(D);
+  assert.ok(Math.abs(M.winAdj("KBA", { opp: "PAO", ha: "A" }, 2)) < 0.02);
+  assert.equal(M.winAdj("KBA", { opp: "PAO", ha: "A" }, 0), 0);
+});
+
+test("win adjustment is 0 with no game or no record", () => {
+  const M = teamModel(D);
+  assert.equal(M.winAdj("PAO", undefined, 20), 0);
+  assert.equal(M.winAdj("XXX", { opp: "PAO", ha: "H" }, 20), 0);
+});

@@ -60,6 +60,7 @@ Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the tea
 ## Model notes
 
 - Projection = half FantaSheet's xPTS for the next game, half recent form (60% of the last three EuroLeague games + 40% of the season average).
+- Win bonus: FPT adds 10% of |PIR| on a win, and his average already holds his club's win rate so far, so the projection moves by 0.1 × |projection| × (this game's win chance − the club's win rate so far). Small (±0.6 at most on a star, about 0 on the bench, 0 when Out). Both proposals; the look-ahead uses next game's win chance.
 - Expected price change = (projection − 1.1 × price) ÷ 25. Coach: (points − price) ÷ 40.
 - Coach projection: coaches score by the final margin (win by 1–10 +10, 11–20 +20, 21+ +25; lose by 1–10 −5, 11–20 −10, 21+ −20). Each club's average margin comes from the final scores in the player logs. Each club also counts six extra games at margin 0, so after six games its rating is half its raw average. Expected margin = the club's rating − the opponent's rating ± 3 for home court. The margin is taken as Normal(expected margin, 12). Win chance = the chance it is above 0, and the projection is the expected points over the six bands. The Head coaches page shows both. Code: `teamModel()` in `index.html`; tests: `node --test tools/test_teammodel.mjs`.
 - Matchup bonus (Proposal 2) = projection × how much more (or less) PIR the opponent allows to his position than an average team × ½. A share of his own projection, so a player who barely plays gains almost nothing.
