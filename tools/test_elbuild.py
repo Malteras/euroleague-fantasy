@@ -157,5 +157,57 @@ class WriteHistoryTest(unittest.TestCase):
         self.assertEqual(self.read()['round'], 7)
 
 
+
+def alert_data(updated, statuses, injuries=None, squad=(654,)):
+    """statuses: {id: FantaSheet flag or None}; injuries: the daily report's list or None (older data has none)."""
+    return {'updated': updated, 'squad': {'players': list(squad), 'coach': 'EFS'}, 'injuries': injuries,
+            'players': [{'id': i, 'name': f'P {i}', 'team': 'EFS', 'status': st} for i, st in statuses.items()]}
+
+
+class StatusAlertsTest(unittest.TestCase):
+    def test_no_change_no_alert(self):
+        old = alert_data('2026-10-19', {654: 'Out', 655: None}, [])
+        self.assertEqual(elbuild.status_alerts(old, alert_data('2026-10-21', {654: 'Out', 655: None}, [])), [])
+
+    def test_fantasheet_flag_change_gives_one_alert(self):
+        got = elbuild.status_alerts(alert_data('2026-10-19', {654: None, 655: None}, []),
+                                    alert_data('2026-10-21', {654: 'Doubtful', 655: None}, []))
+        self.assertEqual(got, [{'id': 654, 'name': 'P 654', 'team': 'EFS', 'from': 'Available', 'to': 'Doubtful',
+                                'src': 'FantaSheet', 'd': '2026-10-21', 'mine': True}])
+
+    def test_injury_report_entry_wins_over_the_flag_and_gives_its_source(self):
+        inj = [{'name': 'P 655', 'team': 'EFS', 'status': 'Out', 'reason': 'ankle', 'ret': '', 'src': 'BasketNews 21 Oct'}]
+        got = elbuild.status_alerts(alert_data('2026-10-19', {655: 'Questionable'}, []),
+                                    alert_data('2026-10-21', {655: 'Questionable'}, inj))
+        self.assertEqual([(a['id'], a['from'], a['to'], a['src'], a['mine']) for a in got],
+                         [(655, 'Questionable', 'Out', 'BasketNews 21 Oct', False)])
+
+    def test_back_to_available(self):
+        inj = [{'name': 'P 654', 'team': 'EFS', 'status': 'Out', 'src': 'BasketNews 19 Oct'}]
+        got = elbuild.status_alerts(alert_data('2026-10-19', {654: 'Out'}, inj), alert_data('2026-10-21', {654: None}, []))
+        self.assertEqual([(a['from'], a['to'], a['src']) for a in got], [('Out', 'Available', 'No longer listed')])
+
+    def test_old_data_without_injury_list_compares_flags_only(self):
+        inj = [{'name': 'P 654', 'team': 'EFS', 'status': 'Doubtful', 'src': 'BasketNews 21 Oct'}]
+        self.assertEqual(elbuild.status_alerts(alert_data('2026-10-19', {654: 'Questionable'}, None),
+                                               alert_data('2026-10-21', {654: 'Questionable'}, inj)), [])
+
+    def test_new_or_dropped_players_give_no_alert(self):
+        self.assertEqual(elbuild.status_alerts(alert_data('2026-10-19', {654: None}, []),
+                                               alert_data('2026-10-21', {655: 'Out'}, [])), [])
+
+    def test_command_line_writes_alerts_into_the_data_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            prev, cur = os.path.join(d, 'prev.json'), os.path.join(d, 'data.json')
+            json.dump(alert_data('2026-10-19', {654: None}, []), open(prev, 'w', encoding='utf-8'))
+            json.dump(alert_data('2026-10-21', {654: 'Out'}, []), open(cur, 'w', encoding='utf-8'))
+            script = os.path.join(os.path.dirname(os.path.abspath(elbuild.__file__)), 'elbuild.py')
+            r = subprocess.run([sys.executable, '-I', script, '--alerts', prev, cur], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            got = json.load(open(cur, encoding='utf-8'))
+        self.assertEqual([(a['id'], a['to']) for a in got['alerts']], [(654, 'Out')])
+        self.assertEqual(got['updated'], '2026-10-21')
+
+
 if __name__ == '__main__':
     unittest.main()

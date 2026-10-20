@@ -27,13 +27,13 @@
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
-  --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); color-scheme:light;}}
+  --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
-  --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); color-scheme:light;}
+  --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
@@ -64,6 +64,13 @@ section{padding-block:28px 8px}
 .sec-head h2{font-size:30px;font-weight:800}
 
 /* hero / round strip */
+/* status changed: the daily report's alerts for his own players, above Watch before the deadline */
+.al{margin-top:20px;border:1px solid var(--al-line,var(--warn));border-radius:14px;background:var(--al-bg,var(--warn-soft));padding:12px 16px}  /* light theme sets its own fill: the brown tint turns grey on the light page */
+.al h2{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0 0 6px;color:var(--warn)}
+.al ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.al li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:15px}
+.al li .plink{font-weight:700}
+.al small{color:var(--muted);font-size:13px}
 /* watch before the deadline: a table grouped by missing teammate (stacked rows on a phone) */
 .wt{margin-top:20px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:0 0 8px}
 .wt-h{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:12px 16px 8px}
@@ -1166,6 +1173,7 @@ function tagsFor(p){
   const l2=avg(p.log.slice(0,2).map(g=>g.fpt));
   const dA=avg(domRecent(p).map(g=>g.pir));
   if(p.out)T.push(["Out","bad"]);else if(p.status)T.push([p.status,"warn"]);
+  if(alertOf(p))T.push(["Status changed","warn"]);
   if(mine){
     if(p.out||p.exp<=-0.25||(l2!=null&&l2<p.be-4&&p.exp<0))T.push(["Consider dropping","bad"]);
     else if(p.exp>=0.15)T.push(["Keep · gaining","good"]);else T.push(["Keep · price steady","neutral"]);  /* projected near break-even: price should barely move */
@@ -1188,6 +1196,7 @@ function tagTip(p,t){
   const opp=p.opp&&TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:"His opponent",pos=POSN[p.pos].toLowerCase()+"s";
   if(/^Rise /.test(t))return ["Price",`FantaSheet gives him a ${Math.round(p.rise)}% chance of a price rise after this round.`,ex];
   if(t===p.status&&!p.out)return ["Injury news",`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
+  if(t==="Status changed"){const a=alertOf(p);return ["Injury news",`${a.from} → ${a.to} since the last daily report.`,`${a.src} · ${fmtDate(a.d)}`];}
   return ({
     "Out":["Injury news","Listed out for this round's game.",null],
     "Consider dropping":["In your squad","He is out, his price is expected to fall by 0.25 cr or more, or his last two games averaged over 4 points under break-even while his price is falling.",ex],
@@ -1531,7 +1540,7 @@ function render(){
    if(tp&&ex2&&ex2.dataset.tpid===tp){/* keep open, no re-animation */}else tr.innerHTML=html;}
   document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
   const body={
-    team:()=>watchBox()+hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
+    team:()=>alertBox()+watchBox()+hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
   app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection uses both teams' records and home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
   bind();
@@ -2060,6 +2069,15 @@ function mateSplit(p,t){
   const g=(p.log||[]).filter(x=>x.d>=from&&x.fpt!=null),w=g.filter(x=>td.has(x.d)),wo=g.filter(x=>!td.has(x.d));
   if(w.length<2||wo.length<2)return null;
   return {w:avg(w.map(x=>x.fpt)),wo:avg(wo.map(x=>x.fpt)),nw:w.length,nwo:wo.length};
+}
+// Status changes since the previous daily report ({id, name, team, from, to, src, d, mine}). Older data has none.
+const alertOf=p=>(D.alerts||[]).find(a=>a.id===p.id)||null;
+// Banner at the top of My team: only players in his team as it is on this page.
+function alertBox(){
+  const A=(D.alerts||[]).filter(a=>orig.players.includes(a.id));
+  if(!A.length)return "";
+  return `<section class="al" aria-labelledby="alertH"><h2 id="alertH">Status changed</h2><ul>${A.map(a=>{const p=byId[a.id];
+    return `<li>${p?plink(p):`<b>${esc(a.name)}</b>`} <span><b>${esc(a.from)}</b> → <b>${esc(a.to)}</b></span><small>${esc(a.src)} · ${esc(fmtDate(a.d))}</small></li>`;}).join("")}</ul></section>`;
 }
 // The daily report's injury list ({name, team, status, reason, ret, src}), matched by name + team. Older data has none.
 const injuryOf=p=>(D.injuries||[]).find(x=>x.name===p.name&&x.team===p.team)||null;

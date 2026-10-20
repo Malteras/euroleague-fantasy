@@ -7,6 +7,9 @@ The daily report's fields (see carried()) and squad are carried over from the ol
 
        python3 -I elbuild.py --history <data.json> <history_dir>
 Run on the finished data.json: saves history/round-N.json before the deadline and fills its actuals after the round.
+
+       python3 -I elbuild.py --alerts <previous data.json> <data.json>
+Run on the finished data.json: writes `alerts`, the players whose status changed since the previous one.
 """
 import sys, os, re, json, html, subprocess, datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -276,6 +279,27 @@ def fill_actual(snap, data):
         added = True
     return added
 
+def status_alerts(old, new):
+    """Players whose status changed since the previous data.json: [{id, name, team, from, to, src, d, mine}].
+    A player's status is his entry in the daily report's injury list, else his FantaSheet flag, else Available.
+    Older data has no injury list (None); then only the FantaSheet flags are compared."""
+    use_inj = old.get('injuries') is not None and new.get('injuries') is not None
+    def status(p, data):
+        e = next((x for x in data.get('injuries') or [] if x.get('name') == p['name'] and x.get('team') == p['team']), None)
+        if use_inj and e: return e.get('status'), e.get('src') or 'Injury report'
+        if p.get('status'): return p['status'], 'FantaSheet'
+        return 'Available', 'No longer listed'
+    before = {p['id']: p for p in old.get('players', [])}
+    mine = set((new.get('squad') or {}).get('players') or [])
+    out = []
+    for p in new.get('players', []):
+        if p['id'] not in before: continue
+        (was, _), (now, src) = status(before[p['id']], old), status(p, new)
+        if was != now:
+            out.append({'id': p['id'], 'name': p['name'], 'team': p['team'], 'from': was, 'to': now, 'src': src,
+                        'd': new.get('updated'), 'mine': p['id'] in mine})
+    return out
+
 def save(path, obj):
     with open(path, 'w', encoding='utf-8') as f: json.dump(obj, f, ensure_ascii=False, separators=(',', ':'))
 
@@ -402,5 +426,10 @@ def main():
 if __name__ == '__main__':
     if sys.argv[1:2] == ['--history']:
         write_history(json.load(open(sys.argv[2], encoding='utf-8')), sys.argv[3])
+    elif sys.argv[1:2] == ['--alerts']:
+        prev, cur = (json.load(open(f, encoding='utf-8')) for f in sys.argv[2:4])
+        cur['alerts'] = status_alerts(prev, cur)
+        save(sys.argv[3], cur)
+        print(f"alerts: {len(cur['alerts'])} ({sum(a['mine'] for a in cur['alerts'])} in his squad)")
     else:
         main()
