@@ -11,6 +11,7 @@ Live site: https://malteras.github.io/euroleague-fantasy/
 | `index.html` | The whole site: proposal, day-by-day lineup and captain plan, round report, player market, coaches, results. No build step. |
 | `data.json` | Everything the page shows. Rebuilt every morning. |
 | `tools/elbuild.py` | Builds `data.json` from FantaSheet (prices, EuroLeague game logs, projections, injuries, PIR allowed by position, coaches) and Sofascore (domestic league box scores for all 20 clubs). |
+| `history/round-N.json` | A record of each round, to test the model's weights later: the inputs before the deadline (players with their last 5 games, defence, fixtures, each club's next 2 EuroLeague games, coaches, trade window, injuries, his squad) and, after the round, `actual`: each player's FPT and minutes (`null` = did not play) and each coach's points. |
 
 ## Sync across devices (Vercel)
 
@@ -32,7 +33,8 @@ A scheduled Claude task runs Monday–Friday at 08:58 (Europe/Sarajevo). Monday 
 
 1. runs `python3 -I tools/elbuild.py <work_dir> data.json data.json.new`,
 2. adds the written bits the script can't produce: EuroLeague results, news, the bottom-line summary, the free-trade windows and the injury list (`results`, `news`, `report`, `tradeWindow`, `injuries` in `data.json`),
-3. commits `data.json` to `main`. GitHub Pages republishes the site within a minute or two.
+3. runs `python3 -I tools/elbuild.py --history data.json history` on the finished `data.json`. On or before a round's deadline day it writes `history/round-N.json` once (never overwritten); after the round's last game day it fills that file's `actual` (each part only once),
+4. commits `data.json` and `history/` to `main`. GitHub Pages republishes the site within a minute or two.
 
 ## Run it yourself
 
