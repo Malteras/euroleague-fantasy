@@ -24,6 +24,14 @@ _Avoid_: Transfer, swap
 One of the 6 rounds where trades are unlimited.
 _Avoid_: Wildcard, unlimited round
 
+**Must have** (♥):
+Your pick that a player is in the proposal. For a player not in your squad: bring him in, and the other trades are rebuilt around him to make room and find the credits. The planner decides who goes out for him. For one of your players: keep him, so no trade sends him out.
+_Avoid_: Pin, lock, favourite
+
+**Leave out** (⊘):
+Your pick that a player is not in the proposal. For one of your players: remove him from your team this round, and the planner picks the best replacement it can afford. For a player not in your squad: don't include him in this round's trades.
+_Avoid_: Ban, block, exclude
+
 ## Projections
 
 **Projection**:
