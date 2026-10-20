@@ -61,14 +61,44 @@ section{padding-block:28px 8px}
 .sec-head h2{font-size:30px;font-weight:800}
 
 /* hero / round strip */
-.watch{margin-top:20px;padding:14px 16px;border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:var(--r);background:var(--surface)}
-.watch-h{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
-.watch-h h2{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0}
-.watch-h span{color:var(--muted);font-size:13px}
-.watch ul{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
-.watch li{display:flex;gap:8px;align-items:baseline;font-size:14.5px;line-height:1.45}
-.watch li .tag{flex:none}
-@media (max-width:600px){.watch li{flex-direction:column;align-items:flex-start;gap:3px}}
+/* watch before the deadline: a table grouped by missing teammate (stacked rows on a phone) */
+.wt{margin-top:20px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:0 0 8px}
+.wt-h{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:12px 16px 8px}
+.wt-h h2{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;margin:0}
+.wt-pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--warn-soft);color:var(--warn);white-space:nowrap}
+.wt-body{padding:0 8px}
+.wt table{border-collapse:collapse;width:100%;font-size:14px;table-layout:fixed}
+.wt th{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.wt td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+.wt tbody tr:last-child td{border-bottom:0}
+.wt td.wt-p{padding-left:22px}.wt td.wt-p .plink{font-weight:700}
+.wt .n{text-align:right;font-weight:700;white-space:nowrap}.wt .n small{color:var(--muted);font-weight:500}
+.wt .wt-sw{padding-left:16px}
+.wt-day{color:var(--muted);font-size:13px;white-space:nowrap}
+.wt-call{font-weight:600}.wt-call small{display:block;font-weight:500;color:var(--muted);font-size:12.5px}
+.wt-bar{display:flex;align-items:center;gap:8px;--bar:90px}
+.wt-bar i{height:8px;border-radius:4px;background:var(--accent);width:calc(var(--k)*var(--bar));flex:none}
+.wt-bar b{font-size:13px;color:var(--accent)}
+.wt-grp td,.wt-rows li.wt-grp{background:var(--raise);font-size:13px;padding-block:7px}
+.wt-grp .plink{font-weight:700;font-size:14px}
+.wt-t{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:999px;white-space:nowrap;vertical-align:1px}
+.wt-t.bad{background:var(--bad-soft);color:var(--bad)}.wt-t.warn{background:var(--warn-soft);color:var(--warn)}
+.wt-sep td,.wt-rows li.wt-sep{padding:12px 8px 6px;font-size:14px;font-weight:700;color:var(--muted);border-top:2px solid var(--line)}
+.wt-note{margin:8px 16px 2px;font-size:13.5px;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+.wt-note i{font-style:normal;flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;background:var(--raise);border:1px solid var(--line);color:var(--muted)}
+.wt-empty{margin-top:20px;display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap;padding:9px 14px;border:1px solid var(--line);border-left:4px solid var(--good);border-radius:var(--r);background:var(--surface);font-size:14px}
+.wt-empty b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+.wt-empty span{color:var(--muted)}
+.wt-rows{list-style:none;margin:0;padding:0;display:none}
+.wt-rows li{display:flex;flex-direction:column;gap:2px;padding:10px 8px;border-bottom:1px solid var(--line-soft)}
+.wt-rows li:last-child{border-bottom:0}
+.wt-rows li.wt-grp,.wt-rows li.wt-sep{display:block}
+.wt-r1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.wt-r1 .plink{font-weight:700}
+.wt-sn{font-family:var(--display);font-weight:800;font-size:21px;color:var(--accent);line-height:1}
+.wt-l2{font-size:13px;color:var(--muted)}
+.wt .wt-c1{width:84px}.wt .wt-c2{width:76px}.wt .wt-c3{width:160px}.wt .wt-c4{width:36%}
+@media (max-width:759.98px){.wt .wt-c1{width:70px}.wt .wt-c2{width:64px}.wt .wt-c3{width:112px}.wt .wt-c4{width:30%}.wt-bar{--bar:44px}}
+@media (max-width:599.98px){.wt-dt{display:none}.wt-rows{display:block}}
 .cal{margin-top:20px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 .cal-h{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;cursor:pointer}
 .cal-h:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r)}
@@ -1968,34 +1998,77 @@ function mateSplit(p,t){
   if(w.length<2||wo.length<2)return null;
   return {w:avg(w.map(x=>x.fpt)),wo:avg(wo.map(x=>x.fpt)),nw:w.length,nwo:wo.length};
 }
+// The daily report's injury list ({name, team, status, reason, ret, src}), matched by name + team. Older data has none.
+const injuryOf=p=>(D.injuries||[]).find(x=>x.name===p.name&&x.team===p.team)||null;
+// Items for your squad's kept players and the proposal's incoming players (incoming first: their lines decide a trade):
+//   mate:   {kind, p, t, wo, w, nwo, nw, missed, out}  p's numbers depend on teammate t, who is out or just missed games
+//   status: {kind, p, st, inj, sat, out}               p is listed out or doubtful
+//   rest:   {kind, p, inj, sat}                        p sat out his club's last game; with injury news (inj.reason) it is a row,
+//                                                      without it only the note line names him
+// out = the player going out for p in the proposal (null when p is kept or nobody goes out); sat = date of the missed game
 function watchItems(){
   if(!result)return [];
   const mine=orig.players.filter(i=>byId[i]),pairs=tradePairs(result),inFor=new Map(pairs.filter(x=>x[1]!=null).map(([o,i])=>[i,o]));
-  const kept=mine.filter(i=>result.S.includes(i)),who=[...inFor.keys(),...kept].map(i=>byId[i]); // incoming players first: their lines decide a trade
-  const news=newsAbsences().byId,items=[],f1=x=>x.toFixed(1);
-  // out or doubtful: kept players only, the optimiser already trades away or skips the ones it knows are out
-  who.forEach(p=>{const st=p.status||news.get(p.id);if(!st)return;const tr=inFor.has(p.id);
-    items.push({tag:st,txt:`${plink(p)} is listed ${esc(st.toLowerCase())}${tr?`. Check before you bring him in for ${plink(byId[inFor.get(p.id)])}`:". Bench or trade him if he is not back"}.`});});
+  const kept=mine.filter(i=>result.S.includes(i)),who=[...inFor.keys(),...kept].map(i=>byId[i]);
+  const news=newsAbsences().byId,items=[],outOf=p=>inFor.has(p.id)?byId[inFor.get(p.id)]||null:null;
+  // the domestic game he sat out, when it is his club's last game
+  const satOut=p=>{const d=(p.dom||[])[0];return d&&d.dnp&&!(p.log[0]&&p.log[0].d>d.d)?d.d:null;};
+  // out or doubtful: the optimiser already trades away or skips the ones it knows are out
+  who.forEach(p=>{const inj=injuryOf(p),st=p.status||news.get(p.id)||(inj&&/^(Out|Doubtful)$/i.test(inj.status)?inj.status:null);
+    if(st)items.push({kind:"status",p,st,inj,sat:satOut(p),incoming:inFor.has(p.id),out:outOf(p)});
+    else{const sat=satOut(p);if(sat)items.push({kind:"rest",p,inj:inj&&inj.reason?inj:null,sat});}});
   // a key teammate out (or just back) and this player's numbers depend on it
   who.forEach(p=>{if(p.out||!p.log.length)return;
     P.forEach(t=>{if(t.team!==p.team||t.id===p.id||(t.fpt||0)<MATE_FPT)return;
       const missed=t.log.length?p.log.filter(x=>x.d>t.log[0].d).length:0;if(!t.out&&!missed)return;
       const s=mateSplit(p,t);if(!s||s.wo-s.w<MATE_GAP)return;
-      const o=inFor.has(p.id)?byId[inFor.get(p.id)]:null,day=esc(dayShort(p.day));
-      const why=`${t.out?`${plink(t)} is listed out.`:`${plink(t)} missed ${esc(p.short)}'s last ${missed>1?missed+" games":"game"} and is not listed out.`} ${plink(p)} averaged ${f1(s.wo)} FPT without him (${s.nwo} games) and ${f1(s.w)} with him (${s.nw}).`;
-      const call=inFor.has(p.id)?(o?` <b>${esc(t.short)} out on ${day} → make ${esc(o.short)} → ${esc(p.short)}. He plays → keep ${esc(o.short)}.</b>`:` <b>${esc(t.short)} out on ${day} → bring in ${esc(p.short)}. He plays → skip it.</b>`)
-        :` <b>If ${esc(t.short)} plays on ${day}, expect less from ${esc(p.short)}.</b>`;
-      items.push({tag:`Depends on ${t.short}`,txt:why+call});});});
-  // sat out his club's last game, often a rest day before a EuroLeague game
-  who.forEach(p=>{if(p.out||p.status)return;const d=(p.dom||[])[0];if(!d||!d.dnp||(p.log[0]&&p.log[0].d>d.d))return;
-    items.push({tag:"Missed last game",txt:`${plink(p)} sat out ${esc((TEAMS[p.team]||[p.team])[0])}'s last game (${esc(fmtShort(d.d))}, domestic). Often rest; check he plays ${esc(dayShort(p.day))}.`});});
+      items.push({kind:"mate",p,t,...s,missed,incoming:inFor.has(p.id),out:outOf(p)});});});
   return items;
 }
-function watchBox(){
-  const items=watchItems();if(!items.length)return "";
+// "Tomorrow 18:00"; the weekday and date when trades close further away
+function deadlineRel(){
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
-  return `<section class="watch" aria-labelledby="watchH"><div class="watch-h"><h2 id="watchH">Watch before the deadline</h2><span>Trades close ${esc(dayLabel(D.deadline))}${tip?" "+esc(tip):""}</span></div>
-    <ul>${items.map(x=>`<li><span class="tag ${/^(out|doubtful)$/i.test(x.tag)?esc(x.tag):"Doubtful"}">${esc(x.tag)}</span><span>${x.txt}</span></li>`).join("")}</ul></section>`;
+  const n=new Date(),dd=Math.round((new Date(D.deadline+"T12:00:00")-new Date(n.getFullYear(),n.getMonth(),n.getDate(),12))/864e5);
+  return (dd===0?"Today":dd===1?"Tomorrow":dayLabel(D.deadline))+(tip?" "+tip:"");
+}
+function watchBox(){
+  if(!result)return "";
+  const items=watchItems(),f1=x=>x.toFixed(1),sw=x=>x.wo-x.w,day=p=>esc(dayShort(p.day)),sh=p=>esc(p.short);
+  const mates=items.filter(x=>x.kind==="mate").sort((a,b)=>sw(b)-sw(a));
+  const also=[...items.filter(x=>x.kind==="status"),...items.filter(x=>x.kind==="rest"&&x.inj)];
+  const quiet=items.filter(x=>x.kind==="rest"&&!x.inj);
+  // groups by their largest swing: mates is sorted, so each group's first row is its largest
+  const groups=new Map();mates.forEach(x=>{if(!groups.has(x.t.id))groups.set(x.t.id,[]);groups.get(x.t.id).push(x);});
+  const names=xs=>xs.length<2?xs.map(x=>sh(x.p)).join(""):xs.slice(0,-1).map(x=>sh(x.p)).join(", ")+" and "+sh(xs[xs.length-1].p);
+  const weekend=quiet.every(x=>[0,6].includes(new Date(x.sat+"T12:00:00").getDay()));
+  const noteTxt=quiet.length?`${names(quiet)} sat out ${weekend?"at the weekend":quiet.length>1?"their club's last game":"his club's last game"} with no injury news, so ${quiet.length>1?"they're":"he's"} not listed.`:"";
+  const rel=esc(deadlineRel());
+  if(!mates.length&&!also.length)return `<div class="wt-empty" role="status"><b>Nothing to watch</b><span>before trades close ${rel}${noteTxt?` · ${noteTxt}`:""}</span></div>`;
+  // your call: [line, second outcome]
+  const call=x=>{
+    if(x.kind==="mate"){const t=esc(x.t.short);
+      return x.incoming?(x.out?[`${t} out → ${sh(x.out)} → ${sh(x.p)}`,`${t} plays → keep ${sh(x.out)}`]:[`${t} out → bring in ${sh(x.p)}`,`${t} plays → skip it`]):[`${t} plays → expect less`,""];}
+    if(x.kind==="status")return [x.incoming?`Check before you bring him in${x.out?` for ${sh(x.out)}`:""}`:"Bench or trade if not back",""];
+    return [`Check he plays ${day(x.p)}`,""];};
+  const callHtml=x=>{const [a,b]=call(x);return `${a}${b?`<small>${b}</small>`:""}`;};
+  const tag=(t,c)=>`<span class="wt-t ${c}">${esc(t)}</span>`;
+  const newsDate=x=>x.inj&&x.inj.src?x.inj.src:`news ${fmtShort((D.report&&D.report.date)||D.updated)}`;
+  const mid=x=>x.kind==="status"
+    ?`${tag(x.st,/^out$/i.test(x.st)?"bad":"warn")}${x.inj&&x.inj.reason?" "+tag(x.inj.reason,"bad"):""}${x.inj&&x.inj.ret?` <span class="wt-day">back ${esc(x.inj.ret)}</span>`:""}${x.sat?` <span class="wt-day">· missed last game (${esc(fmtShort(x.sat))})</span>`:""} <span class="wt-day">· ${esc(newsDate(x))}</span>`
+    :`Sat out ${esc(fmtShort(x.sat))} ${tag(x.inj.reason,"bad")} <span class="wt-day">· ${esc(newsDate(x))}</span>`;
+  const head=xs=>{const x=xs[0],t=x.t;
+    return `${plink(t)} ${t.out?tag("Listed out","bad"):tag(`Missed last ${x.missed>1?x.missed+" games":"game"} · not listed out`,"warn")} <span class="muted">· plays ${esc(dayShort(t.day||x.p.day))}</span>`;};
+  const m=Math.max(...mates.map(sw),1),alsoLbl="Also check · injury news";
+  const row=x=>`<tr><td class="wt-p">${plink(x.p)} <span class="wt-day">· ${day(x.p)}</span></td><td class="n">${f1(x.wo)} <small>(${x.nwo})</small></td><td class="n">${f1(x.w)} <small>(${x.nw})</small></td><td class="wt-sw"><span class="wt-bar" style="--k:${(sw(x)/m).toFixed(3)}"><i></i><b>+${f1(sw(x))}</b></span></td><td class="wt-call">${callHtml(x)}</td></tr>`;
+  const table=`<table class="wt-dt"><colgroup><col><col class="wt-c1"><col class="wt-c2"><col class="wt-c3"><col class="wt-c4"></colgroup>
+    <thead><tr><th>Player</th><th class="n">Without</th><th class="n">With</th><th class="wt-sw">Swing</th><th>Your call</th></tr></thead>
+    <tbody>${[...groups.values()].map(xs=>`<tr class="wt-grp"><td colspan="5">${head(xs)}</td></tr>${xs.map(row).join("")}`).join("")}
+    ${also.length?`<tr class="wt-sep"><td colspan="5">${alsoLbl}</td></tr>${also.map(x=>`<tr><td class="wt-p">${plink(x.p)} <span class="wt-day">· ${day(x.p)}</span></td><td colspan="3">${mid(x)}</td><td class="wt-call">${callHtml(x)}</td></tr>`).join("")}`:""}</tbody></table>`;
+  const li=(x,right,l2)=>`<li><div class="wt-r1"><span>${plink(x.p)} <span class="wt-day">· plays ${day(x.p)}</span></span>${right}</div><span class="wt-l2">${l2}</span><span class="wt-call">${callHtml(x)}</span></li>`;
+  const phone=`<ul class="wt-rows">${[...groups.values()].map(xs=>`<li class="wt-grp">${head(xs)}</li>${xs.map(x=>li(x,`<span class="wt-sn">+${f1(sw(x))}</span>`,`${f1(x.wo)} without (${x.nwo}) · ${f1(x.w)} with (${x.nw})`)).join("")}`).join("")}
+    ${also.length?`<li class="wt-sep">${alsoLbl}</li>${also.map(x=>li(x,"",mid(x))).join("")}`:""}</ul>`;
+  return `<section class="wt" aria-labelledby="watchH"><div class="wt-h"><h2 id="watchH">Watch before the deadline</h2><span class="wt-pill">⏱ Trades close ${rel}</span></div>
+    <div class="wt-body">${table}${phone}</div>${noteTxt?`<p class="wt-note"><i aria-hidden="true">i</i><span>${noteTxt}</span></p>`:""}</section>`;
 }
 function newsPanel(){
   // absences: player statuses + names in "Out"/"Doubtful" news lines, grouped by club
