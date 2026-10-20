@@ -817,16 +817,26 @@ fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
 });
 
+// teamModel:begin
+// Club strength from the final scores in the player logs. o is the opponent as {opp, ha}.
+function teamModel(data){
+  const games={};
+  data.players.forEach(p=>(p.log||[]).forEach(g=>{games[p.team+g.d]={t:p.team,w:g.res[0]==="W"};}));
+  const rec={};Object.values(games).forEach(g=>{rec[g.t]=rec[g.t]||{w:0,n:0};rec[g.t].n++;if(g.w)rec[g.t].w++;});
+  const wp=t=>rec[t]?rec[t].w/rec[t].n:.5;
+  // a coach's projection is his win chance against that opponent: both teams' records plus home court
+  const winP=(t,o)=>{if(!o)return .5;const pr=.5+.35*(wp(t)-wp(o.opp))+(o.ha==="H"?.07:-.07);return Math.min(.85,Math.max(.15,pr));};
+  const coachPts=(t,o)=>{const pr=winP(t,o);return Math.round((pr*13-(1-pr)*8)*10)/10;};
+  return {rec:t=>rec[t],winP,coachPts};
+}
+// teamModel:end
+
 function init(data){
   D=data;
   document.getElementById("teamName").textContent=D.team;
   D.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
   dayKeys=[...new Set(D.fixtures.map(f=>f[0]))].sort();
-  // team records from logs
-  const games={};
-  D.players.forEach(p=>(p.log||[]).forEach(g=>{games[p.team+g.d]={t:p.team,w:g.res[0]==="W"};}));
-  const rec={};Object.values(games).forEach(g=>{rec[g.t]=rec[g.t]||{w:0,n:0};rec[g.t].n++;if(g.w)rec[g.t].w++;});
-  const wp=t=>rec[t]?rec[t].w/rec[t].n:.5;
+  const TM=teamModel(D);
   nextRound();
   const TW=D.tradeWindow;
   LOOK_ON=!(TW&&TW.round===D.round&&TW.nextUnlimited===true);
@@ -848,14 +858,11 @@ function init(data){
     return {...p,l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],nx:0,val:(p.fpt||0)/p.price};
   });
   byId=Object.fromEntries(P.map(p=>[p.id,p]));
-  // a coach's projection is his win chance against that opponent: both teams' records plus home court
-  const winP=(t,o)=>{if(!o)return .5;const pr=.5+.35*(wp(t)-wp(o.opp))+(o.ha==="H"?.07:-.07);return Math.min(.85,Math.max(.15,pr));};
-  const cProj=pr=>r1(pr*13-(1-pr)*8);
   C=D.coaches.map(c=>{
-    const o=oppOf[c.team],pr=winP(c.team,o),x=cProj(pr);
+    const o=oppOf[c.team],pr=TM.winP(c.team,o),x=TM.coachPts(c.team,o);
     // the look-ahead counts half of next round's game too, in both proposals (docs/adr/0001)
-    const o2=nextOf[c.team],pw2=o2?winP(c.team,o2):null;
-    return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:rec[c.team],opp2:o2,pw2,x2:o2?cProj(pw2):0,nx:LOOK_ON&&o2?LOOK*cProj(pw2):0};
+    const o2=nextOf[c.team],pw2=o2?TM.winP(c.team,o2):null,x2=o2?TM.coachPts(c.team,o2):0;
+    return {...c,pw:pr,x,exp:(x-c.price)/40,day:turnOf[c.team],opp:o,rec:TM.rec(c.team),opp2:o2,pw2,x2,nx:LOOK_ON&&o2?LOOK*x2:0};
   });
   coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   savedTeam=teamFrom(SQUAD||D.squad);
