@@ -55,6 +55,9 @@ h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.01e
 .top nav{overflow-x:auto;scrollbar-width:none;max-width:100%}.top nav::-webkit-scrollbar{display:none}
 .top nav a:hover{color:var(--fg)}
 .top nav a.on{background:var(--surface);color:var(--fg);box-shadow:0 1px 0 var(--line)}
+.theme-b{margin-left:auto;flex:none;width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;background:var(--raise);color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
+.theme-b:hover{color:var(--fg)}.theme-b+nav{margin-left:0}
+@media (max-width:599.98px){.top .brand{flex:1 1 0;min-width:0}}
 
 section{padding-block:28px 8px}
 .sec-head{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
@@ -673,6 +676,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion:no-preference){.pc,.mrow{transition:background .2s}}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>try{const t=localStorage.getItem("fz.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head>
 <body>
 <header class="top">
@@ -682,6 +686,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
       <h1 id="teamName">Boškovi Fazani</h1>
       <div class="eyebrow">EuroLeague Fantasy · round planner</div>
     </div>
+    <button type="button" class="theme-b" id="themeB"></button>
     <nav aria-label="Sections">
       <a href="#team" data-page="team" class="on">My team</a>
       <a href="#report" data-page="report">Report</a>
@@ -698,6 +703,15 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   <div class="loading" id="loading">Loading player data…</div>
 </main>
 
+<script>
+(function(){
+  const root=document.documentElement,b=document.getElementById("themeB");
+  const now=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
+  const show=()=>{const d=now()==="dark";b.textContent=d?"☀":"☾";b.title=b.ariaLabel=d?"Switch to light mode":"Switch to dark mode";};
+  b.onclick=()=>{const t=now()==="dark"?"light":"dark";root.dataset.theme=t;try{localStorage.setItem("fz.theme",t);}catch(e){}show();};
+  matchMedia("(prefers-color-scheme: light)").addEventListener("change",show);show();
+})();
+</script>
 <script>
 (function(){
 const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","#dc052d"],BJK:["Beşiktaş","#2b2b2b"],CZV:["Crvena zvezda","#d11f2e"],DUB:["Dubai","#1c6fb8"],EFS:["Efes","#1f4e96"],FBT:["Fenerbahçe","#0b2a62"],HTA:["Hapoel","#c4161c"],KBA:["Baskonia","#b0122a"],MIL:["Milan","#c8102e"],MTA:["Maccabi","#e8b400"],OLY:["Olympiacos","#c8102e"],PAO:["Panathinaikos","#0f7a3d"],PAR:["Partizan","#3a3a3a"],PBB:["Paris","#0d1b4c"],RMB:["Real Madrid","#6b4fbb"],VAL:["Valencia","#e46b0a"],VIR:["Virtus","#1a1a1a"],ZAL:["Žalgiris","#0d7a3c"]};
