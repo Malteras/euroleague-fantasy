@@ -3,7 +3,7 @@
 
 Usage: python3 -I elbuild.py <work_dir> <old_data.json or -> <out_data.json>
 Downloads go into <work_dir>/pages (keep it separate from this script's folder).
-results/news/squad are carried over from the old data.json; edit them afterwards.
+The daily report's fields (see carried()) and squad are carried over from the old data.json; edit them afterwards.
 """
 import sys, os, re, json, html, subprocess, datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -212,6 +212,8 @@ def carried(old):
         'results': old.get('results', []), 'news': old.get('news', []), 'report': old.get('report', {}),
         # free-trade windows for this round and the next; the planner sets its switch from it
         'tradeWindow': old.get('tradeWindow'),
+        # who is out or doubtful, for the "Watch before the deadline" card
+        'injuries': old.get('injuries'),
     }
 
 def main():
