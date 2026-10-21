@@ -2001,7 +2001,8 @@ function proposalParts(R){
   const was=(a,b,f)=>`<span class="was">${a?f(a):"–"} → ${b?f(b):"–"}</span>`;
   const tot={dp:0,dn:0,dc:0,fr:0};
   const row=(a,b,key,name,role,x)=>{
-    const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?b.exp:0)-(a?a.exp:0),fr=(a?a.price:0)-(b?b.price:0);
+    // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
+    const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
     const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">· ${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${[role,game(p)].filter(Boolean).join(" · ")}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
