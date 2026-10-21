@@ -1,9 +1,9 @@
 {
- "updated": "2026-10-18",
+ "updated": "2026-10-21",
  "players": [
   73,
   23,
-  245,
+  91,
   165,
   118,
   38,
@@ -13,11 +13,11 @@
   8
  ],
  "coach": "ZAL",
- "bank": 1.3,
+ "bank": 0.3,
  "slots": [
   73,
   23,
-  245,
+  91,
   165,
   118,
   38,
@@ -30,7 +30,7 @@
  "names": [
   "Elijah Bryant",
   "Théo Maledon",
-  "Yam Madar",
+  "Tyson Etienne",
   "Semi Ojeleye",
   "Aliou Diarra",
   "Andrés Feliz",
