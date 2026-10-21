@@ -6,7 +6,7 @@
  "coachPin": null,
  "budget": 99.6,
  "maxT": 4,
- "lam": 20,
+ "lam": 35,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -16,7 +16,24 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
- "team": null,
+ "team": {
+  "slots": [
+   73,
+   23,
+   38,
+   165,
+   118,
+   361,
+   91,
+   185,
+   236,
+   8
+  ],
+  "coach": "ZAL",
+  "bank": 0.3,
+  "cap": 73,
+  "base": "2026-10-21"
+ },
  "budgetTouched": false,
  "calOpen": false,
  "rf": "mine",
@@ -26,5 +43,5 @@
   "7:captain:73",
   "7:lineup:73,23,165,361,118"
  ],
- "savedAt": "2026-10-21T15:10:24.939Z"
+ "savedAt": "2026-10-21T15:10:29.165Z"
 }
