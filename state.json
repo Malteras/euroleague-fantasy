@@ -16,7 +16,7 @@
  "form": null,
  "team": null,
  "budgetTouched": false,
- "calOpen": false,
+ "calOpen": true,
  "rf": "mine",
  "rg": null,
  "pmode": "q",
@@ -26,5 +26,5 @@
   "7:check:11",
   "7:check:245"
  ],
- "savedAt": "2026-10-21T15:53:05.244Z"
+ "savedAt": "2026-10-21T23:31:46.276Z"
 }
