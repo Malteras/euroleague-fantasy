@@ -687,8 +687,15 @@ html.locked,html.locked body{overflow:hidden}
 .rv-tot div{background:var(--raise);border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
 .rv-tot small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
 .rv-tot b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}.rv-tot .rv-got b{color:var(--accent)}
-.rv-cap{margin:0 0 12px;padding:9px 12px;border-radius:10px;background:var(--warn-soft);font-size:14px;line-height:1.45}
-.rv-cap span{display:block}.rv-cap .ok{color:var(--good);font-weight:700}.rv-cap .off{color:var(--bad);font-weight:700}
+.rv-cap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 12px;border:1px solid var(--line-soft);border-left:4px solid var(--line);border-radius:10px;background:var(--raise)}
+.rv-cap.ok{border-left-color:var(--good)}.rv-cap.off{border-left-color:var(--bad)}
+.rv-cs{position:relative;min-width:0;padding:8px 12px}.rv-cs+.rv-cs{border-left:1px solid var(--line-soft)}
+.rv-cs+.rv-cs::before{content:"›";position:absolute;left:-7px;top:50%;transform:translateY(-50%);width:13px;line-height:15px;text-align:center;font-size:13px;color:var(--faint);background:var(--raise)}
+.rv-cs small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
+.rv-cs>b{display:block;margin:2px 0 6px;font-family:var(--display);font-size:18px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-cs>span{display:block;font-size:12.5px;line-height:1.35;color:var(--muted)}
+.rv-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--line-soft);color:var(--muted)}
+.rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
 .rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
 .rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 3.6em 3.6em 4.2em;gap:8px;align-items:center}
@@ -700,6 +707,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-row .up{color:var(--good)}.rv-row .dn{color:var(--bad)}.rv-row .muted{color:var(--muted)}
 .rv-tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:5px;font-size:11px;font-weight:700;background:var(--line-soft);color:var(--muted)}
 .rv-tag.c{background:var(--warn-soft);color:var(--warn)}
+@media (max-width:560px){.rv-cap{grid-template-columns:1fr}.rv-cs+.rv-cs{border-left:0;border-top:1px solid var(--line-soft)}.rv-cs+.rv-cs::before{display:none}}
 @media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 3.2em 3.2em 3.8em;gap:6px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
@@ -2254,16 +2262,15 @@ function reviewCard(){
     return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
       <div class="rv-h"><span>Player</span><span>Scored</span><span>Proj</span><span>Counts</span></div>${rows}`;}).join("");
   const C=V.cap;let cap="";
-  if(C){const nm=c=>byId[c.id]?plink(byId[c.id],c.short):esc(c.short);
-    const plan=C.keepAt==null?`<span>Plan: captain ${nm(C.first)}, the only turn left to use the armband.</span>`
-      :`<span>Plan: keep the armband on ${nm(C.first)} if he scores <b>${Math.ceil(C.keepAt)}+</b>, else move it to ${nm(C.next)}.</span>`;
-    const res=C.call==null?`<span>${nm(C.first)} has not played yet.</span>`
-      :`<span>He scored <b>${f(C.scored)}</b>, so the plan says ${C.call==="keep"?"keep it":"move it"}.</span>`;
+  if(C){const nm=c=>byId[c.id]?plink(byId[c.id],c.short):esc(c.short),step=(k,v,x)=>`<div class="rv-cs"><small>${k}</small><b>${v}</b><span>${x}</span></div>`;
+    const plan=step("Captain plan",nm(C.first),C.keepAt==null?"The last turn to use the armband":`Keep at <b>${Math.ceil(C.keepAt)}+</b>, else ${nm(C.next)}`);
+    const res=C.call==null?step(`${nm(C.first)} scored`,"–","Not played yet")
+      :step(`${nm(C.first)} scored`,f(C.scored),`<span class="rv-pill">${C.call==="keep"?"Keep the armband":`Move it to ${esc(C.next.short)}`}</span>`);
     // only where the armband is now is known, not when it got there
-    const ok=C.now&&(C.call==="keep"?C.now.id===C.first.id:C.now.id!==C.first.id);
-    const now=!C.now?`<span>No captain on court in your saved lineup.</span>`:C.call==null?`<span>Armband now on ${nm(C.now)}.</span>`
-      :`<span>Armband now on ${nm(C.now)}. <span class="${ok?"ok":"off"}">${ok?"✓ Matches the plan":C.call==="keep"?`The plan has it on ${esc(C.first.short)}`:`The plan moves it to ${esc(C.next.short)}`}</span></span>`;
-    cap=`<p class="rv-cap">${plan}${res}${now}</p>`;}
+    const ok=C.now&&(C.call==="keep"?C.now.id===C.first.id:C.now.id!==C.first.id),st=C.call==null||!C.now?"":ok?"ok":"off";
+    const now=step("Armband now",C.now?nm(C.now):"–",!C.now?"No captain on court in your saved lineup":C.call==null?"Waiting on the first captain's game"
+      :`<span class="rv-pill ${st}">${ok?"✓ Matches the plan":C.call==="keep"?`✗ The plan has it on ${esc(C.first.short)}`:`✗ The plan moves it to ${esc(C.next.short)}`}</span>`);
+    cap=`<div class="rv-cap${st?" "+st:""}">${plan}${res}${now}</div>`;}
   const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
   return `<div class="card rv" id="rvCard"><h3>Round ${V.round}, turn by turn</h3>${tot}${cap}${turns}
     <p class="note sc-foot">Players only: coach points come after the round. Court and 6th man count 100%, bench 50%, captain ×2.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
