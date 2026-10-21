@@ -1455,6 +1455,7 @@ function fitTip(e){const g=e.target.closest&&e.target.closest(".ptag.has-tip");i
   tip.style.left="";const over=tip.getBoundingClientRect().right-(box.getBoundingClientRect().right-12);if(over>0)tip.style.left=-over+"px";}
 document.addEventListener("pointerover",fitTip);document.addEventListener("focusin",fitTip);
 
+// optimiser:begin
 /* ---------- scoring ---------- */
 function lineup(ids){
   const ps=ids.map(i=>byId[i]);
@@ -1538,6 +1539,18 @@ function withMode(mode,fn){
     const keep=P.map(p=>p.x);P.forEach(p=>{p.xq=p.x;p.x=r1(p.x+mBonus(p));p.x2=nProj(p);p.nx=LOOK_ON?LOOK*p.x2:0;});
     try{return fn();}finally{P.forEach((p,i)=>{p.x=keep[i];p.nx=0;p.x2=0;});}
   }finally{curMode=prev;}
+}
+/* Run fn on another round's players (a history snapshot, or one scored with actual points) instead of the live ones.
+   The optimiser reads these globals, so they are swapped in and the live ones put back after, pins and pick-ups left out.
+   W: {key (part of the optimiser cache key), data, P, C, dayKeys, look, orig, budget, maxT, lam, bar (the trade bar; null = as live)} */
+let roundKey="live",roundBar=null;
+function withRound(W,fn){
+  const live={D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar},keep={};
+  const KEYS=["pins","avoids","coachPin","budget","maxT","lam"];KEYS.forEach(k=>keep[k]=state[k]);
+  D=W.data;P=W.P;byId=Object.fromEntries(P.map(p=>[p.id,p]));C=W.C;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
+  orig=W.orig;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;
+  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam});
+  try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar}=live);Object.assign(state,keep);}
 }
 let resultAlt=null;
 // Search score: the same number as evalSquad(ids,coach).obj at this lam, without building the lineup (the search calls it tens of thousands of times).
@@ -1686,7 +1699,7 @@ function searchPlan(lam){
 }
 // The bar a trade must clear: 3 when trades are limited, 1 in an unlimited window, where an extra trade costs nothing
 // (the 1 still filters out swaps that are within projection noise).
-const tradeBar=()=>state.maxT>=99?1:MIN_GAIN;
+const tradeBar=()=>roundBar??(state.maxT>=99?1:MIN_GAIN);
 // Undo the weakest trade while one adds less than the bar at this lam. A trade that can't be undone within budget stays: it pays for the others.
 function prunePlan(S,coach,base,baseCoach,lim,lam){
   const B=state.budget,obj=(ids,c)=>quickObj(ids,c,lam),MIN_GAIN=tradeBar();
@@ -1713,7 +1726,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -1747,6 +1760,15 @@ function nearMisses(S,coach,lim,lam,bar){
   });
   return out.sort((a,b)=>b.g-a.g).slice(0,3);
 }
+function tradePairs(R){
+  const tradesIn=R.S.filter(i=>!orig.players.includes(i));
+  const outs=orig.players.filter(i=>!R.S.includes(i));
+  const pairs=[];
+  tradesIn.forEach(i=>{const k=outs.findIndex(o=>byId[o]&&byId[o].pos===byId[i].pos);pairs.push([k>=0?outs.splice(k,1)[0]:null,i]);});
+  outs.forEach(o=>pairs.push([o,null]));
+  return pairs;
+}
+// optimiser:end
 
 /* ---------- render ---------- */
 function fmtDate(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});}catch(e){return d;}}
@@ -1894,14 +1916,6 @@ function fmtShort(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-G
 function tipoff(p){const f=D.fixtures.find(f=>f[0]===p.day&&(f[1]===p.team||f[2]===p.team));return f&&f[3]?f[3]:"";}
 function badge(t){const c=(TEAMS[t]||["","#445"])[1];return TEAMS[t]?`<span class="tb tlink" style="--tc:${c};color:${inkOn(c)}" data-team="${t}" role="button" tabindex="0" title="${esc(TEAMS[t][0])}: team analysis">${t}</span>`:`<span class="tb" style="--tc:${c};color:${inkOn(c)}">${t}</span>`;}
 const tname=t=>TEAMS[t]?`<button type="button" class="plink" data-team="${t}">${esc(TEAMS[t][0])}</button>`:esc(t);
-function tradePairs(R){
-  const tradesIn=R.S.filter(i=>!orig.players.includes(i));
-  const outs=orig.players.filter(i=>!R.S.includes(i));
-  const pairs=[];
-  tradesIn.forEach(i=>{const k=outs.findIndex(o=>byId[o]&&byId[o].pos===byId[i].pos);pairs.push([k>=0?outs.splice(k,1)[0]:null,i]);});
-  outs.forEach(o=>pairs.push([o,null]));
-  return pairs;
-}
 function applyTrades(){
   const R=result;if(!R)return;
   const pairs=tradePairs(R);
