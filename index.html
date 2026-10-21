@@ -682,6 +682,25 @@ html.locked,html.locked body{overflow:hidden}
 .sc-m b{color:var(--accent);font-variant-numeric:tabular-nums;min-width:2.6em;text-align:right}
 .sc-co{margin:10px 0 0}
 .sc-foot{margin:8px 0 0;font-size:12.5px}
+.rv{margin-bottom:16px}
+.rv-tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.rv-tot div{background:var(--raise);border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
+.rv-tot small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
+.rv-tot b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}.rv-tot .rv-got b{color:var(--accent)}
+.rv-cap{margin:0 0 12px;padding:9px 12px;border-radius:10px;background:var(--warn-soft);font-size:14px;line-height:1.45}
+.rv-cap span{display:block}.rv-cap .ok{color:var(--good);font-weight:700}.rv-cap .off{color:var(--bad);font-weight:700}
+.rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
+.rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
+.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 3.6em 3.6em 4.2em;gap:8px;align-items:center}
+.rv-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
+.rv-h span:not(:first-child),.rv-row span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.rv-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
+.rv-row>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-row.bench{opacity:.8}.rv-row .rv-c{color:var(--accent);font-weight:700}
+.rv-row .up{color:var(--good)}.rv-row .dn{color:var(--bad)}.rv-row .muted{color:var(--muted)}
+.rv-tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:5px;font-size:11px;font-weight:700;background:var(--line-soft);color:var(--muted)}
+.rv-tag.c{background:var(--warn-soft);color:var(--warn)}
+@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 3.2em 3.2em 3.8em;gap:6px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
@@ -990,6 +1009,42 @@ function scoreRounds(snaps){
   return {rounds,last,rows,best,coaches:{last:co.last.all,season:co.season.all}};
 }
 // scorecard:end
+
+// review:begin
+// The squad's scores after each turn of a round (#29): projections from its history/round-N.json snapshot, what happened
+// from the live player logs. Counted like the game: court and 6th man 100%, bench 50%, captain ×2.
+// logs: player id → his live log. saved: the squad he saved; it counts while it is from this round (saved by its last
+// turn), else the snapshot's squad at the deadline does. null until the round's first turn is played.
+function turnReview(snap,logs,saved){
+  const R=project(snap),by=Object.fromEntries(R.players.map(p=>[p.id,p])),last=R.dayKeys[R.dayKeys.length-1]||"";
+  const from=saved&&(saved.updated||"")<=last?"saved":"snapshot",sq=from==="saved"?saved:(snap.squad||{});
+  const slots=(Array.isArray(sq.slots)&&sq.slots.length?sq.slots:sq.players||[]).slice(0,10);
+  const cap=sq.cap&&slots.slice(0,5).includes(sq.cap)?sq.cap:null;
+  const played=new Set(Object.values(logs).flat().map(g=>g.d));
+  const short=p=>p.short||p.name.split(" ").slice(-1)[0];
+  const ps=slots.map((id,i)=>by[id]&&{p:by[id],i}).filter(Boolean);
+  const game=p=>(logs[p.id]||[]).find(g=>g.d===p.day);
+  let got=0,projSoFar=0,projRound=0;const turns=[];
+  for(const d of R.dayKeys){
+    const rows=ps.filter(({p})=>p.day===d).map(({p,i})=>{
+      const mult=i<6?(p.id===cap?2:1):.5,g=game(p),fpt=g?g.fpt:null;
+      return {id:p.id,name:p.name,short:short(p),pos:p.pos,team:p.team,role:i<5?"court":i===5?"six":"bench",cap:p.id===cap,
+        mult,fpt,x:p.x,counted:r1((fpt||0)*mult),px:r1(p.x*mult)};});
+    const px=rows.reduce((a,r)=>a+r.px,0);projRound+=px;
+    if(!played.has(d))continue;
+    got+=rows.reduce((a,r)=>a+r.counted,0);projSoFar+=px;turns.push({d,rows});
+  }
+  if(!turns.length)return null;
+  // the captain plan from the snapshot's projections: keep the first captain if he scores keepAt+, else move it on
+  const path=capPath(ps.map(({p})=>({...p,sd:spreadOf(p)})),R.dayKeys).path,f=path[0];
+  const who=p=>p&&{id:p.id,short:short(p),x:p.x,day:p.day};
+  let capCall=null;
+  if(f){const done=played.has(f.p.day),g=game(f.p),scored=done?(g?g.fpt:0):undefined;
+    capCall={first:who(f.p),next:who(path[1]&&path[1].p),keepAt:f.keepAt,scored,
+      call:done?(f.keepAt==null||scored>=f.keepAt?"keep":"move"):null,now:who(by[cap])};}
+  return {round:snap.round,from,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall};
+}
+// review:end
 
 function init(data){
   D=data;
@@ -2157,7 +2212,7 @@ function loadHistory(){
   if(HIST||histLoading)return;histLoading=true;
   const ns=[];for(let n=HIST_FROM;n<=(D.round||0);n++)ns.push(n);
   Promise.all(ns.map(n=>fetch(`history/round-${n}.json`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)))
-    .then(a=>{HIST=a.filter(Boolean);redrawScore();});
+    .then(a=>{HIST=a.filter(Boolean);redrawScore();redrawReview();});
 }
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",look:"next round"};
@@ -2181,6 +2236,37 @@ function scoreCard(){
   const co=c.n?`<p class="note sc-co">Coaches: off by ${f(c.mae)} points a club on average, ${bias(c.bias)} (${c.n} club${c.n>1?"s":""}).</p>`:"";
   return head+top+ctl+`<div class="sc-h"><span>Version</span><span>Average miss (points)</span><span>Bias</span></div>${rows}${co}
     <p class="note sc-foot">Only players who played. Bias “too high” means the projection was above what he scored. Look-ahead: the round before's projection for this round. An Out player counts as 0; a player without an xPTS uses his form in every version.</p></div>`;
+}
+/* ---------- turn by turn: the squad's scores after each turn of the round (#29) ---------- */
+function redrawReview(){const el=document.getElementById("rvCard");if(el)el.outerHTML=reviewCard();}
+function reviewCard(){
+  if(!HIST){loadHistory();return '<div id="rvCard"></div>';}
+  const logs=Object.fromEntries(P.map(p=>[p.id,p.log]));
+  // the latest round on record with a turn played
+  let V=null;for(const s of HIST.slice().sort((a,b)=>b.round-a.round)){V=turnReview(s,logs,savedTeam);if(V)break;}
+  if(!V)return '<div id="rvCard"></div>';
+  const f=v=>v.toFixed(1),day=d=>(D.turns&&D.turns[d])||fmtShort(d),pl=r=>byId[r.id]?plink(byId[r.id],r.short):esc(r.short);
+  const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
+  const turns=V.turns.map(t=>{const got=t.rows.reduce((a,r)=>a+r.counted,0),px=t.rows.reduce((a,r)=>a+r.px,0);
+    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>`+
+      (r.fpt==null?`<span class="muted">DNP</span>`:`<span class="${r.fpt>=r.x+.05?"up":r.fpt<=r.x-.05?"dn":""}">${f(r.fpt)}</span>`)+
+      `<span class="muted">${f(r.x)}</span><span class="rv-c">${f(r.counted)}</span></div>`).join("");
+    return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
+      <div class="rv-h"><span>Player</span><span>Scored</span><span>Proj</span><span>Counts</span></div>${rows}`;}).join("");
+  const C=V.cap;let cap="";
+  if(C){const nm=c=>byId[c.id]?plink(byId[c.id],c.short):esc(c.short);
+    const plan=C.keepAt==null?`<span>Plan: captain ${nm(C.first)}, the only turn left to use the armband.</span>`
+      :`<span>Plan: keep the armband on ${nm(C.first)} if he scores <b>${Math.ceil(C.keepAt)}+</b>, else move it to ${nm(C.next)}.</span>`;
+    const res=C.call==null?`<span>${nm(C.first)} has not played yet.</span>`
+      :`<span>He scored <b>${f(C.scored)}</b>, so the plan says ${C.call==="keep"?"keep it":"move it"}.</span>`;
+    // only where the armband is now is known, not when it got there
+    const ok=C.now&&(C.call==="keep"?C.now.id===C.first.id:C.now.id!==C.first.id);
+    const now=!C.now?`<span>No captain on court in your saved lineup.</span>`:C.call==null?`<span>Armband now on ${nm(C.now)}.</span>`
+      :`<span>Armband now on ${nm(C.now)}. <span class="${ok?"ok":"off"}">${ok?"✓ Matches the plan":C.call==="keep"?`The plan has it on ${esc(C.first.short)}`:`The plan moves it to ${esc(C.next.short)}`}</span></span>`;
+    cap=`<p class="rv-cap">${plan}${res}${now}</p>`;}
+  const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
+  return `<div class="card rv" id="rvCard"><h3>Round ${V.round}, turn by turn</h3>${tot}${cap}${turns}
+    <p class="note sc-foot">Players only: coach points come after the round. Court and 6th man count 100%, bench 50%, captain ×2.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sc-span],[data-sc-band]");if(!b)return;
   if(b.dataset.scSpan)scView.span=b.dataset.scSpan;else scView.band=b.dataset.scBand;redrawScore();});
@@ -2300,6 +2386,7 @@ function report(){
   const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
   return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
   ${bottomLine()}
+  ${reviewCard()}
   ${scoreCard()}
   <div class="two">
     <div><div class="eyebrow" style="margin:0 0 6px">Top performers · last EuroLeague round</div><div class="panel list">${top}</div></div>
