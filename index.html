@@ -938,6 +938,9 @@ function nextRound(data,dayKeys){
   for(const c in TN){const g=TN[c].find(g=>g.el&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])next[c]={opp:o,ha:g.ha,d:g.d};}
   return next;
 }
+// Chance to play by injury status. Doubtful = "unlikely to play, but there is still a chance" (BasketNews); Day to day = a
+// knock that usually still lets him play. Any other status (Return, none) counts as fit.
+const PLAY_CHANCE={Out:0,Doubtful:.3,"Day to day":.75};
 // The projections for one round's data: the live data.json, or a history/round-N.json snapshot. Touches no globals.
 function project(data){
   const turnOf={},oppOf={};
@@ -951,13 +954,15 @@ function project(data){
     const own=r1(.6*l3+.4*(p.fpt??l3));
     const out=p.status==="Out";
     const src=p.xpts!=null&&p.xpts>0?"FantaSheet":"form";
-    const base=out?0:(src==="FantaSheet"?r1(.5*p.xpts+.5*own):own);
+    // chance he plays, from his injury status: a Doubtful or Day to day player only counts that share of his projection
+    const play=PLAY_CHANCE[p.status]??1;
+    const base=out?0:r1(play*(src==="FantaSheet"?r1(.5*p.xpts+.5*own):own));
     // this game's win chance against his club's win rate so far; wa2 is the same for next round's game (look-ahead)
     const wa=TM.winAdj(p.team,oppOf[p.team],base),wa2=TM.winAdj(p.team,nextOf[p.team],base),x=r1(base+wa);
     const be=r1(1.1*p.price);
     const exp=(x-1.1*p.price)/25;
     const t=turnOf[p.team];
-    return {...p,log:p.log||[],dom:p.dom||[],l3:r1(l3),x,own,out,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],
+    return {...p,log:p.log||[],dom:p.dom||[],l3:r1(l3),x,own,out,play,src,be,exp,day:t,opp:oppOf[p.team],opp2:nextOf[p.team],
       mu:matchup(p,oppOf[p.team],data.defence),nx:0,val:(p.fpt||0)/p.price,wa,wa2};
   });
   const coaches=data.coaches.map(c=>{
