@@ -1,12 +1,10 @@
 {
- "pins": [
-  73
- ],
+ "pins": [],
  "avoids": [],
  "coachPin": null,
  "budget": 99.6,
  "maxT": 99,
- "lam": 20,
+ "lam": 35,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -28,5 +26,5 @@
   "7:check:11",
   "7:check:245"
  ],
- "savedAt": "2026-10-21T15:52:31.826Z"
+ "savedAt": "2026-10-21T15:52:37.483Z"
 }
