@@ -707,6 +707,15 @@ html.locked,html.locked body{overflow:hidden}
 .rv-row .up{color:var(--good)}.rv-row .dn{color:var(--bad)}.rv-row .muted{color:var(--muted)}
 .rv-tag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:5px;font-size:11px;font-weight:700;background:var(--line-soft);color:var(--muted)}
 .rv-tag.c{background:var(--warn-soft);color:var(--warn)}
+.rr-say{margin:0 0 8px;font-size:14px}.rr-say b{color:var(--accent)}
+.rr-sub{margin:12px 0 4px;font-weight:700}
+.rr-none{margin:0 0 8px}
+.rr-h,.rr-row{display:grid;grid-template-columns:minmax(0,1fr) 3.4em minmax(0,1fr) 3.4em;gap:8px;align-items:center}
+.rr-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
+.rr-h span:nth-child(even),.rr-row span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums}
+.rr-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
+.rr-row>span:nth-child(odd){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rr-row .rv-c{color:var(--accent);font-weight:700}.rr-row .muted{color:var(--muted)}
 @media (max-width:560px){.rv-cap{grid-template-columns:1fr}.rv-cs+.rv-cs{border-left:0;border-top:1px solid var(--line-soft)}.rv-cs+.rv-cs::before{display:none}}
 @media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 3.2em 3.2em 3.8em;gap:6px}}
 #day button,#pos button{flex:1 0 auto}
@@ -1769,6 +1778,53 @@ function tradePairs(R){
   return pairs;
 }
 // optimiser:end
+// roundReview:begin
+// After a round (#30): what he scored, what the planner's proposal at the deadline would have scored and the best team in
+// hindsight, all counted with the actual points in its history/round-N.json. Counted like the game: court and 6th man 100%,
+// bench 50%, captain ×2, plus the coach.
+// The round as the optimiser sees it (withRound's W), from the snapshot at the deadline. With fpt (the actual points by id) and
+// coachPts (by club) the projections are the actual points: no spread, no look-ahead, no credits, every coach allowed.
+function roundWorld(snap,key,lam,fpt,coachPts){
+  const R=project(snap),sq=snap.squad||{},TW=snap.tradeWindow,price={};
+  R.players.forEach(p=>{price[p.id]=p.price;p.sd=spreadOf(p);
+    if(fpt)Object.assign(p,{x:fpt(p.id),out:false,sd:1e-6,exp:0,opp2:null});});
+  if(coachPts)R.coaches.forEach(c=>Object.assign(c,{x:coachPts(c.team),nx:0,exp:0,pw:1}));
+  const coach=R.coaches.find(c=>c.team===sq.coach),players=(sq.players||[]).filter(i=>price[i]!=null);
+  return {key,data:snap,P:R.players,C:R.coaches,dayKeys:R.dayKeys,look:fpt?false:R.look,orig:{players,coach:sq.coach},
+    budget:r1(players.reduce((a,i)=>a+price[i],0)+(coach?coach.price:0)+(sq.bank||0)),
+    maxT:TW&&TW.round===snap.round&&TW.unlimited===true?99:4,lam,bar:fpt?.1:null};
+}
+// snap: the round's snapshot with its actual; saved: the squad he saved; opt: {mode, lam}, the proposal's settings.
+// null until the round's actual points are in.
+const roundKeys=new Map();
+function roundReview(snap,saved,opt){
+  const A=snap.actual;if(!A||!A.players)return null;
+  const fpt=id=>(A.players[id]&&A.players[id].fpt)||0,coachPts=t=>(A.coaches||{})[t]??0;
+  const short=p=>p.short||p.name.split(" ").slice(-1)[0];
+  // his own: the lineup and captain turnReview counts, from the actual points as the players' logs
+  const turnOf={};snap.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;});
+  const logs={};snap.players.forEach(p=>{const a=A.players[p.id];logs[p.id]=a&&a.fpt!=null?[{d:turnOf[p.team],fpt:a.fpt}]:[];});
+  const V=turnReview(snap,logs,saved),coach=V&&V.from==="saved"&&saved.coach?saved.coach:(snap.squad||{}).coach;
+  const you={pts:r1((V?V.got:0)+coachPts(coach)),coach,from:V?V.from:"snapshot"};
+  // a plan counted with the actual points: its lineup, and the captain plan's armband kept while he scores keepAt+
+  const count=r=>{const L=r.ev.L,mult={};
+    L.st.forEach(p=>mult[p.id]=1);if(L.six)mult[L.six.id]=1;L.bench.forEach(p=>mult[p.id]=.5);
+    let cap=null;for(const s of r.ev.cap.path){cap=s.p.id;if(s.keepAt==null||fpt(cap)>=s.keepAt)break;}
+    if(cap!=null)mult[cap]=2;
+    return r1(Object.entries(mult).reduce((a,[id,m])=>a+fpt(+id)*m,0)+coachPts(r.coach));};
+  const side=p=>({id:p.id,short:short(p),pos:p.pos,team:p.team,price:p.price,pts:fpt(p.id)});
+  const plan=(W,mode)=>withRound(W,()=>withMode(mode,()=>{const r=optimise();
+    const trades=tradePairs(r).filter(([o,i])=>o!=null&&i!=null).map(([o,i])=>({out:side(byId[o]),in:side(byId[i])}));
+    if(r.coach!==orig.coach){const c=t=>{const k=coachByTeam[t];return {team:t,short:k?k.name:t,price:k?k.price:0,pts:coachPts(t)};};
+      trades.push({coach:true,out:c(orig.coach),in:c(r.coach)});}
+    return {S:r.S,coach:r.coach,trades,pts:count(r),cost:r1(r.cost),budget:W.budget,maxT:W.maxT};}));
+  // the optimiser caches plans by this key: one per snapshot object, so another file for the same round can't reuse them
+  const N=snap.round;if(!roundKeys.has(snap))roundKeys.set(snap,roundKeys.size+1);const k=`${N}:${roundKeys.get(snap)}`;
+  const prop=plan(roundWorld(snap,`snap:${k}`,opt.lam),opt.mode==="m"?"m":"q");
+  const best=plan(roundWorld(snap,`hind:${k}`,0,fpt,coachPts),"q");
+  return {round:N,you,plan:prop,best,gap:r1(best.pts-you.pts)};
+}
+// roundReview:end
 
 /* ---------- render ---------- */
 function fmtDate(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});}catch(e){return d;}}
@@ -2239,7 +2295,7 @@ function loadHistory(){
   if(HIST||histLoading)return;histLoading=true;
   const ns=[];for(let n=HIST_FROM;n<=(D.round||0);n++)ns.push(n);
   Promise.all(ns.map(n=>fetch(`history/round-${n}.json`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)))
-    .then(a=>{HIST=a.filter(Boolean);redrawScore();redrawReview();});
+    .then(a=>{HIST=a.filter(Boolean);redrawScore();redrawReview();redrawRound();});
 }
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",look:"next round"};
@@ -2263,6 +2319,33 @@ function scoreCard(){
   const co=c.n?`<p class="note sc-co">Coaches: off by ${f(c.mae)} points a club on average, ${bias(c.bias)} (${c.n} club${c.n>1?"s":""}).</p>`:"";
   return head+top+ctl+`<div class="sc-h"><span>Version</span><span>Average miss (points)</span><span>Bias</span></div>${rows}${co}
     <p class="note sc-foot">Only players who played. Bias “too high” means the projection was above what he scored. Look-ahead: the round before's projection for this round. An Out player counts as 0; a player without an xPTS uses his form in every version.</p></div>`;
+}
+/* ---------- end of round: his score against the deadline proposal and the best team in hindsight (#30) ---------- */
+function redrawRound(){const el=document.getElementById("rrCard");if(el)el.outerHTML=roundCard();}
+function roundCard(){
+  if(!HIST){loadHistory();return '<div id="rrCard"></div>';}
+  // the latest round on record whose actual points are in
+  const s=HIST.filter(s=>s.actual&&s.actual.players).sort((a,b)=>b.round-a.round)[0];
+  const mode=state.pmode==="m"?"m":"q",V=s&&roundReview(s,savedTeam,{mode,lam:state.lam});
+  if(!V)return '<div id="rrCard"></div>';
+  const f=v=>v.toFixed(1),nm=t=>!t.coach&&byId[t.id]?plink(byId[t.id],t.short):esc(t.short);
+  const rows=ts=>ts.length?`<div class="rr-h"><span>Out</span><span>Pts</span><span>In</span><span>Pts</span></div>`+ts.map(t=>
+    `<div class="rr-row"><span>${nm(t.out)}</span><span class="muted">${f(t.out.pts)}</span><span>${nm(t.in)}</span><span class="rv-c">${f(t.in.pts)}</span></div>`).join("")
+    :'<p class="note rr-none">No trades.</p>';
+  const d=r1(V.plan.pts-V.you.pts),pn=mode==="m"?"Proposal 2":"Proposal 1";
+  const vs=Math.abs(d)<.05?"Your team scored the same as the proposal.":d>0?`The proposal would have scored <b>${f(d)}</b> more than your team.`:`Your team beat the proposal by <b>${f(-d)}</b>.`;
+  const gap=V.gap<.05?"Your team scored as much as the best team in hindsight."
+    :`The best team in hindsight scored <b>${f(V.gap)}</b> more than yours, ${V.best.trades.length?"with these trades:":"with the same squad: a better lineup and captain."}`;
+  const lim=V.best.maxT>=99?"unlimited trades (a free-trade window)":`up to ${V.best.maxT} trades`;
+  const tot=`<div class="rv-tot"><div class="rv-got"><small>You scored</small><b>${f(V.you.pts)}</b></div><div><small>The proposal</small><b>${f(V.plan.pts)}</b></div><div><small>Best in hindsight</small><b>${f(V.best.pts)}</b></div></div>`;
+  return `<div class="card rv rr" id="rrCard"><h3>Round ${V.round} review</h3>${tot}
+    <p class="rr-say">${vs}</p>
+    <p class="rr-say">${gap}</p>${V.best.trades.length?rows(V.best.trades):""}
+    <div class="rr-sub">The proposal's trades</div>${rows(V.plan.trades)}
+    <p class="note sc-foot">Counted with the actual points: court and 6th man 100%, bench 50%, captain ×2, plus the coach.</p>
+    <p class="note sc-foot">You: ${V.you.from==="saved"?"the lineup and captain you saved during the round":"the lineup and captain at the deadline"}.</p>
+    <p class="note sc-foot">The proposal: ${pn} from the data at the deadline, at today's What matters more setting, without your pins. Its captain keeps the armband only if he reaches the plan's mark.</p>
+    <p class="note sc-foot">Best in hindsight: the most points your squad at the deadline could have reached with ${lim}, ${f(V.best.budget)} cr and 6 players per club.</p></div>`;
 }
 /* ---------- turn by turn: the squad's scores after each turn of the round (#29) ---------- */
 function redrawReview(){const el=document.getElementById("rvCard");if(el)el.outerHTML=reviewCard();}
@@ -2412,6 +2495,7 @@ function report(){
   const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
   return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
   ${bottomLine()}
+  ${roundCard()}
   ${reviewCard()}
   ${scoreCard()}
   <div class="two">
