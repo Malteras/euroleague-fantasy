@@ -21,12 +21,12 @@
  "calOpen": false,
  "rf": "mine",
  "rg": null,
- "pmode": "q",
+ "pmode": "m",
  "blTicks": [
   "7:captain:73",
   "7:lineup:73,23,165,361,118",
   "7:check:11",
   "7:check:245"
  ],
- "savedAt": "2026-10-21T15:52:30.460Z"
+ "savedAt": "2026-10-21T15:52:31.826Z"
 }
