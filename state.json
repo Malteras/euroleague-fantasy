@@ -6,7 +6,7 @@
  "coachPin": null,
  "budget": 99.6,
  "maxT": 4,
- "lam": 35,
+ "lam": 60,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -26,5 +26,5 @@
   "7:captain:73",
   "7:lineup:73,23,165,361,118"
  ],
- "savedAt": "2026-10-21T15:10:34.771Z"
+ "savedAt": "2026-10-21T15:10:36.978Z"
 }
