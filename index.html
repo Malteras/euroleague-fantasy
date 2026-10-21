@@ -886,6 +886,11 @@ const jersey=(t,pos)=>{const c=(TEAMS[t]||["","#445"])[1];return `<span class="j
 
 document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(tp&&!state.open){tp=null;render();}else if(sug!=null&&!state.open){if(sugCmp!=null)sugCmp=null;else sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
 let SQUAD=null;
+// the commit this deployment was built from, shown in the footer so you can tell which code is live (#52)
+let BUILD=null;
+if(location.protocol!=="file:")fetch("api/version",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{
+  if(!j||!j.commit)return;BUILD=j.commit;const f=document.querySelector("footer");if(f&&!f.textContent.includes("Site version"))f.insertAdjacentText("beforeend",` Site version ${BUILD.slice(0,7)}.`);
+}).catch(()=>{});
 fetch("data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>loadRemote().then(rsq=>rsq||fetch("squad.json",{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)).then(sq=>{SQUAD=sq;init(d);})).catch(e=>{
   document.getElementById("loading").textContent="The player data file did not load ("+e.message+"). Reload the page to try again.";
 });
@@ -1782,7 +1787,7 @@ function render(){
   const body={
     team:()=>alertBox()+watchBox()+hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
     report:report,players:market,teams:teamsPage,coaches:coaches,results:results}[page];
-  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection = expected points from the likely final margin: both clubs' average margins plus home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.</footer>`;
+  app.innerHTML=body()+`<footer>Projection = half FantaSheet's xPTS for the next game, half his form (60% of the last three EuroLeague games + 40% of the season average); form only where xPTS is missing. A trade is only proposed when it adds at least 3 points to the objective (1 in an unlimited window) or frees credits for one that does. Expected price change = (projection − 1.1 × price) ÷ 25. Coach projection = expected points from the likely final margin: both clubs' average margins plus home court. A trade also counts half of next round's projected points (Proposal 2; coaches in both). Data updated ${esc(D.updated)} from FantaSheet game logs. Only EuroLeague games score.${BUILD?` Site version ${esc(BUILD.slice(0,7))}.`:""}</footer>`;
   bind();
 }
 function hero(){
