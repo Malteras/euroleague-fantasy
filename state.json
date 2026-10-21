@@ -5,8 +5,8 @@
  "avoids": [],
  "coachPin": null,
  "budget": 99.6,
- "maxT": 4,
- "lam": 60,
+ "maxT": 99,
+ "lam": 20,
  "pos": "G",
  "day": "ALL",
  "sort": "x",
@@ -28,5 +28,5 @@
   "7:check:11",
   "7:check:245"
  ],
- "savedAt": "2026-10-21T15:52:17.192Z"
+ "savedAt": "2026-10-21T15:52:30.460Z"
 }
