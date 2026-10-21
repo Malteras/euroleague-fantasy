@@ -1,19 +1,10 @@
 // Tests for roundReview() in index.html: after a round, what he scored, what the deadline proposal would have scored and the
 // best team in hindsight, all counted with the actual points.
 // Run: node --test tools/test_roundreview.mjs
-// The page is one file, so the test cuts the functions out between their marker comments.
+// The functions are cut out of the page by tools/roundreview.mjs, the CLI the daily routine runs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-
-const html = readFileSync(new URL("../index.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
-const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
-const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;", line("const FORMS="), line("const POSN="), line("const STOPS="),
-  line("let D,P,byId,C,"), line("let LOOK_ON="), line("let state="),
-  cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"), cut("// review:begin", "// review:end"),
-  cut("// optimiser:begin", "// optimiser:end"), cut("// roundReview:begin", "// roundReview:end")].join("\n");
-const { roundReview } = new Function(src + "\nreturn {roundReview};")();
+import { roundReview } from "./roundreview.mjs";
 
 // Round 7, two turns: PAO, KBA, BAR and RMB on Wednesday, OLY and ZAL on Thursday. No results in the logs and no xPTS,
 // so each projection is his form f.
@@ -108,4 +99,36 @@ test("the hindsight team keeps to 6 players from one club", () => {
   const club = R.best.S.filter(i => s.players.find(p => p.id === i).team === "BAR").length;
   assert.equal(club, 6);
   assert.ok(cost(s, R.best) <= BUDGET + 1e-9);
+});
+
+// The daily routine's report lines (#54): node tools/roundreview.mjs history/round-N.json squad.json [state.json]
+import { reviewLines } from "./roundreview.mjs";
+
+test("report lines: his score, the proposal's and the best in hindsight, then the hindsight trades", () => {
+  assert.deepEqual(reviewLines(snap(A), null, null), [
+    "Round 7 review: you scored 93.5. The proposal would have scored 111.5 (+18.0), the best team in hindsight 124.0 (+30.5).",
+    "Hindsight trades: Name4 (ZAL) 2.0 → Name11 (BAR) 5.0, Coach PAO (PAO) 10.0 → Coach KBA (KBA) 25.0.",
+  ]);
+});
+
+test("report lines: nothing until the round's actual points are in, players and coaches both", () => {
+  assert.deepEqual(reviewLines(snap(undefined), null, null), []);
+  assert.deepEqual(reviewLines(snap({ players: null, coaches: null }), null, null), []);
+  assert.deepEqual(reviewLines(snap({ ...A, coaches: null }), null, null), []);
+});
+
+test("report lines: the proposal at his synced setting, What matters more snapped to its stops", () => {
+  const s = snap(A), R = roundReview(s, null, { mode: "m", lam: 20 });
+  assert.match(reviewLines(s, null, { pmode: "m", lam: 22 })[0], new RegExp(`proposal would have scored ${R.plan.pts.toFixed(1)} `));
+});
+
+test("report lines: when his team was the best in hindsight, or the best kept his squad", () => {
+  const [head, tail] = reviewLines(snap(A5, five), null, null);
+  assert.match(head, /^Round 7 review: you scored 0\.0\./);
+  assert.match(tail, /^Hindsight trades: /);
+  // nobody outside his squad scored: the same squad was the best, so no trade line
+  const still = { ...fpts({ 1: 10, 2: 9, 3: 8, 4: 4, 5: 10, 6: 9, 7: 8, 8: 4, 9: 10, 10: 5 }), coaches: { PAO: 10 } };
+  const L = reviewLines(snap(still), null, null);
+  assert.equal(L.length, 2);
+  assert.match(L[1], /^Best in hindsight: (your team as it was|the same squad with a better lineup and captain)\.$/);
 });
