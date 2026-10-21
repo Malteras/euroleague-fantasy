@@ -1427,6 +1427,7 @@ function clubOk(ids){const n={};for(const i of ids){const t=byId[i].team;n[t]=(n
    captain's score then counts once. So an early captain is a free shot: keep him after a big game, move on after a
    quiet one. Worked back from the last turn, each turn's captain is worth E[max(his score, what the later turns are
    still worth)], with his score ~ Normal(projection, spread). A streaky scorer is worth more as an early captain. */
+// capPath:begin
 const SPREAD_K=3; // the typical spread (half the projection) counts as this many games next to his own recent games
 function spreadOf(p){
   const v=(p.log||[]).slice(0,8).map(g=>g.fpt).filter(f=>f!=null),n=v.length,pr=.5*Math.max(p.x,4);
@@ -1439,16 +1440,19 @@ function nCdf(z){const t=1/(1+.2316419*Math.abs(z)),q=nPdf(z)*t*(.3193815+t*(-.3
 const eMax=(mu,sd,c)=>{const z=(mu-c)/sd;return c+(mu-c)*nCdf(z)+sd*nPdf(z);}; // E[max(score, c)]
 // v: expected captain points (the extra x1 on top of his normal score); path: one captain per turn from the first,
 // keepAt = keep the armband if he scores at least this, else move it to the next one
-function capPlan(ids){
+// ps: the squad's players (projected, with .day); days: the round's turns in order. Touches no globals.
+function capPath(ps,days){
   let v=null;const path=[];
-  for(let k=dayKeys.length-1;k>=0;k--){
+  for(let k=days.length-1;k>=0;k--){
     let best=null,bv=-Infinity;
-    for(const i of ids){const p=byId[i];if(p.day!==dayKeys[k]||p.out)continue;
+    for(const p of ps){if(p.day!==days[k]||p.out)continue;
       const e=v==null?p.x:eMax(p.x,p.sd||.5*Math.max(p.x,4),v);if(e>bv){bv=e;best=p;}}
     if(best){path.unshift({p:best,keepAt:v});v=bv;}
   }
   return {v:v??0,path};
 }
+// capPath:end
+const capPlan=ids=>capPath(ids.map(i=>byId[i]),dayKeys);
 
 // Matchup bonus = his projection × how much more (or less) PIR the opponent allows to his position than an average team × MT.
 // A share of his own projection, so a player who barely plays gains next to nothing from an easy defence.
