@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
 const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
-const src = [line("const esc="), cut("// capPath:begin", "// capPath:end"), cut("// capStrip:begin", "// capStrip:end")].join("\n");
+const src = [line("const esc="), line("const FORMS="), cut("// capPath:begin", "// capPath:end"), cut("// capStrip:begin", "// capStrip:end")].join("\n");
 const { capStrip } = new Function(src + "\nreturn {capStrip};")();
 
 // Round 7 as it was: Bryant on Wednesday (keep mark 25 from the deadline), Maledon on Thursday, Etienne on Friday.
@@ -92,7 +92,7 @@ test("after a keep, the later turn still shows, faded, with no armband", () => {
   assert.equal(S.top.k, "kept");
 });
 
-// turnSwaps: bench swaps between turns. Court and 6th man count 100%, bench 50%; only same-position swaps.
+// turnSwaps: bench swaps between turns. Court and 6th man count 100%, bench 50%; any position, if the five is a formation.
 const { turnSwaps } = new Function(src + "\nreturn {turnSwaps};")();
 const sq = () => {
   const B = { id: 1, short: "Bryant", pos: "G", day: W, x: 22.4 }, M = { id: 3, short: "Maledon", pos: "G", day: T, x: 20.6 },
@@ -104,18 +104,18 @@ const sq = () => {
 };
 const sc = (m) => p => m[p.id] ?? null;
 
-test("swaps: on Thursday the Friday bench players wait for Thursday's games in their position", () => {
+test("swaps: on Thursday the Friday bench players wait for Thursday's games", () => {
   const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 14.3, 2: 22 }) });
   assert.deepEqual(R.swaps, []);
-  assert.deepEqual(R.wait.map(p => p.short).sort(), ["Etienne", "Jackson", "Ndiaye"]);
+  assert.deepEqual(R.wait.map(p => p.short).sort(), ["Etienne", "Faye", "Jackson", "Ndiaye"]);
 });
 
-test("swaps: after Thursday, a bench player comes in for a same-position player who scored under his projection", () => {
+test("swaps: after Thursday, bench players come in for the players who scored under their projection", () => {
   const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 14.3, 2: 22, 3: 25, 4: 16, 7: 5, 8: 6 }) });
   const s = R.swaps.map(s => [s.in.short, s.out.short, s.gain]);
-  // Ndiaye for Ojeleye: (17.7 − 5) / 2; Jackson for Davidovac: (8 − 6) / 2; Etienne for Bryant: (18.6 − 14.3) / 2
-  assert.deepEqual(s, [["Ndiaye", "Ojeleye", 6.4], ["Etienne", "Bryant", 2.2], ["Jackson", "Davidovac", 1]]);
-  assert.ok(R.swaps.every(x => x.in.pos === x.out.pos));
+  // Ndiaye for Ojeleye: (17.7 − 5) / 2; Etienne for the 6th man Davidovac (any position): (18.6 − 6) / 2
+  assert.deepEqual(s, [["Ndiaye", "Ojeleye", 6.4], ["Etienne", "Davidovac", 6.3]]);
+  assert.deepEqual([R.swaps[0].from, R.swaps[0].form], [[3, 1, 1], [3, 1, 1]]);
   assert.deepEqual(R.wait, []);
 });
 
@@ -129,4 +129,34 @@ test("swaps: a new captain on the bench comes in first, even for a small gain", 
 test("swaps: gains under 1 point are left out", () => {
   const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 18, 2: 22, 3: 25, 4: 18, 7: 17, 8: 17.5 }) });
   assert.deepEqual(R.swaps.map(s => s.in.short), []);
+});
+
+// a five that all played on Wednesday, a bench that plays on Friday
+const p5 = (id, short, pos, day, x) => ({ id, short, pos, day, x });
+const wed = () => {
+  const a = p5(1, "A", "G", W, 15), b = p5(2, "B", "G", W, 15), c = p5(3, "C", "F", W, 15), d = p5(4, "D", "F", W, 15),
+    e = p5(5, "E", "C", W, 15), f = p5(6, "F6", "F", W, 15);
+  return { st: [a, b, c, d, e], six: f, days, a, b, c, d, e, f };
+};
+
+test("swaps: a forward comes in for a guard, and the formation changes", () => {
+  const S = wed(), g = p5(7, "G", "F", F, 18), h = p5(8, "H", "G", F, 3), i = p5(9, "I", "C", F, 4), j = p5(10, "J", "F", F, 5);
+  const R = turnSwaps({ ...S, bench: [g, h, i, j], score: sc({ 1: 2, 2: 20, 3: 20, 4: 20, 5: 20, 6: 20 }) });
+  assert.deepEqual(R.swaps.map(s => [s.in.short, s.out.short, s.gain]), [["G", "A", 8]]);
+  assert.deepEqual([R.swaps[0].from, R.swaps[0].form], [[2, 2, 1], [1, 3, 1]]);
+});
+
+test("swaps: never a five that is not a formation, and a player who has played never comes in", () => {
+  const S = wed(), h = p5(8, "H", "G", F, 18), i = p5(9, "I", "C", F, 6), k = p5(11, "K", "G", W, 25);
+  // H for the centre E would leave no centre (3-2-0); K has played (30), so he stays on the bench
+  const R = turnSwaps({ ...S, bench: [h, i, k], score: sc({ 1: 20, 2: 20, 3: 20, 4: 20, 5: 2, 6: 20, 11: 30 }) });
+  assert.deepEqual(R.swaps.map(s => [s.in.short, s.out.short, s.gain]), [["I", "E", 2]]);
+});
+
+test("swaps: each turn's five is a formation, not only the last one", () => {
+  // 1-3-1 with X (F) scoring 4 and the centre E scoring 11. H (G) plays Thursday, I (C) Friday.
+  // H for E and then I for X would end 2-2-1 (13.5 points), but after Thursday the five has no centre (2-3-0).
+  const S = wed(), x = p5(2, "X", "F", W, 15), h = p5(8, "H", "G", T, 30), i = p5(9, "I", "C", F, 12);
+  const R = turnSwaps({ ...S, st: [S.a, x, S.c, S.d, S.e], bench: [h, i], score: sc({ 1: 20, 2: 4, 3: 20, 4: 20, 5: 11, 6: 20 }) });
+  assert.deepEqual(R.swaps.map(s => [s.in.short, s.out.short, s.gain, s.form.join("-")]), [["H", "X", 13, "2-2-1"]]);
 });

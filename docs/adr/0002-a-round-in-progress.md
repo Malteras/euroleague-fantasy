@@ -26,11 +26,13 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 - **Lineup changes between turns** (GLOSSARY, docs/rules.md): any swap, as long as the player coming in has not played
   and the new five is one of the five formations; the formation may change. Corrected with Ognjen on 22 Oct 2026 against
   the official rules book: this bullet first said "only same position, so the formation stays", a rule nobody had checked.
-  The site still suggests same-position swaps only (GitHub issue #70). Court and 6th man count 100%,
+  The site picks the set of swaps with the most points; the five after each turn's swaps must be a formation, and the
+  6th man can be any position (#70). Court and 6th man count 100%,
   bench 50%, so bringing in B for A gains half of (B's projection − A's score, or A's projection if he has not played).
-  Shown when it gains 1 point or more. While a court player in B's position still plays before B, it waits for that game
+  Shown when it gains 1 point or more. While any court player still plays before B, it waits for that game
   (Etienne could replace Bryant now, but Feliz scoring 5 on Thursday would make Etienne-for-Feliz better). A new captain on
-  the bench comes into the five first. Under the turn the change is due before, in "Plan for the round" and the Bottom line.
+  the bench comes into the five first. Under the turn the change is due before, in "Plan for the round" and the Bottom line,
+  with the turn's formation when it changes ("3-1-1 → 2-2-1").
 - **Apply to My team**: each coming turn with changes has the button in "Plan for the round". It sets the captain and the
   lineup changes on My team and ticks that turn's Bottom line items. Nothing reaches the daily report until Save on My team.
 - **The captain walk** starts at the round's first captain (the deadline snapshot), not the saved one, so a played turn keeps

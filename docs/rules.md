@@ -61,6 +61,8 @@ So, between turns:
 
 - **There is no same-position rule.** A guard can go to the bench for a forward, as long as the new five is one of the
   five formations. (Corrected with Ognjen on 22 Oct 2026; the repo said "same position only" until then.)
+- The formation is only for the starting five. The rules book does not say which position the 6th man must be; the site
+  assumes any. **Not in the official rules.**
 - The rules book does not say what the first captain's score counts once he loses the armband. The site assumes it then
   counts once (×1). **Not in the official rules.**
 

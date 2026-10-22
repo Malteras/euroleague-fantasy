@@ -2209,7 +2209,7 @@ function proposalParts(R){
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
   const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
     return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?`${fmt(r1(b.x-a.x),1)} now · ${fmt(r1(b.nx-a.nx),1)} next`:`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
-  const trades=TRADES_CLOSED?`<div class="card ptrades"><h3>Trades</h3><div class="warnbox">${esc(D.roundLabel)} has started (first tip-off ${esc(dayShort(D.deadline))}). Trades are closed until the next round's deadline. You can only swap court and bench players and move the captain to players who have not played yet.</div></div>`
+  const trades=TRADES_CLOSED?`<div class="card ptrades"><h3>Trades</h3><div class="warnbox">${esc(D.roundLabel)} has started (first tip-off ${esc(dayShort(D.deadline))}). Trades are closed until the next round's deadline. You can only swap court and bench players, change the formation and move the captain. Only players who have not played yet come in or take the armband.</div></div>`
     :`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
   return {tiles,warn,trades,body};
@@ -2288,29 +2288,56 @@ function capStrip({ps,days,first,firstKeep,score,nowId,played,tipOf}){
   for(const s of stops)s.last=s.keep==null&&!s.res&&!s.gone&&(final(s.p)||s===stops[stops.length-1]);
   return {stops,top,bonus:kept?kept.score:0,holdId:over?(kept?kept.p.id:null):nowId};
 }
-// Bench swaps between turns. A bench player who has not played comes onto the court (or 6th man) for one of the same
-// position (Ognjen, 22 Oct 2026: only same-position swaps), so the formation stays. Court and 6th man count 100%, bench 50%:
+// Bench swaps between turns. A bench player who has not played comes onto the court (or 6th man) for any player, as long
+// as the starting five is one of FORMS after each turn's swaps (official rules: "field-bench subs ... only if the new player
+// chosen has not yet taken the field", and the formation may change; docs/rules.md). Court and 6th man count 100%, bench 50%:
 // the swap gains half of (bench player's projection − the other's score, or his projection if he has not played).
-// While a court player in the bench player's position still plays before him, the swap waits for that game (wait).
+// While a court player still plays before the bench player, the swap waits for that game (wait): it may make a better swap.
 // capTo: the captain for the coming turn; he must be in the starting five, so he comes in first whatever it costs.
-// Returns {swaps: [{out, in, gain, day (the turn it is due before), cap}], wait: [bench players]}; only gains of 1+ point.
+// The set of swaps with the most points is picked from every set (at most 4 bench players: about a thousand sets).
+// Returns {swaps: [{out, in, gain, day (the turn it is due before), cap, from, form (formation before and after that turn)}],
+// wait: [bench players]}; only gains of 1+ point, except the captain's.
 function turnSwaps({st,six,bench,score,days,capTo}){
-  const v=p=>score(p)??p.x,ix=p=>days.indexOf(p.day),out=[],used=new Set();
-  // a bench player waits while a court player in his position still plays before him: that game may make a better swap
-  const blocked=b=>[...st,six].some(c=>c&&c.pos===b.pos&&score(c)==null&&ix(c)<ix(b));
-  const ok=(a,b)=>a.pos===b.pos&&score(b)==null&&!blocked(b)&&(score(a)!=null||ix(a)>=ix(b));
+  const v=p=>score(p)??p.x,ix=p=>days.indexOf(p.day);
+  const form=five=>{const c={G:0,F:0,C:0};five.forEach(p=>c[p.pos]++);return [c.G,c.F,c.C];};
+  const valid=f=>FORMS.some(g=>g.join()===f.join());
+  const blocked=b=>[...st,six].some(c=>c&&score(c)==null&&ix(c)<ix(b));
+  const ok=(a,b)=>score(b)==null&&!blocked(b)&&(score(a)!=null||ix(a)>=ix(b));
   const gain=(a,b)=>Math.round((v(b)-v(a))*5)/10;
-  if(capTo&&!st.includes(capTo)&&score(capTo)==null){
-    const a=st.filter(a=>a.pos===capTo.pos&&a!==capTo).sort((x,y)=>v(x)-v(y))[0];
-    if(a){out.push({out:a,in:capTo,gain:gain(a,capTo),day:capTo.day,cap:true});used.add(a).add(capTo);}
-  }
-  const pairs=[];
-  for(const a of [...st,six].filter(Boolean))for(const b of bench)if(ok(a,b))pairs.push({out:a,in:b,gain:gain(a,b),day:b.day});
-  pairs.sort((x,y)=>y.gain-x.gain);
-  for(const s of pairs)if(s.gain>=1&&!used.has(s.out)&&!used.has(s.in)){out.push(s);used.add(s.out).add(s.in);}
+  const needCap=capTo&&!st.includes(capTo)&&score(capTo)==null&&(bench.includes(capTo)||capTo===six)?capTo:null;
+  const slots=[...st,six].filter(Boolean),pairs=[];
+  for(const a of slots)for(const b of bench)if(b!==needCap&&ok(a,b)){const g=gain(a,b);if(g>=1)pairs.push({out:a,in:b,gain:g,day:b.day,cap:false});}
+  // a 6th man who becomes captain swaps with a starter: both count 100%, so no gain
+  if(needCap)for(const a of st)pairs.push({out:a,in:needCap,gain:needCap===six?0:gain(a,needCap),day:needCap.day,cap:true});
+  // the five after the swaps due up to each turn must be a formation, or that turn can't be set in the game
+  const fits=set=>{let five=st.slice();
+    for(const d of days){const now=set.filter(s=>s.day===d);if(!now.length)continue;
+      now.forEach(s=>{const i=five.indexOf(s.out);if(i>=0)five[i]=s.in;});if(!valid(form(five)))return false;}
+    return true;};
+  let best=null;
+  const walk=(i,set,used)=>{
+    if(i===pairs.length){
+      if(needCap&&!set.some(s=>s.cap))return;
+      if(!fits(set))return;
+      const t=set.reduce((n,s)=>n+s.gain,0);
+      if(!best||t>best.t+1e-9||(Math.abs(t-best.t)<1e-9&&set.length<best.set.length))best={t,set:set.slice()};
+      return;}
+    walk(i+1,set,used);
+    const s=pairs[i];
+    if(!used.has(s.out)&&!used.has(s.in)){used.add(s.out).add(s.in);set.push(s);
+      walk(i+1,set,used);set.pop();used.delete(s.out);used.delete(s.in);}
+  };
+  walk(0,[],new Set());
+  const out=best?best.set.slice().sort((x,y)=>(y.cap-x.cap)||(y.gain-x.gain)):[];
+  // each swap carries the formation before and after its turn's swaps
+  let five=st.slice();
+  for(const d of days){const now=out.filter(s=>s.day===d);if(!now.length)continue;
+    const from=form(five);now.forEach(s=>{const i=five.indexOf(s.out);if(i>=0)five[i]=s.in;});
+    const to=form(five);now.forEach(s=>{s.from=from;s.form=to;});}
+  const used=new Set(out.map(s=>s.in));
   // bench players who wait for those games; after them the swap is decided on the real scores
   const wait=bench.filter(b=>!used.has(b)&&score(b)==null&&blocked(b));
-  return {swaps:out,wait};
+  return {swaps:out.map(s=>({...s})),wait};
 }
 // capStrip:end
 // The round in progress (null before the first tip-off): his saved lineup, the real scores, the captain walk, the next turn.
@@ -2384,7 +2411,9 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     const its=live&&!done?LIVE.filter(i=>i.turn===d):[];
     its.filter(i=>i.kind==="swap").forEach(i=>{const [b,o]=i.ps,g=i.detail.find(x=>x[0]==="pts")[1];
       acts.push(`Bring ${name(b)} in for ${name(o)} (${esc(g)}).${i.cap?" He is your captain, so he must be in the starting five.":""}`);});
-    its.filter(i=>i.kind==="wait"&&/^Lineup changes/.test(i.title)).forEach(i=>acts.push(`<span class="muted">${esc(i.title)}: ${i.ps.map(p=>`${name(p)} (proj ${p.x})`).join(", ")} can come in for anyone in his position who scores under that.</span>`));
+    const fc=its.find(i=>i.kind==="swap"&&i.form.join()!==i.from.join());
+    if(fc)acts.push(`New formation: ${fc.from.join("-")} → ${fc.form.join("-")}.`);
+    its.filter(i=>i.kind==="wait"&&/^Lineup changes/.test(i.title)).forEach(i=>acts.push(`<span class="muted">${esc(i.title)}: ${i.ps.map(p=>`${name(p)} (proj ${p.x})`).join(", ")} can come in for anyone who scores under that, in any position the formation allows.</span>`));
     const changes=its.filter(i=>i.apply&&(i.apply.out!=null||(i.apply.cap!=null&&i.apply.cap!==team.cap)));
     if(changes.length)acts.push(`<span class="tl-act"><button type="button" class="btn-primary" data-apply-turn="${d}">Apply to My team</button><span class="note">Then press <b>Save for daily report</b> on My team. The Bottom line ticks these off.</span></span>`);
     if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (${projOf(coach)}).</span>`);
@@ -2740,9 +2769,9 @@ function blLiveItems(LR){
     detail:[["pts",`${cur.x.toFixed(1)} projected`],["",`, plays ${dayShort(cur.day)}`]]});
   const SW=turnSwaps({st:LR.st,six:LR.six,bench:LR.bench,score:LR.score,days:dayKeys,capTo:cur&&unplayed(cur)?cur:null});
   const swapItem=s=>({id:`${R}:live:swap:${s.out.id}>${s.in.id}`,kind:"swap",turn:s.day,
-    title:`Bring ${s.in.short} in for ${s.out.short}`,ps:[s.in,s.out],apply:{out:s.out.id,in:s.in.id},cap:!!s.cap,
+    title:`Bring ${s.in.short} in for ${s.out.short}`,ps:[s.in,s.out],apply:{out:s.out.id,in:s.in.id},cap:!!s.cap,from:s.from,form:s.form,
     detail:[["",`${s.out.short} ${LR.score(s.out)!=null?`scored ${LR.score(s.out)}`:`proj ${s.out.x}`}, ${s.in.short} proj ${s.in.x}: `],["pts",`${s.gain>=0?"+":"−"}${Math.abs(s.gain).toFixed(1)} pts`],
-      ["",`${s.cap?`\n${s.in.short} is your captain, so he must be in the starting five`:"\nSame position, so the formation stays"}\nDo it before ${dayWhen(s.day)}`]]});
+      ["",`${s.cap?`\n${s.in.short} is your captain, so he must be in the starting five`:""}\n${s.form.join()===s.from.join()?`Formation stays ${s.form.join("-")}`:`This turn's formation: ${s.from.join("-")} → ${s.form.join("-")}`}\nDo it before ${dayWhen(s.day)}`]]});
   // the next turn: captain, swaps due before it, the lineup, status checks
   SW.swaps.filter(s=>s.day===nd).forEach(s=>items.push(swapItem(s)));
   const court=LR.st.filter(unplayed),six=LR.six&&unplayed(LR.six)?LR.six:null;
@@ -2760,9 +2789,9 @@ function blLiveItems(LR){
       detail:[["pts",`${cur.x.toFixed(1)} projected`],["",`, plays ${dayShort(d)}: his score counts double, whatever it is`]]});
     SW.swaps.filter(s=>s.day===d).forEach(s=>items.push(swapItem(s)));
     const wb=SW.wait.filter(b=>b.day===d);
-    if(wb.length){const before=[...new Set(LR.st.concat(LR.six?[LR.six]:[]).filter(a=>unplayed(a)&&wb.some(b=>b.pos===a.pos)&&a.day<d).map(a=>a.day))].sort().pop();
+    if(wb.length){const before=[...new Set(LR.st.concat(LR.six?[LR.six]:[]).filter(a=>unplayed(a)&&a.day<d).map(a=>a.day))].sort().pop();
       items.push({id:`${R}:live:wait:swap:${d}`,kind:"wait",turn:d,title:`Lineup changes: decide after ${dayShort(before)}'s games`,ps:wb,
-        detail:[["",`${wb.map(b=>`${b.short} (${b.pos}, proj ${b.x})`).join(", ")} can come in for anyone in his position who scores under that. Do it before ${dayWhen(d)}.`]]});}
+        detail:[["",`${wb.map(b=>`${b.short} (${b.pos}, proj ${b.x})`).join(", ")} can come in for anyone who scores under that, in any position the formation allows. Do it before ${dayWhen(d)}.`]]});}
   });
   return items;
 }
