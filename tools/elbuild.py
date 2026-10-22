@@ -154,7 +154,7 @@ def norm(s):
     s = unicodedata.normalize('NFKD', s).encode('ascii','ignore').decode().lower()
     return re.sub(r'[^a-z ]', '', s).split()
 # Official EuroLeague box scores: the source for every EuroLeague score (PIR, minutes, points).
-# FantaSheet's game log is only the fallback for a game the official feed does not have yet.
+# Only the current round's games are read; older games come from FantaSheet's game log.
 EL_API = 'https://api-live.euroleague.net/v2/competitions/E/seasons/E2026/games'
 EL_BOX = 'https://live.euroleague.net/api/Boxscore?seasoncode=E2026&gamecode='
 EL_CODE = {'BAS':'KBA','BES':'BJK','IST':'EFS','MAD':'RMB','MUN':'BAY','PAM':'VAL','PAN':'PAO','PRS':'PBB','RED':'CZV','TEL':'MTA','ULK':'FBT'}
@@ -163,10 +163,14 @@ def el_name(s):
     return [w for w in norm(s.replace(',', ' ').replace('-', ' ')) if w not in ('jr', 'ii', 'iii', 'iv')]
 
 def official_games(pages):
-    """{(date, club): {'opp', 'ha', 'win', 'res', 'players': [(name words, line)]}} for every finished EuroLeague game."""
+    """{(date, club): [(name words, line)]} for the finished games of the current round (the latest round with a game played).
+    Older games do not change, so they stay as FantaSheet's game log has them."""
     f = get(EL_API, os.path.join(pages, 'el_games.json'))
     try: games = [g for g in json.load(open(f))['data'] if g.get('played')]
     except Exception: return {}
+    if not games: return {}
+    rnd = max(g['round'] for g in games)
+    games = [g for g in games if g['round'] == rnd]
     def box(g):
         return g, get(EL_BOX + str(g['gameCode']), os.path.join(pages, f"el_box{g['gameCode']}.json"))
     with ThreadPoolExecutor(8) as ex: boxes = list(ex.map(box, games))
@@ -202,7 +206,7 @@ def find_line(name, lines):
     return hits[0][1] if len(hits) == 1 else None
 
 def apply_official(players, games):
-    """Replace each player's EuroLeague game log with the official numbers; FantaSheet keeps only games the feed lacks."""
+    """Put the official numbers into each player's game log for the games read (replacing FantaSheet's row of that day)."""
     used = 0
     for p in players:
         log = {g['d']: g for g in p.get('log', [])}
@@ -416,7 +420,7 @@ def main():
         except Exception as e:
             bad.append((pid, slug, repr(e)[:80]))
     games = official_games(pages)
-    print('official box scores', len(games) // 2, 'games, player lines used', apply_official(players, games))
+    print('official box scores (current round)', len(games) // 2, 'games, player lines used', apply_official(players, games))
     cache = old.get('sofaIds', {})
     since = (datetime.date.today() - datetime.timedelta(days=12)).isoformat()
     domgames = sofa_domestic(players, cache, since)

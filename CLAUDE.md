@@ -31,7 +31,8 @@ got the numbers of the game before it, for every player. Bryant's 14.3 became 24
 to keep Bryant as captain when the rule said to move the armband to Maledon.
 Fixed in `parse_log` (the "*" is removed before parsing).
 Since 22 Oct the builder takes every EuroLeague score (PIR, minutes, points) from the official EuroLeague box scores
-(`official_games` / `apply_official` in tools/elbuild.py). FantaSheet's game log is only used for a game the official feed does not have yet.
+(`official_games` / `apply_official` in tools/elbuild.py). It reads only the games of the current round
+(the latest round with a game played); older games do not change and stay as FantaSheet's game log has them.
 The official box score is the source of the results. Read it; do not rebuild scores from other pages when it is available.
 
 Rules:
