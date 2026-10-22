@@ -402,9 +402,9 @@ section{padding-block:28px 8px}
 .tp-bar{display:grid;grid-template-columns:78px minmax(80px,1fr) 40px minmax(0,150px);gap:8px;align-items:center;padding:4px 0;font-size:13.5px}
 .tp-k{font-weight:700}.tp-track{position:relative;height:10px;border-radius:999px;background:var(--raise);overflow:hidden}
 .tp-mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:var(--line)}
-.tp-fill{position:absolute;top:0;bottom:0}.tp-fill.plus{background:var(--good)}.tp-fill.minus{background:var(--bad)}
-.tp-v{font-family:var(--display);font-weight:800;font-size:17px;text-align:right}.tp-v.bad{color:var(--good)}.tp-v.good{color:var(--bad)}
-.tp-vt{font-size:12.5px;color:var(--muted)}.tp-vt.bad{color:var(--good);font-weight:600}.tp-vt.good{color:var(--bad);font-weight:600}
+.tp-fill{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--raise) 78%,var(--fg))}.tp-fill.good{background:var(--good)}.tp-fill.bad{background:var(--bad)}
+.tp-v{font-family:var(--display);font-weight:800;font-size:17px;text-align:right}.tp-v.good{color:var(--good)}.tp-v.bad{color:var(--bad)}
+.tp-vt{font-size:12.5px;color:var(--muted)}.tp-vt.good{color:var(--good);font-weight:600}.tp-vt.bad{color:var(--bad);font-weight:600}
 .tp-line{margin:8px 0 0;font-size:14px}
 .tp-warn{padding:10px 12px;border-radius:12px;background:var(--warn-soft);font-size:14px}
 .tp-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -1447,13 +1447,15 @@ function teamInfo(t){
   const players=P.filter(p=>p.team===t);
   return {t,df,avgAllowed,games,w,l:games.length-w,pos,weak,strong,opp,players};
 }
+// How a defence treats a position, from the player's point of view: green easy, red hard, grey average.
+// The team cards and the team analysis drawer both use it, so they say the same thing.
 function verdict(v,k){
   if(v==null)return {cls:"",txt:"No data"};
-  if(v>=25)return {cls:"bad",txt:`Very weak vs ${POSW[k]}`};
-  if(v>=12)return {cls:"bad",txt:`Weak vs ${POSW[k]}`};
-  if(v<=-25)return {cls:"good",txt:`Very strong vs ${POSW[k]}`};
-  if(v<=-12)return {cls:"good",txt:`Strong vs ${POSW[k]}`};
-  return {cls:"",txt:`Average vs ${POSW[k]}`};
+  if(v>=25)return {cls:"good",txt:`Very easy for ${POSW[k]}`};
+  if(v>=12)return {cls:"good",txt:`Easy for ${POSW[k]}`};
+  if(v<=-25)return {cls:"bad",txt:`Very hard for ${POSW[k]}`};
+  if(v<=-12)return {cls:"bad",txt:`Hard for ${POSW[k]}`};
+  return {cls:"",txt:`Average for ${POSW[k]}`};
 }
 function teamSummary(I){
   // plain-English lines: what they allow and how to use it
@@ -1469,7 +1471,7 @@ function teamPanel(){
   if(!tp||!TEAMS[tp])return "";
   const I=teamInfo(tp),n=TEAMS[tp][0],col=TEAMS[tp][1];
   const bars=I.pos.map(({k,v})=>{const V=verdict(v,k);const w=v==null?0:Math.min(50,Math.abs(v));
-    return `<div class="tp-bar"><span class="tp-k">${POSW[k][0].toUpperCase()+POSW[k].slice(1)}</span><span class="tp-track"><span class="tp-mid"></span><span class="tp-fill ${v>=0?"plus":"minus"}" style="${v>=0?"left:50%":"right:50%"};width:${w}%"></span></span><span class="tp-v ${V.cls}">${v==null?"–":(v>0?"+":"")+v}</span><span class="tp-vt ${V.cls}">${esc(V.txt)}</span></div>`;}).join("");
+    return `<div class="tp-bar"><span class="tp-k">${POSW[k][0].toUpperCase()+POSW[k].slice(1)}</span><span class="tp-track"><span class="tp-mid"></span><span class="tp-fill ${V.cls}" style="${v>=0?"left:50%":"right:50%"};width:${w}%"></span></span><span class="tp-v ${V.cls}">${v==null?"–":(v>0?"+":"")+v}</span><span class="tp-vt ${V.cls}">${esc(V.txt)}</span></div>`;}).join("");
   // attack them: this round's opponent players at their weak position
   let attack="";
   if(I.opp&&I.weak&&I.weak.v>=12){
@@ -1517,7 +1519,8 @@ function teamsPage(){
   const gameOf=(t,d)=>teamInfo(t).games.find(g=>g.d===d&&g.res)||null;
   const rows=teamOrder(Object.keys(TEAMS).filter(t=>(D.defence||{})[t]||P.some(p=>p.team===t)),D.fixtures||[],gameOf);
   const card=({t,f,g})=>{const I=teamInfo(t);
-    const chips=I.pos.map(({k,v})=>{const V=verdict(v,k);return V.cls?`<span class="ptag ${V.cls==="bad"?"good":"warn"}">${V.cls==="bad"?"Easy":"Hard"} for ${POSW[k]} ${v>0?"+":""}${v}</span>`:"";}).join("");
+    // every position, in the same words and colours as the drawer
+    const chips=I.pos.map(({k,v})=>{if(v==null)return "";const V=verdict(v,k);return `<span class="ptag ${V.cls}">${V.txt} ${v>0?"+":""}${v}</span>`;}).join("");
     // this round: the result once played (from the club's side), else when and where it plays; no projection either way
     const R=g?gameInfo(g,null):null,vs=f?`${f.ha==="H"?"vs":"@"} ${esc((TEAMS[f.opp]||[f.opp])[0])}`:"";
     const now=!f?"":R&&R.res?`<span class="tc-res ${R.win?"w":"l"}">${R.res[0]}</span> ${esc(R.res.slice(2))} ${vs}`:g?`Played ${vs}`:`${esc(dayShort(f.d))}${f.time?" "+esc(f.time):""} ${vs}`;
