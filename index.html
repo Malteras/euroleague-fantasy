@@ -14,6 +14,7 @@
   --bg:#0a1120; --surface:#111a2c; --raise:#17233a; --line:#22314d; --line-soft:#1a2741;
   --fg:#e9eef8; --muted:#8e9bb6; --faint:#7f8cab; /* faint text still meets WCAG AA 4.5:1 on surface and raise */
   --accent:#27b7c4; --accent-soft:rgba(39,183,196,.14); --accent-ink:#04252a;
+  --tip-good:#0c6a41; --tip-bad:#b02842; /* on the light tooltip (its background is --fg): the light theme's colours */
   --good:#3fcf8f; --good-ink:#04251a; --good-soft:rgba(63,207,143,.14); --bad:#f7889b; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15); --warn-ink:#1d1300;
   --be:#8e9bb6; --credit:#f3b64b;
   --court-a:#1d2a3f; --court-b:#152036; --court-line:rgba(255,255,255,.10);
@@ -26,12 +27,14 @@
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#5f6c85;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
+  --tip-good:#3fcf8f; --tip-bad:#f7889b; /* on the dark tooltip: the dark theme's colours */
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#5f6c85;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
+  --tip-good:#3fcf8f; --tip-bad:#f7889b; /* on the dark tooltip: the dark theme's colours */
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}
 *{box-sizing:border-box}
@@ -406,6 +409,9 @@ section{padding-block:28px 8px}
 /* the site's tooltip on a TBC cell and on each Last 5 bar (an invisible hit area over the bar holds it) */
 .tbc .tip,.sp-hit .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;white-space:normal;text-decoration:none}
 .tbc .tip b,.sp-hit .tip b{display:block}
+.tip .tg-up{color:var(--tip-good);font-style:normal}.tip .tg-dn{color:var(--tip-bad);font-style:normal}
+/* fade the grey text by colour, not opacity, so green and red inside it stay at full contrast */
+.sp-hit .tip.tip-pick small{opacity:1;color:color-mix(in srgb,var(--bg) 65%,var(--fg))}.sp-hit .tip.tip-pick i{opacity:1;color:color-mix(in srgb,var(--bg) 80%,var(--fg))}
 .tbc:hover .tip,.tbc:focus-visible .tip,.sp-hit:hover .tip,.sp-hit:focus-visible .tip{opacity:1}
 .sp-w{position:relative;display:block;width:150px}.sp-hit{position:absolute;top:0;bottom:0;width:20%;cursor:help;border-radius:3px}
 .sp-hit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -2452,7 +2458,7 @@ function spark(p){
   // each bar's tooltip: the game, points against the projection (on record for this round's game only), credit change
   const bars=g.map((x,i)=>{const h=Math.max(2,Math.max(0,x.fpt)/max*(H-2));return `<rect class="bar${x.fpt<p.be?" lo":""}" x="${i*(W/5)+3}" y="${H-h}" width="${bw}" height="${h}" rx="2"></rect>`}).join("");
   const hits=g.map((x,i)=>{const t=gameInfo(x,x.d===p.day?dx:null,shownCtx().rnd(p,x.d));
-    return `<span class="sp-hit has-tip" tabindex="0" style="left:${i*20}%" aria-label="${esc(`${t.when}: ${t.pts}, ${t.vs}${t.cr?", "+t.cr:""}`)}">${tipPick(t.when,t.pts,t.vs,t.cr)}</span>`;}).join("");
+    return `<span class="sp-hit has-tip" tabindex="0" style="left:${i*20}%" aria-label="${esc(`${t.when}: ${t.pts}, ${t.vs}${t.cr?", "+t.cr:""}`)}">${gameTipHtml(t)}</span>`;}).join("");
   const y=H-p.be/max*(H-2);
   return `<span class="sp-w"><svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${g.length} games: ${g.map(x=>x.fpt).join(", ")} fantasy points; break-even ${p.be}">${bars}<line class="be" x1="0" x2="${W}" y1="${y}" y2="${y}"></line></svg>${hits}</span>`;
 }
@@ -2989,9 +2995,19 @@ const dayFmt=d=>{const t=new Date(d+"T12:00:00");return isNaN(t)?d:`${"Sun Mon T
 function gameInfo(g,x,rnd){
   const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||""),res=m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"";
   const pct=x>0?Math.round(100*(g.fpt-x)/x):null,sg=v=>v>0?"+":v<0?"−":"";
-  return {when:`${rnd!=null?`R${rnd} · `:""}${dayFmt(g.d)} · ${g.ha==="A"?"@":"vs"} ${g.opp}${res?" · "+res:""}`,pts:`${g.fpt} points`,
+  const head=`${rnd!=null?`R${rnd} · `:""}${dayFmt(g.d)} · ${g.ha==="A"?"@":"vs"} ${g.opp}`;
+  return {when:`${head}${res?" · "+res:""}`,pts:`${g.fpt} points`,
     vs:x!=null?`${x} projected${pct!=null?` · ${sg(pct)}${Math.abs(pct)}%`:""}`:"No projection on record",
-    cr:g.cr!=null?`${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr value`:null};
+    cr:g.cr!=null?`${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr value`:null,
+    head,res,win:m?m[1]==="W":null,pct,crN:g.cr??null};
+}
+// The same as the site's tooltip, in colour: green for a win, points above the projection, a gain; red for the opposite.
+// Points are judged only against a projection on record; zero is neither colour.
+function gameTipHtml(t){
+  const c=v=>v>0?' class="tg-up"':v<0?' class="tg-dn"':"",em=(v,txt)=>v?`<em${c(v)}>${esc(txt)}</em>`:esc(txt);
+  const vs=t.pct!=null?esc(t.vs.slice(0,t.vs.lastIndexOf(" · ")+3))+em(t.pct,t.vs.slice(t.vs.lastIndexOf(" · ")+3)):esc(t.vs);
+  return `<span class="tip tip-pick" role="tooltip"><small>${esc(t.head)}${t.res?` · ${em(t.win?1:-1,t.res)}`:""}</small>`
+    +`<b${t.pct?c(t.pct):""}>${esc(t.pts)}</b><span>${vs}</span>${t.cr?`<i>${em(t.crN,t.cr)}</i>`:""}</span>`;
 }
 // His next game: this round's until he has played it, then next round's (p.next from the builder; null if not known)
 const upcoming=(p,played,round)=>played?(p.next?{opp:p.next.opp,ha:p.next.ha,day:p.next.date,round:p.next.round??round+1}:null)
