@@ -23,6 +23,11 @@ Rules that must never be broken:
 
 Never write a game rule from memory: find it in docs/rules.md or the official rules book first.
 
+Every round's results are kept, so rounds can be compared later (is the matchup important?). The first run after a round's
+last game day fills `actual` in history/round-N.json (`elbuild.py --history`: each player's points, minutes and credit
+change; each coach's points) and commits it. "Round N, turn by turn" shows past rounds from these files and the matchup
+line pools them. Never delete, rewrite or skip a history file; if a round's actuals are missing, fill them and say so.
+
 Be suspicious of numbers that look too neat (a last game equal to the season average, the same numbers as the game
 before). Say "I did not check" instead of giving an unchecked number as a fact.
 

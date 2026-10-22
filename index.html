@@ -755,6 +755,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
 .rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
+.rv-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.rv-head h3{margin:0}
 .rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 52px 52px 52px 64px;gap:8px;align-items:center} /* px, not em: the header's smaller font must not narrow its columns */
 .rv-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .rv-h span:not(:first-child),.rv-row span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
@@ -1131,6 +1132,15 @@ function scoreRounds(snaps){
 // The credit change one game earns: FantaSheet's own number when it has one, else (points − 1.1 × price) ÷ 25;
 // a game his club played without him (g null) is −0.1. price: his price at the deadline (the snapshot).
 function creditChange(g,price){return g?(g.cr!=null?g.cr:r1((g.fpt-1.1*price)/25)):-0.1;}
+// A finished round's games from its own history file (actual, filled the day after the round), as turnReview's logs: one
+// game per player on his club's day; a player who did not play has none. null until the actuals are in (#58).
+function actualLogs(snap){
+  const A=snap.actual&&snap.actual.players;if(!A)return null;
+  const day={};(snap.fixtures||[]).forEach(([d,h,a])=>{day[h]=day[a]=d;});
+  const L={};for(const [id,g] of Object.entries(A)){const p=snap.players.find(p=>String(p.id)===id);
+    L[id]=g&&p&&day[p.team]?[{d:day[p.team],fpt:g.fpt,min:g.min,...(g.cr!=null?{cr:g.cr}:{})}]:[];}
+  return L;
+}
 function turnReview(snap,logs,saved){
   const R=project(snap),by=Object.fromEntries(R.players.map(p=>[p.id,p])),last=R.dayKeys[R.dayKeys.length-1]||"";
   const from=saved&&(saved.updated||"")<=last?"saved":"snapshot",sq=from==="saved"?saved:(snap.squad||{});
@@ -2676,7 +2686,8 @@ function redrawReview(){const el=document.getElementById("rvCard");if(el)el.oute
 // the same walk as "Plan for the round"; a finished round uses the deadline snapshot and the real scores.
 function capStripHtml(V){
   const C=V.cap;if(!C||!C.first)return "";
-  const logs=Object.fromEntries(P.map(p=>[p.id,p.log])),playedSet=new Set(Object.values(logs).flat().filter(Boolean).map(g=>g.d));
+  // a finished round reads its own actuals, like the table under it; the live round the live logs
+  const own=HIST&&HIST.find(h=>h.round===V.round),logs=(own&&actualLogs(own))||Object.fromEntries(P.map(p=>[p.id,p.log])),playedSet=new Set(Object.values(logs).flat().filter(Boolean).map(g=>g.d));
   const LR=V.round===D.round?liveRound():null;
   const days=LR?dayKeys:V.days,fx=LR?D.fixtures:V.fixtures,played=LR?LR.playedDay:d=>playedSet.has(d);
   // a player who has played keeps his deadline projection (today's includes the game), so a played turn's keep mark stays put
@@ -2718,12 +2729,17 @@ function capStripHtml(V){
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".rv-bar");
   document.querySelectorAll(".rv-bar.open").forEach(x=>x!==b&&x.classList.remove("open"));if(b)b.classList.toggle("open");});
+const rvView={round:null};
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-rv-round]");if(!b)return;rvView.round=+b.dataset.rvRound;redrawReview();});
 function reviewCard(){
   if(!HIST){loadHistory();return '<div id="rvCard"></div>';}
   const logs=Object.fromEntries(P.map(p=>[p.id,p.log]));
-  // the latest round on record with a turn played
-  let V=null;for(const s of HIST.slice().sort((a,b)=>b.round-a.round)){V=turnReview(s,logs,savedTeam);if(V)break;}
-  if(!V)return '<div id="rvCard"></div>';
+  // every round on record with a turn played, newest first: a finished round from its own actuals (kept in its history
+  // file, so past rounds stay comparable), the live round from the live logs; the picker shows one, the latest by default
+  const all=HIST.slice().sort((a,b)=>b.round-a.round).map(s=>turnReview(s,actualLogs(s)||logs,savedTeam)).filter(Boolean);
+  if(!all.length)return '<div id="rvCard"></div>';
+  const V=all.find(v=>v.round===rvView.round)||all[0];
+  const pick=all.length>1?`<div class="seg sm" role="group" aria-label="Round">${all.slice().reverse().map(v=>`<button type="button" data-rv-round="${v.round}" class="${v===V?"on":""}" aria-pressed="${v===V}">R${v.round}</button>`).join("")}</div>`:"";
   const f=v=>v.toFixed(1),day=d=>(D.turns&&D.turns[d])||fmtShort(d),pl=r=>byId[r.id]?plink(byId[r.id],r.short):esc(r.short);
   const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.moved?`<span class="rv-tag has-tip" tabindex="0">C moved ×1${tipPick("Captain","C moved ×1","Under the keep mark: the armband moves on, so his score counts once.")}</span>`:r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
   const turns=V.turns.map(t=>{const got=t.rows.reduce((a,r)=>a+r.counted,0),px=t.rows.reduce((a,r)=>a+r.px,0);
@@ -2741,7 +2757,7 @@ function reviewCard(){
       <div class="rv-h"><span>Player</span><span>Value</span><span>Pts</span><span>Proj</span><span>± %</span><span>Matchup</span></div>${rows}`;}).join("");
   const cap=capStripHtml(V);
   const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
-  return `<div class="card rv" id="rvCard"><h3>Round ${V.round}, turn by turn</h3>${tot}${cap}${turns}
+  return `<div class="card rv" id="rvCard"><div class="rv-head"><h3>Round ${V.round}, turn by turn</h3>${pick}</div>${tot}${cap}${turns}
     <p class="note sc-foot">Players only: coach points come after the round. Pts is his own score and ± % is how far it landed from his projection at the deadline; the turn totals count court and 6th man 100%, bench ½, captain ×2 (the tags). Value is the credit change from the game. Matchup is how much more (+) or less (−) his opponent let his position score than an average team, at the deadline.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sc-span],[data-sc-band]");if(!b)return;

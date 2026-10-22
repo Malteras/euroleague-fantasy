@@ -11,7 +11,7 @@ const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)
 const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;",
   cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"),
   cut("// capPath:begin", "// capPath:end"), cut("// review:begin", "// review:end")].join("\n");
-const { turnReview } = new Function(src + "\nreturn {turnReview};")();
+const { turnReview, actualLogs } = new Function(src + "\nreturn {turnReview,actualLogs};")();
 
 const near = (a, b, tol = 0.01) => assert.ok(Math.abs(a - b) < tol, `${a} vs ${b}`);
 // no results in the logs and no xPTS, so each projection is his form: .6 × (average of the last 3) + .4 × fpt
@@ -116,4 +116,17 @@ test("each row carries his matchup at the deadline: the snapshot's allowance of 
   const R = turnReview(s, live({ 1: [W, 22], 2: [W, 14], 5: [W, 10], 7: [W, 3], 10: null }), null);
   const mu = Object.fromEntries(R.turns[0].rows.map(r => [r.id, r.mu]));
   assert.deepEqual(mu, { 1: 30, 2: null, 5: 5, 7: -4, 10: 2 });
+});
+
+test("a finished round reads its games from the round's own actuals, not the live logs (#58)", () => {
+  // the history file after the round: 1 scored 22 (+0.5 cr), 2 did not play, 3 on Thursday scored 8; 6 has no entry
+  const s = { ...snap(), actual: { players: { 1: { fpt: 22, min: 30, cr: 0.5 }, 2: null, 3: { fpt: 8, min: 20, cr: null } }, coaches: {} } };
+  const L = actualLogs(s);
+  assert.deepEqual(L, { 1: [{ d: W, fpt: 22, min: 30, cr: 0.5 }], 2: [], 3: [{ d: T, fpt: 8, min: 20 }] });
+  assert.equal(actualLogs(snap()), null);
+  // the review built from them: both turns played, 1's real score and credit change
+  const R = turnReview(s, L, null);
+  assert.deepEqual(R.turns.map(t => t.d), [W, T]);
+  const r1 = R.turns[0].rows.find(r => r.id === 1);
+  assert.equal(r1.fpt, 22); assert.equal(r1.val, 0.5);
 });

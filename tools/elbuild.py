@@ -334,7 +334,7 @@ def write_history(data, hist_dir):
             print(f'history: actuals in {p}')
 
 def fill_actual(snap, data):
-    """After the round's last game day, add what happened: each player's FPT and minutes (None = did not play)
+    """After the round's last game day, add what happened: each player's FPT, minutes and credit change (None = did not play)
     and each coach's points. Parts already filled are left alone. Returns True when something was added."""
     fixtures = snap.get('fixtures') or []
     if not fixtures or data.get('updated') <= max(f[0] for f in fixtures): return False
@@ -348,7 +348,7 @@ def fill_actual(snap, data):
         for p in snap.get('players', []):
             if p['team'] not in day: continue
             g = next((g for g in now.get(p['id'], {}).get('log', []) if g['d'] == day[p['team']]), None)
-            actual['players'][str(p['id'])] = {'fpt': g['fpt'], 'min': g['min']} if g else None
+            actual['players'][str(p['id'])] = {'fpt': g['fpt'], 'min': g['min'], 'cr': g.get('cr')} if g else None
         added = True
     # coaches[].last = points in [coachRound, the round before]
     back = (data.get('coachRound') or 0) - snap.get('round', 0)
