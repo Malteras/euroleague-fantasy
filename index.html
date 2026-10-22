@@ -139,14 +139,14 @@ section{padding-block:28px 8px}
 .gt{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted)}
 /* a played game: final score in place of vs, his players' scores against the deadline projection */
 .game.done .gt{font-size:12px;letter-spacing:.04em;text-transform:uppercase}.game.done .vs{font-family:var(--display);font-weight:700;font-size:15px;color:var(--fg);white-space:nowrap}
-.game.done .gmine{white-space:normal;overflow:visible;text-overflow:clip}.game.done .gmine .gp{display:block}
+.game.done .gmine .gp{display:block}
 .gsc{font-weight:700;color:var(--fg)}.gsc .up{color:var(--good)}.gsc .dn{color:var(--bad)}.gsc small{font-weight:400;color:var(--muted)}
 .gside{display:flex;align-items:center;gap:7px;min-width:0}
 .gside.away{justify-content:flex-end}
 .tn{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vs{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;font-weight:700}
 .tb{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:10.5px;letter-spacing:.02em;color:#fff;background:var(--tc);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18),0 0 0 1px var(--line)}
-.gmine{grid-column:2/-1;font-size:11.5px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmine{grid-column:2/-1;font-size:11.5px;font-weight:700;color:var(--accent)}
 .gmine::before{content:"Your players: ";font-weight:600;color:var(--muted)}
 
 /* panels */
@@ -405,14 +405,18 @@ section{padding-block:28px 8px}
 .tp-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .tp-pl li{display:flex;align-items:center;gap:10px}.tp-pl .jersey{width:32px;height:32px;font-size:10px;flex:none}.tp-pl .jersey::after{display:none}
 .tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}
+.has-tip{cursor:help}
 .tbc{position:relative;color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
-/* the site's tooltip on a TBC cell and on each Last 5 bar (an invisible hit area over the bar holds it) */
-.tbc .tip,.sp-hit .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;white-space:normal;text-decoration:none}
-.tbc .tip b,.sp-hit .tip b{display:block}
-.tip .tg-up{color:var(--tip-good);font-style:normal}.tip .tg-dn{color:var(--tip-bad);font-style:normal}
+/* the site's tooltip: a .tip inside a .has-tip parent (a TBC cell, the hit area over each Last 5 bar, a tag...) */
+.has-tip>.tip{position:fixed;top:0;left:0;width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:60;white-space:normal;text-decoration:none;
+  font-family:var(--body);font-weight:500;font-style:normal;text-transform:none;letter-spacing:normal}
+/* fixed, so no container with overflow:hidden or a scroll box cuts it off; placeTip() puts it under its parent */
+.has-tip>.tip b{display:block;color:inherit;white-space:normal;overflow:visible}.has-tip>.tip>span{font-weight:inherit}
+.tip .tg-up,.has-tip>.tip .tg-up{color:var(--tip-good);font-style:normal}.tip .tg-dn,.has-tip>.tip .tg-dn{color:var(--tip-bad);font-style:normal}
 /* fade the grey text by colour, not opacity, so green and red inside it stay at full contrast */
-.sp-hit .tip.tip-pick small{opacity:1;color:color-mix(in srgb,var(--bg) 65%,var(--fg))}.sp-hit .tip.tip-pick i{opacity:1;color:color-mix(in srgb,var(--bg) 80%,var(--fg))}
-.tbc:hover .tip,.tbc:focus-visible .tip,.sp-hit:hover .tip,.sp-hit:focus-visible .tip{opacity:1}
+.has-tip>.tip.tip-pick small{white-space:normal;overflow:visible;opacity:1;color:color-mix(in srgb,var(--bg) 65%,var(--fg))}.has-tip>.tip.tip-pick i{opacity:1;color:color-mix(in srgb,var(--bg) 80%,var(--fg))}
+/* .at: placed by placeTip(), so a tooltip never shows at the screen's corner */
+.has-tip:hover>.tip.at,.has-tip:focus-visible>.tip.at{opacity:1}
 .sp-w{position:relative;display:block;width:150px}.sp-hit{position:absolute;top:0;bottom:0;width:20%;cursor:help;border-radius:3px}
 .sp-hit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .tp-sc{flex:none;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.25}.tp-sc .score{font-size:17px}.tp-sc .score small{font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted)}.tp-sc small .up{color:var(--good)}.tp-sc small .dn{color:var(--bad)}.tp-pl .plink{font-weight:700}.tp-pl small{color:var(--muted);font-size:12.5px}
@@ -611,17 +615,16 @@ html.locked,html.locked body{overflow:hidden}
 .dr-icos .ico:hover,.dr-icos .ico:focus-visible{color:var(--fg);border-color:var(--faint)}
 .dr-icos .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .dr-icos .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
-.ico .tip,.ptag .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
-.ico .tip b,.ptag .tip b{display:block}
-.ico:hover .tip,.ico:focus-visible .tip,.ptag:hover .tip,.ptag:focus-visible .tip{opacity:1}
+.ico .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
+.ico .tip b{display:block}
+.ico:hover .tip,.ico:focus-visible .tip{opacity:1}
 /* Must have / Leave out and tag tooltips: who or what it is about, the name, what it means */
-.ico .tip-pick,.ptag .tip-pick,.tbc .tip-pick,.sp-hit .tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.ico .tip-pick small,.ptag .tip-pick small,.tbc .tip-pick small,.sp-hit .tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
-.ico .tip-pick b,.ptag .tip-pick b,.tbc .tip-pick b,.sp-hit .tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
-.ico .tip-pick i,.ptag .tip-pick i,.tbc .tip-pick i,.sp-hit .tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
-/* Tag tooltips open from the tag's left edge; the script nudges them back inside the drawer */
+.ico .tip-pick,.has-tip>.tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.ico .tip-pick small,.has-tip>.tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
+.ico .tip-pick b,.has-tip>.tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
+.ico .tip-pick i,.has-tip>.tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
 .ptag.has-tip{position:relative;cursor:help}
-.ptag .tip{left:0;transform:none;text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
+.ptag .tip{text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
 .mrow .ico{position:relative}
 .mrow .ico.pin .tip{left:0;transform:none}.mrow .ico.no .tip{left:auto;right:0;transform:none}
 /* next game strip under the tags */
@@ -771,6 +774,7 @@ html.locked,html.locked body{overflow:hidden}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
 .chart{display:block;max-width:none}
+.chart-w{position:relative}.ch-hit{position:absolute;top:0;bottom:0;cursor:help;border-radius:4px}.ch-hit:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .chart .g{stroke:var(--line-soft)}.chart .z{stroke:var(--line);stroke-width:1.2}
 .chart .ax{fill:var(--muted);font-size:10.5px;font-family:var(--body)}.chart .ax.sm{font-size:9.5px;fill:var(--faint)}
 .chart .vl{fill:var(--fg);font-size:11px;font-weight:700;font-family:var(--body)}
@@ -861,7 +865,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 (function(){
   const root=document.documentElement,b=document.getElementById("themeB");
   const now=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
-  const show=()=>{const d=now()==="dark";b.textContent=d?"☀":"☾";b.title=b.ariaLabel=d?"Switch to light mode":"Switch to dark mode";};
+  const show=()=>{const d=now()==="dark";b.textContent=d?"☀":"☾";b.ariaLabel=d?"Switch to light mode":"Switch to dark mode";};
   b.onclick=()=>{const t=now()==="dark"?"light":"dark";root.dataset.theme=t;try{localStorage.setItem("fz.theme",t);}catch(e){}show();};
   matchMedia("(prefers-color-scheme: light)").addEventListener("change",show);show();
 })();
@@ -1234,7 +1238,7 @@ function slotHtml(i,ep){
   const id=team.slots[i],p=id?byId[id]:null,role=i<5?(ep?POSN[ep]:"Starter"):i===5?"6th man":"Bench";
   const cls=`slot${p?"":" empty"}${sel===i?" sel":""}`;
   if(!p)return `<button type="button" class="${cls}" data-slot="${i}"${ep?` data-epos="${ep}"`:""} aria-label="${role}: add a player"><span class="plus">+</span><small>${role}</small></button>`;
-  return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}">${team.cap===id?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr · ${esc(turnOf2(p.day))}</small></button>`;
+  return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}${team.cap===id?", captain":""}">${team.cap===id?`<span class="capb has-tip">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr · ${esc(turnOf2(p.day))}</small></button>`;
 }
 function myteam(){
   const saved=sameTeam(team,savedTeam);
@@ -1243,7 +1247,7 @@ function myteam(){
   const bar=sp?`<div class="selbar"><span><b>${plink(sp)}</b> selected. Tap another spot to swap.</span><span class="selbtns"><button type="button" class="btn-primary sm" data-act="suggest">Suggest replacements</button>${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
   const coach=team.coach&&coachByTeam[team.coach];
   const cr=courtRows(),fk=cr.f.join("-");
-  const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="${k===fk?"on":""}" aria-pressed="${k===fk}" title="${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""}, ${f[2]} centre${f[2]>1?"s":""}">${f[0]}G ${f[1]}F ${f[2]}C</button>`}).join("")}</div></div>`;
+  const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="has-tip${k===fk?" on":""}" aria-pressed="${k===fk}">${f[0]}G ${f[1]}F ${f[2]}C${tipPick("Formation",`${f[0]}G ${f[1]}F ${f[2]}C`,`${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""} and ${f[2]} centre${f[2]>1?"s":""} on the court.`)}</button>`}).join("")}</div></div>`;
   return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?`Saved team${savedTeam.updated?` · ${esc(fmtDate(savedTeam.updated))}`:""} · the daily report uses this`:`Changed in this browser only · not saved for the daily report yet`}</div><h2>My team</h2></div>
    <div class="mt-actions">${SYNC.mode==="on"?`<span id="syncPill" class="syncpill ${SYNC.status==="fail"?"bad":SYNC.status==="saving"?"busy":"ok"}">${syncLabel()}</span>`:""}</div></div>
    ${SYNC.mode==="locked"?`<form class="connect" id="connectForm"><div><b>Connect this device</b><small>Enter your passcode once. Your team, picks and settings then stay the same on every device, and Save goes straight to the daily report.</small></div><input id="passIn" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode"><button class="btn-primary" type="submit">Connect</button><span class="note" id="passMsg" role="status"></span></form>`:""}
@@ -1422,7 +1426,9 @@ function teamPanel(){
   const risers=I.players.filter(p=>!p.out&&p.price<=9&&p.exp>=0.1).sort((a,b)=>b.exp-a.exp).slice(0,4);
   const outs=I.players.filter(p=>p.status);
   const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr${shown(p).played?"":` · ${projOf(p)} · ${p.exp>=0?"+":""}${r1(p.exp)} cr`}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul>`;
-  const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"}" title="${esc(g.d)}">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small></span>`).join("");
+  // the final score from this club's side (res has the home score first)
+  const fin=g=>{const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||"");return m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"No result";};
+  const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"} has-tip" tabindex="0">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small>${tipPick(dayFmt(g.d),fin(g),`${g.ha==="H"?"At home to":"Away at"} ${(TEAMS[g.opp]||[g.opp])[0]}.`)}</span>`).join("");
   const next=((D.teamNext||{})[tp]||[]).filter(x=>x.el).slice(0,3).map(x=>`<li><span>${esc(fmtShort(x.d))}</span><span>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</span></li>`).join("");
   const coach=coachByTeam[tp];
   return `<div class="scrim" data-tp-close></div><aside class="drawer tpanel" data-tpid="${tp}" role="dialog" aria-modal="true" aria-label="${esc(n)} team analysis">
@@ -1531,9 +1537,19 @@ function tagTip(p,t){
 // Header tags with their tooltip, in the style of the Must have / Leave out tooltips
 const tagTipHtml=p=>p.tags.map(([t,c])=>{const x=tagTip(p,t);return x?`<span class="ptag ${c} has-tip" tabindex="0">${esc(t)}<span class="tip tip-pick" role="tooltip"><small>${esc(x[0])}</small><b>${esc(t)}</b><span>${esc(x[1])}</span>${x[2]?`<i>${esc(x[2])}</i>`:""}</span></span>`:`<span class="ptag ${c}">${esc(t)}</span>`;}).join("");
 // Keep a tag tooltip inside the drawer: shift it left when it would run past the right edge
-function fitTip(e){const g=e.target.closest&&e.target.closest(".ptag.has-tip");if(!g)return;const tip=g.querySelector(".tip"),box=g.closest(".drawer");if(!tip||!box)return;
-  tip.style.left="";const over=tip.getBoundingClientRect().right-(box.getBoundingClientRect().right-12);if(over>0)tip.style.left=-over+"px";}
-document.addEventListener("pointerover",fitTip);document.addEventListener("focusin",fitTip);
+// The site's tooltip is fixed to the screen (CSS .has-tip>.tip): put it under its parent, centred, inside the screen,
+// above the parent when there is no room below. Where left:0;top:0 lands is measured first, because inside a
+// transformed box (the drawer as it slides in) fixed is not the screen's corner.
+function placeTip(g){const tip=g&&g.querySelector(":scope>.tip");if(!tip)return;
+  tip.style.left=tip.style.top="0px";
+  const o=tip.getBoundingClientRect(),r=g.getBoundingClientRect(),vw=document.documentElement.clientWidth,vh=innerHeight;
+  const x=Math.max(8,Math.min(r.left+r.width/2-o.width/2,vw-8-o.width));
+  const y=r.bottom+8+o.height>vh-8&&r.top-8-o.height>=8?r.top-8-o.height:r.bottom+8;
+  tip.style.left=x-o.left+"px";tip.style.top=y-o.top+"px";tip.classList.add("at");}
+const tipAt=e=>{const g=e.target.closest&&e.target.closest(".has-tip");if(g)placeTip(g);};
+document.addEventListener("pointerover",tipAt);document.addEventListener("focusin",tipAt);
+// a scroll moves the parent, not the fixed tooltip: follow it
+addEventListener("scroll",()=>document.querySelectorAll(".has-tip:hover,.has-tip:focus-visible").forEach(placeTip),{capture:true,passive:true});
 
 // optimiser:begin
 // true once the live round has started (render sets it from roundStarted()); history rounds run with it off
@@ -1953,7 +1969,7 @@ function hero(){
   const snap=HIST&&HIST.find(h=>h.round===D.round),sp=snap?project(snap).players:[];
   const px=Object.fromEntries(sp.map(p=>[p.id,p.x])),pr=Object.fromEntries(sp.map(p=>[p.id,p.price]));
   // his credit change from the game, the same number as the Value column of "Round N, turn by turn"
-  const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"}" title="Credit change from this game">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr</span>`;};
+  const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"} has-tip" tabindex="0">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr${tipPick(p.short,`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr`,"His credit change from this game.")}</span>`;};
   const scoreTxt=(p,d)=>{const g=gameOf(p,d);if(!g)return `${plink(p,p.short)} <span class="gsc">DNP${crTxt(null,p)}</span>`;
     const x=px[p.id],pc=x>0?Math.round(100*(g.fpt-x)/x):null;
     return `${plink(p,p.short)} <span class="gsc">${(+g.fpt).toFixed(1)}${pc==null?"":` <span class="${pc>=0?"up":"dn"}">${pc>=0?"+":"−"}${Math.abs(pc)}%</span>`}${crTxt(g,p)} ${x!=null?`<small>(proj ${x})</small>`:""}</span>`;};
@@ -1969,7 +1985,7 @@ function hero(){
         <span class="gside">${badge(h)}<span class="tn">${esc(TEAMS[h][0])}</span></span>
         <span class="vs">${sc?esc(sc):"vs"}</span>
         <span class="gside away"><span class="tn">${esc(TEAMS[a][0])}</span>${badge(a)}</span>
-        ${my.length?`<span class="gmine" title="Your players: ${esc(my.map(p=>p.short).join(", "))}">${names}</span>`:""}
+        ${my.length?`<span class="gmine">${names}</span>`:""}
       </li>`;}).join("");
     const shut=state.collapsed.includes(d);
     return `<div class="day${shut?" shut":""}"><button type="button" class="day-h" data-day="${d}" aria-expanded="${!shut}"><div><span class="turn">Turn ${k+1}</span><b>${esc(dayLabel(d))}</b></div><span class="day-n">${games.length} game${games.length===1?"":"s"} · ${myCount} of yours<span class="chev" aria-hidden="true"></span></span></button><ul class="games"${shut?" hidden":""}>${rows}</ul></div>`;}).join("");
@@ -1992,7 +2008,7 @@ function proposalHead(){
   return `<div class="round" id="proposal"><div class="round-title"><div class="datechip">Report of ${esc(fmtDate((D.report&&D.report.date)||D.updated))} · data updated ${esc(fmtDate(D.updated))}</div><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}${tip?` · ${tip}`:""}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2>${modeBar()}<p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things. Times are Banja Luka time.</p></div></div>`;
 }
 function bars(items,{be=null,h=170,unit=""}={}){
-  // items: [{v,label,sub,cls}] — one SVG bar chart with a zero line and optional break-even line
+  // items: [{v,label,sub,cls,tip}] (tip: tipPick's arguments) — one SVG bar chart with a zero line and optional break-even line
   const W=Math.max(320,items.length*46),pad=26,top=18,bot=36;
   const vals=items.map(i=>i.v).concat(be!=null?[be]:[]).concat([0]);
   let max=Math.max(...vals),min=Math.min(...vals);if(max-min<4){max+=2;min-=2;}
@@ -2002,9 +2018,10 @@ function bars(items,{be=null,h=170,unit=""}={}){
   for(let t=Math.ceil(min/st)*st;t<=max;t+=st)ticks.push(t);
   const grid=ticks.map(t=>`<line class="g" x1="${pad}" x2="${W-6}" y1="${y(t)}" y2="${y(t)}"></line><text class="ax" x="${pad-5}" y="${y(t)+3.5}" text-anchor="end">${t}</text>`).join("");
   const b=items.map((it,i)=>{const cx=pad+step*i+step/2,y0=y(0),y1=y(it.v),top_=Math.min(y0,y1),hh=Math.max(1.5,Math.abs(y1-y0));
-    return `<rect class="${it.cls}" x="${cx-bw/2}" y="${top_}" width="${bw}" height="${hh}" rx="3"><title>${esc(it.title||"")}</title></rect><text class="vl${it.v<0?" neg":""}" x="${cx}" y="${it.v>=0?top_-4:y0-4}" text-anchor="middle">${it.vt??it.v}</text><text class="ax" x="${cx}" y="${h-20}" text-anchor="middle">${esc(it.label)}</text><text class="ax sm" x="${cx}" y="${h-8}" text-anchor="middle">${esc(it.sub||"")}</text>`}).join("");
+    return `<rect class="${it.cls}" x="${cx-bw/2}" y="${top_}" width="${bw}" height="${hh}" rx="3"></rect><text class="vl${it.v<0?" neg":""}" x="${cx}" y="${it.v>=0?top_-4:y0-4}" text-anchor="middle">${it.vt??it.v}</text><text class="ax" x="${cx}" y="${h-20}" text-anchor="middle">${esc(it.label)}</text><text class="ax sm" x="${cx}" y="${h-8}" text-anchor="middle">${esc(it.sub||"")}</text>`}).join("");
   const bl=be!=null?`<line class="bel" x1="${pad}" x2="${W-6}" y1="${y(be)}" y2="${y(be)}"></line><text class="belt" x="${W-8}" y="${y(be)-4}" text-anchor="end">break-even ${be}</text>`:"";
-  return `<div class="chart-scroll"><svg class="chart" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img">${grid}<line class="z" x1="${pad}" x2="${W-6}" y1="${y(0)}" y2="${y(0)}"></line>${b}${bl}</svg></div>`;
+  const hits=items.map((it,i)=>it.tip?`<span class="ch-hit has-tip" tabindex="0" style="left:${pad+step*i}px;width:${step}px" aria-label="${esc(it.tip.filter(Boolean).join(", "))}">${tipPick(...it.tip)}</span>`:"").join("");
+  return `<div class="chart-scroll"><div class="chart-w" style="width:${W}px"><svg class="chart" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img">${grid}<line class="z" x1="${pad}" x2="${W-6}" y1="${y(0)}" y2="${y(0)}"></line>${b}${bl}</svg>${hits}</div></div>`;
 }
 // ownership: share of fantasy teams that hold him, and the change since last round
 function ownTxt(p){return p.pop==null?"":`${p.pop}%${p.popChg?` (${p.popChg>0?"▲":"▼"}${Math.abs(p.popChg)})`:""}`;}
@@ -2021,9 +2038,9 @@ function drawer(){
   const sw=`<div class="seg sm" id="allg"><button type="button" data-v="0" class="${!state.allGames?"on":""}" aria-pressed="${!state.allGames}">EuroLeague</button><button type="button" data-v="1" class="${state.allGames?"on":""}" aria-pressed="${state.allGames}">All games</button></div>`;
   let body="";
   if(state.dtab==="overview"){
-    const pir=bars(g.map(x=>({v:x.pir??0,vt:x.dnp?"DNP":(x.pir??"–"),label:(x.ha==="A"?"@":"")+(x.el?x.opp:shortOpp(x.opp)),sub:x.d.slice(8)+"/"+x.d.slice(5,7),cls:x.dnp?"b-dnp":x.el?(x.fpt>=p.be?"b-hi":"b-lo"):"b-dom",title:`${x.comp} · ${x.opp} · ${x.res} · ${x.min} min · ${x.pts} pts`})),{be:p.be});
+    const pir=bars(g.map(x=>({v:x.pir??0,vt:x.dnp?"DNP":(x.pir??"–"),label:(x.ha==="A"?"@":"")+(x.el?x.opp:shortOpp(x.opp)),sub:x.d.slice(8)+"/"+x.d.slice(5,7),cls:x.dnp?"b-dnp":x.el?(x.fpt>=p.be?"b-hi":"b-lo"):"b-dom",tip:[`${x.comp} · ${dayFmt(x.d)}`,x.dnp?"Did not play":`PIR ${x.pir??"–"}`,`${x.ha==="A"?"At":"Vs"} ${x.opp}${x.res?` · ${gameInfo(x,null).res||x.res}`:""}`,x.dnp?"":`Min ${x.min} · Pts ${x.pts}`]})),{be:p.be});
     const hist=(p.hist||[]);
-    const cr=bars(hist.map(h=>({v:h[2],vt:(h[2]>0?"+":"")+h[2],label:"R"+h[0],sub:h[1].toFixed(1),cls:h[2]>=0?"b-up":"b-dn",title:`After round ${h[0]}: ${h[1]} credits`})),{h:150});
+    const cr=bars(hist.map(h=>({v:h[2],vt:(h[2]>0?"+":"")+h[2],label:"R"+h[0],sub:h[1].toFixed(1),cls:h[2]>=0?"b-up":"b-dn",tip:[`After round ${h[0]}`,`${h[2]>0?"+":h[2]<0?"−":""}${Math.abs(h[2]).toFixed(1)} cr`,`Price ${h[1].toFixed(1)} cr.`]})),{h:150});
     const net=hist.length&&p.start!=null?r1(p.price-p.start):null;
     body=`<div class="dsec"><div class="dsec-h"><h4>PIR per game</h4>${sw}</div>${g.length?pir:'<p class="note">No games yet.</p>'}<p class="note legend"><span class="li"><span class="lg b-hi"></span>EuroLeague, beat break-even</span><span class="li"><span class="lg b-lo"></span>below break-even</span>${state.allGames?'<span class="li"><span class="lg b-dom"></span>domestic (PIR estimated, does not score)</span>':""}</p><p class="note">Break-even is in fantasy points (PIR + 10% when the team wins).</p></div>
     <div class="dsec"><div class="dsec-h"><h4>Credits gained and lost</h4><span class="muted">${p.start!=null?`started ${p.start.toFixed(1)} → now ${p.price.toFixed(1)}${net!=null?` (<b class="${net>=0?"pos":"neg"}">${fmt(net)}</b>)`:""}`:""}</span></div>${hist.length?cr:'<p class="note">No price changes yet.</p>'}<p class="note">Bars show the change after each round; the number under each bar is the price after that round.</p></div>`;
@@ -2061,7 +2078,7 @@ function shortOpp(n){return n.split(/\s+/).filter(w=>!/^(KK|BC|BK|CB|FC|SK|AS|CS
 function shortComp(c){return ({"Liga ACB":"ACB","Lega A Basket":"LBA","Stoiximan GBL":"GBL","AdmiralBet ABA League":"ABA","France Pro A":"LNB","Germany BBL":"BBL","Betsafe-LKL":"LKL","Turkish Basketball Super League":"BSL","Israeli Basketball Super League":"ISR"})[c]||c;}
 function fmtShort(d){try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});}catch(e){return d;}}
 function tipoff(p){const f=D.fixtures.find(f=>f[0]===p.day&&(f[1]===p.team||f[2]===p.team));return f&&f[3]?f[3]:"";}
-function badge(t){const c=(TEAMS[t]||["","#445"])[1];return TEAMS[t]?`<span class="tb tlink" style="--tc:${c};color:${inkOn(c)}" data-team="${t}" role="button" tabindex="0" title="${esc(TEAMS[t][0])}: team analysis">${t}</span>`:`<span class="tb" style="--tc:${c};color:${inkOn(c)}">${t}</span>`;}
+function badge(t){const c=(TEAMS[t]||["","#445"])[1];return TEAMS[t]?`<span class="tb tlink has-tip" style="--tc:${c};color:${inkOn(c)}" data-team="${t}" role="button" tabindex="0" aria-label="${esc(TEAMS[t][0])}: team analysis">${t}${tipPick("Team",TEAMS[t][0],"Tap for the team analysis.")}</span>`:`<span class="tb" style="--tc:${c};color:${inkOn(c)}">${t}</span>`;}
 const tname=t=>TEAMS[t]?`<button type="button" class="plink" data-team="${t}">${esc(TEAMS[t][0])}</button>`:esc(t);
 function applyTrades(){
   const R=result;if(!R)return;
@@ -2147,14 +2164,14 @@ function proposalParts(R){
   lastIns=ins;
   // this round's game in words, plus how easy that defence is for the player's position, e.g. "vs Virtus (−21% G)".
   // Brackets stay grey; the number is coloured only from ±15%, the same cut-off as the Soft/Tough matchup tags
-  const mTag=(p,o,m)=>` <i title="${esc(TEAMS[o.opp]?.[0]||o.opp)} allow ${m>0?"+":""}${m}% PIR to ${POSN[p.pos].toLowerCase()}s compared with the league average">(<span class="${m>=15?"up":m<=-15?"dn":""}">${m>0?"+":m<0?"−":""}${Math.abs(m)}%</span><span class="gl-pos"> ${p.pos}</span>)</i>`;
+  const mTag=(p,o,m)=>` <i class="has-tip" tabindex="0">${tipPick(`Matchup · ${POSN[p.pos]}s`,`${m>0?"+":m<0?"−":""}${Math.abs(m)}% vs ${TEAMS[o.opp]?.[0]||o.opp}`,`${TEAMS[o.opp]?.[0]||o.opp} allow ${m?`${Math.abs(m)}% ${m>0?"more":"less"} PIR`:"the average PIR"} to ${POSN[p.pos].toLowerCase()}s compared with the league average.`)}(<span class="${m>=15?"up":m<=-15?"dn":""}">${m>0?"+":m<0?"−":""}${Math.abs(m)}%</span><span class="gl-pos"> ${p.pos}</span>)</i>`;
   const game=p=>{if(!p.opp)return "";const m=p.pos?matchup(p):null;
     return `${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}${m!=null?mTag(p,p.opp,m):""}`;};
   // With the look-ahead: one short line per round, "R7 at MIL (+30% C)" then "R8 at BAY (+49% C)"; coaches show their win chance
   const LA=lookOn(),rN="R"+D.round,rN2="R"+(D.round+1);
   const gLine=(p,o,lab)=>{if(!o)return `<small><em>${lab}</em>no game found</small>`;
     const m=p.pos?matchup(p,o):null,pw=p.pos?null:(o===p.opp?p.pw:p.pw2);
-    return `<small class="gl"><em>${lab}</em><span class="gl-ha">${o.ha==="H"?"vs":"at"} </span>${esc(o.opp)}${m!=null?mTag(p,o,m):pw!=null?` <i title="Win chance from both teams' records and home court">(<span class="${pw>=.6?"up":pw<=.4?"dn":""}">${Math.round(pw*100)}%</span> win)</i>`:""}</small>`;};
+    return `<small class="gl"><em>${lab}</em><span class="gl-ha">${o.ha==="H"?"vs":"at"} </span>${esc(o.opp)}${m!=null?mTag(p,o,m):pw!=null?` <i class="has-tip" tabindex="0">${tipPick(`Coach · ${p.name}`,`${Math.round(pw*100)}% win chance`,"From both teams' records and home court.")}(<span class="${pw>=.6?"up":pw<=.4?"dn":""}">${Math.round(pw*100)}%</span> win)</i>`:""}</small>`;};
   const two=p=>p.pos?LA:LOOK_ON&&!!p.opp2; // coaches look ahead in both proposals
   // One table, one row per trade: Out → In, then what the trade does to the bank, projected points and price rise.
   // The small grey line under each change is the out → in value it comes from.
@@ -2177,7 +2194,7 @@ function proposalParts(R){
       <td class="tx-x">${x}</td></tr>`;
   };
   // ✕ drops a trade: keep the outgoing player (pinned as Must have) and drop any pin on the incoming one
-  const xBtn=(attr,v,label)=>`<button type="button" class="tx-del" ${attr}="${v}" title="${esc(label)}" aria-label="${esc(label)}">✕</button>`;
+  const xBtn=(attr,v,label)=>`<button type="button" class="tx-del" ${attr}="${v}" aria-label="${esc(label)}">✕</button>`;
   const xFor=(o,i)=>{const a=byId[o],b=byId[i];
     return a?xBtn("data-drop",`${a.id},${b?b.id:""}`,`Remove this trade: keep ${a.short}`):xBtn("data-no",b.id,`Remove this trade: leave out ${b.short}`);};
   const nTr=pairs.length+(coachChanged?1:0);
@@ -2196,9 +2213,9 @@ function proposalParts(R){
   const noTrades=!pairs.length&&!coachChanged;
   // your picks that shape the trades, each with its own undo: kept squad players and pinned new ones
   const kept=state.pins.filter(i=>byId[i]&&orig.players.includes(i)),pinned=state.pins.filter(i=>byId[i]&&!orig.players.includes(i));
-  const pickChip=(id,verb)=>`<button type="button" class="chip-toggle sm on" data-pin="${id}" aria-pressed="true" title="Undo">${verb} ${esc(byId[id].short)} ✕</button>`;
+  const pickChip=(id,verb)=>`<button type="button" class="chip-toggle sm on" data-pin="${id}" aria-pressed="true" aria-label="${verb} ${esc(byId[id].short)}: undo">${verb} ${esc(byId[id].short)} ✕</button>`;
   const cp=coachByTeam[state.coachPin];
-  const coachChip=cp?`<button type="button" class="chip-toggle sm on" data-coach="${esc(state.coachPin)}" aria-pressed="true" title="Undo">Coach ${esc(cp.name)} ✕</button>`:"";
+  const coachChip=cp?`<button type="button" class="chip-toggle sm on" data-coach="${esc(state.coachPin)}" aria-pressed="true" aria-label="Coach ${esc(cp.name)}: undo">Coach ${esc(cp.name)} ✕</button>`:"";
   const picks=kept.length||pinned.length||cp?`<div class="tx-picks"><span class="muted">Your picks</span>${kept.map(i=>pickChip(i,"Keep")).join("")}${pinned.map(i=>pickChip(i,"In:")).join("")}${coachChip}</div>`:"";
   const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>${LA?`<span class="rb-h">Points over 2 rounds${rbInfo(rN,rN2)}</span><small>${rN2} counts half</small>`:"Projected points"}</th><th>Price rise</th><th><span class="sr">Remove</span></th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>${laNote}
     <div class="tx-act"><button type="button" class="btn-primary" data-apply>Apply trades to My team</button><span class="note">Also sets the turn-1 lineup and captain. Nothing is saved until you press Save on My team.</span></div>`;
@@ -2378,7 +2395,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const LIVE=live?blLiveItems(LR):[];
   const capNow=live?liveCap.cur:cap0;
   const val=p=>{const sc=live?score(p):null;return sc==null?`${p.x} · ${esc(turnOf2(p.day))}`:`${sc} pts · played`;};
-  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===capNow?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${val(p)}</small></div>`;
+  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===capNow?`<span class="capb has-tip" tabindex="0">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${val(p)}</small></div>`;
   const rows=["C","F","G"].map(k=>`<div class="crow">${st.filter(p=>p.pos===k).map(p=>ps1(p,isNew(p)?'<span class="b-new">New</span>':"")).join("")}</div>`).join("");
   const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";const sc=live?score(p):null;return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${sc==null?`${p.x} · ${esc(T(p.day))}`:`${sc} pts · played`}</small></div>`;}).join("");
   const court=`<div class="card pcourt"><div class="pc-h"><h3>${live?"Your lineup":"Proposed lineup"}</h3><span class="muted">${form} · ${live?"captain now":"day-one start"}</span></div>
@@ -2655,10 +2672,10 @@ function reviewCard(){
   let V=null;for(const s of HIST.slice().sort((a,b)=>b.round-a.round)){V=turnReview(s,logs,savedTeam);if(V)break;}
   if(!V)return '<div id="rvCard"></div>';
   const f=v=>v.toFixed(1),day=d=>(D.turns&&D.turns[d])||fmtShort(d),pl=r=>byId[r.id]?plink(byId[r.id],r.short):esc(r.short);
-  const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.moved?'<span class="rv-tag" title="Under the keep mark: the armband moves on, so his score counts once">C moved ×1</span>':r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
+  const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.moved?`<span class="rv-tag has-tip" tabindex="0">C moved ×1${tipPick("Captain","C moved ×1","Under the keep mark: the armband moves on, so his score counts once.")}</span>`:r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
   const turns=V.turns.map(t=>{const got=t.rows.reduce((a,r)=>a+r.counted,0),px=t.rows.reduce((a,r)=>a+r.px,0);
-    const vl=v=>`<span class="${v>0?"up":v<0?"dn":"muted"}" title="Credit change from this game">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)}</span>`;
-    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>${vl(r.val)}`+
+    const vl=(v,who)=>{const t=`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)}`;return `<span class="${v>0?"up":v<0?"dn":"muted"} has-tip" tabindex="0">${t}${tipPick(who,t+" cr","His credit change from this game.")}</span>`;};
+    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>${vl(r.val,r.short)}`+
       (r.fpt==null?`<span class="muted">DNP</span>`:`<span class="${r.fpt>=r.x+.05?"up":r.fpt<=r.x-.05?"dn":""}">${f(r.fpt)}</span>`)+
       `<span class="muted">${f(r.x)}</span></div>`).join("");
     return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
@@ -2922,7 +2939,7 @@ function gameBox(r,{rows,dnp}){
   const two=teams.length>1;const k=`${r.d}|${r.home||""}|${r.away||""}|${r.opp||""}`;
   const act=two?(state.rgt&&state.rgt.k===k&&teams.includes(state.rgt.t)?state.rgt.t:teams[0]):teams[0];
   const tbl=t=>{const rs=rows.filter(x=>x.team===t);if(!rs.length)return "";
-    return `<div class="rg-team"><table class="rg-tbl"><thead><tr><th>Player</th><th class="n">Min</th><th class="n">Pts</th><th class="n">Reb</th><th class="n">Ast</th><th class="n">${r.dom?"PIR≈":"PIR"}</th>${r.dom?"":'<th class="n">FPT</th>'}<th class="n" title="Break-even: score needed for the price to hold">B-even</th></tr></thead><tbody>
+    return `<div class="rg-team"><table class="rg-tbl"><thead><tr><th>Player</th><th class="n">Min</th><th class="n">Pts</th><th class="n">Reb</th><th class="n">Ast</th><th class="n">${r.dom?"PIR≈":"PIR"}</th>${r.dom?"":'<th class="n">FPT</th>'}<th class="n has-tip" tabindex="0">B-even${tipPick("Break-even","B-even","The score he needs for his price to hold.")}</th></tr></thead><tbody>
       ${rs.map(({p,g})=>{const val=r.dom?g.pir:g.fpt,ok=val!=null&&val>=p.be;const mine=orig.players.includes(p.id);
         return `<tr class="${mine?"mine-r":""}"><td><span class="rg-p">${jersey(p.team,p.pos)}${plink(p,p.short)}${mine?'<span class="rg-you">yours</span>':""}</span></td><td class="n">${Math.round(g.min||0)}</td><td class="n">${g.pts??"–"}</td><td class="n">${g.reb!=null?Math.round(g.reb):"–"}</td><td class="n">${g.ast!=null?Math.round(g.ast):"–"}</td><td class="n"><b>${g.pir??"–"}</b></td>${r.dom?"":`<td class="n"><b>${g.fpt}</b></td>`}<td class="n ${ok?"pos":"neg"}">${p.be}</td></tr>`;}).join("")}</tbody></table></div>`;};
   const tabs=two?`<div class="rg-tabs" role="tablist">${teams.map(t=>`<button type="button" role="tab" class="${t===act?"on":""}" aria-selected="${t===act}" data-rgt="${t}" data-rgk="${esc(k)}">${badge(t)}${esc(TEAMS[t][0])}<span>${rows.filter(x=>x.team===t).length}</span></button>`).join("")}</div>`:"";
