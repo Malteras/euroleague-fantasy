@@ -2529,13 +2529,13 @@ function market(){
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>projKey(shown(p)),exp:crShown,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
-  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
+  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num c-pr sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num c-pj sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
     <div class="who-c"><button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${n.round!=null?`R${n.round} `:""}${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small></span></button><span class="ptags">${tagTipHtml(p,3)}</span></div>
-    <span class="cell-num">${p.price.toFixed(1)}</span>
+    <span class="cell-num c-pr">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
-    <span class="cell-num big">${projCell(p)}</span>
+    <span class="cell-num c-pj big">${projCell(p)}</span>
     <span class="cell-num h-ch ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))}</span>
     <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
