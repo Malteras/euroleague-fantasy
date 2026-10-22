@@ -41,6 +41,9 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 - **Round schedule**: a played game shows "Final" and the score; his players in it show their points (never PIR), ± % against
   the projection at the deadline (the snapshot; the live projection already includes the game) and the credit change from
   the game. The header says trades are closed.
+- **Teams tab**: the clubs that played this round first, with their result from their own side ("W 90–81 vs Virtus"), then
+  the clubs still to play with when and where ("Thu 20:05 @ Maccabi"), both in game order. No projections (#60;
+  `teamOrder()`, tests: tools/test_teamorder.mjs).
 - **A player who has played** (his club's game this round is in the logs; more players every day of the round), on every
   page (CLAUDE.md rules 6 and 7). Decided with Ognjen, 22 Oct 2026 (#57, #65, #67):
   - **Proj.**: TBC, with the site's tooltip "To be calculated after the current round is finished", sorted last. Next
