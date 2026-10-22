@@ -113,8 +113,10 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - Before saying "checked": open the screen fresh, at the width and theme he uses, with today's data, on a player who has
   played and one who has not. Hover what has a tooltip.
 - Group numbers with what they describe; reuse the layout the site already has for the same data.
-- Tooltips use the site's design (`tipPick()`), never a browser `title` tooltip. A container with `overflow:hidden` cuts
-  them off: round its first and last rows instead (`.mkt`).
+- Tooltips use the site's design (`tipPick()` inside a `.has-tip` parent), never a browser `title` tooltip or an SVG
+  `<title>`; tools/test_tooltips.mjs fails on either. The tooltip is `position:fixed` and `placeTip()` puts it under its
+  parent, so a container with `overflow:hidden` or a scroll box (the trade table, a chart) no longer cuts it off (#68).
+  A rule in that container that styles every `b` or `small` (`.tx-p.o b`) still reaches the tooltip: check its colours.
 
 ## 22 Oct 2026 · a game rule nobody checked: "lineup changes between turns are same position only"
 - **What:** CLAUDE.md rule 1, GLOSSARY ("Lineup change"), ADR 0002, this file and `turnSwaps()` in index.html (with its tests)
