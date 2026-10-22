@@ -400,7 +400,7 @@ section{padding-block:28px 8px}
 .tp-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .tp-pl li{display:flex;align-items:center;gap:10px}.tp-pl .jersey{width:32px;height:32px;font-size:10px;flex:none}.tp-pl .jersey::after{display:none}
 .tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}
-.pj-sc{display:block;font-size:11px;font-weight:500;color:var(--muted);font-family:var(--body);white-space:nowrap}
+.tbc{color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
 .tp-sc{flex:none;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.25}.tp-sc .score{font-size:17px}.tp-sc .score small{font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted)}.tp-sc small .up{color:var(--good)}.tp-sc small .dn{color:var(--bad)}.tp-pl .plink{font-weight:700}.tp-pl small{color:var(--muted);font-size:12.5px}
 .tp-form{display:flex;flex-wrap:wrap;gap:6px}
 .tp-g{padding:4px 9px;border-radius:999px;font-weight:800;font-size:13px}.tp-g small{font-weight:500;color:var(--muted)}
@@ -1273,7 +1273,7 @@ function picker(){
     const pos=pick.pos==="ALL"?null:pick.pos;
     list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort(projSort).slice(0,80).map(p=>{
       const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
-      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
   }
   const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
   return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
@@ -2024,7 +2024,7 @@ function drawer(){
   const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
   const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span>`;
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
-  const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>Next game</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
+  const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>${shown(p).played?"This round · played":"Next game"}</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
       ${shown(p).played?`<div><small>Points</small><b class="tp">${shown(p).pts}</b><em>${shown(p).x!=null?`proj ${shown(p).x} at the deadline`:"played"}</em></div>`:`<div><small>Projection</small><b class="tp">${p.x}</b><em>break-even ${p.be}</em></div>`}
       ${shown(p).played?`<div><small>Value</small><b class="${crShown(p)<0?"neg":"tc"}">${fmt(crShown(p))} cr</b><em>from this game</em></div>`:`<div><small>Exp. change</small><b class="${r1(p.exp)<0?"neg":"tc"}">${fmt(r1(p.exp))} cr</b><em>after this round</em></div>`}
@@ -2434,13 +2434,15 @@ function lineupPartial(early,all){
 function pcard(p,role,isNew){
   const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Keep · price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
-  const o=p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"";
+  const o=(n=>n?(n.ha==="H"?"vs ":"@ ")+n.opp:"")(nextG(p));
   return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${projCell(p)}</span><span class="chg ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))} cr</span>${b}</div></div>`;
 }
 function spark(p){
   const g=(p.log||[]).slice(0,5).reverse();const W=150,H=36,max=Math.max(45,...g.map(x=>x.fpt),p.be+5);
   const bw=W/5-6;
-  const bars=g.map((x,i)=>{const h=Math.max(2,Math.max(0,x.fpt)/max*(H-2));return `<rect class="bar${x.fpt<p.be?" lo":""}" x="${i*(W/5)+3}" y="${H-h}" width="${bw}" height="${h}" rx="2"></rect>`}).join("");
+  const dx=shownCtx().deadX[p.id]??null;
+  // each bar's tooltip: the game, points against the projection (on record for this round's game only), credit change
+  const bars=g.map((x,i)=>{const h=Math.max(2,Math.max(0,x.fpt)/max*(H-2));return `<rect class="bar${x.fpt<p.be?" lo":""}" x="${i*(W/5)+3}" y="${H-h}" width="${bw}" height="${h}" rx="2"><title>${esc(gameTip(x,x.d===p.day?dx:null))}</title></rect>`}).join("");
   const y=H-p.be/max*(H-2);
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${g.length} games: ${g.map(x=>x.fpt).join(", ")} fantasy points; break-even ${p.be}">${bars}<line class="be" x1="0" x2="${W}" y1="${y}" y2="${y}"></line></svg>`;
 }
@@ -2454,7 +2456,7 @@ function detail(p){
   const by=y(p.be);
   const mu=matchup(p);
   const domRows=(p.dom||[]).slice(0,4).map(g=>`<div class="lrow"><div><b>${g.ha==="A"?"@":"vs"} ${esc(g.opp)}</b><small>${esc(g.comp)} · ${esc(g.d)} · ${esc(g.res)}</small></div><span class="muted" style="text-align:right">${g.absent?"Not in the box score":g.dnp?"Did not play":`${g.min} min · ${g.pts} pts · ${g.reb} reb · ${g.ast} ast · <b style="color:var(--fg)">PIR ≈ ${g.pir}</b>`}</span></div>`).join("");
-  const ps=shown(p),m=[ps.played?["Proj. at the deadline",ps.x??"–"]:["Proj.",p.x],["Season FPT",p.fpt],["Last 3",p.l3],["Minutes",p.min],["PTS / REB / AST",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`],["PIR 25-26",p.pir2526??"–"]];
+  const ps=shown(p),m=[["Proj.",ps.played?"TBC":p.x],["Season FPT",p.fpt],["Last 3",p.l3],["Minutes",p.min],["PTS / REB / AST",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`],["PIR 25-26",p.pir2526??"–"]];
   return `<div class="detail"><div><div class="eyebrow" style="margin-bottom:6px">Fantasy points, last ${g.length} games · bars in colour beat break-even</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fantasy points by game against break-even ${p.be}">${grid}${bars}<line x1="${pad}" x2="${W-6}" y1="${by}" y2="${by}" stroke="var(--be)" stroke-width="1.5" stroke-dasharray="5 4"></line><text class="bel" x="${W-8}" y="${by-5}" text-anchor="end">break-even ${p.be}</text></svg></div><div><div class="kv">${m.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("")}</div><p class="note" style="margin:10px 0 0">${p.price.toFixed(1)} cr (${fmt(p.chg??0)} last round). Next: ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}, ${esc(dayLabel(p.day))}. Expected change ${fmt(r1(p.exp))} cr. Projection: ${p.src==="FantaSheet"?`half FantaSheet xPTS (${p.xpts}), half recent form (${p.own})`:"his recent form"}.${mu!=null?` ${p.opp?TEAMS[p.opp.opp][0]:""} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s vs league average.`:""}</p><div class="ptags" style="margin-top:8px">${tagHtml(p,10)}</div></div>${domRows?`<div style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Domestic games · PIR estimated (fouls drawn and blocks against not published)</div><div class="panel list">${domRows}</div></div>`:""}</div>`;
 }
 function market(){
@@ -2465,14 +2467,14 @@ function market(){
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
-    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
+    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
     <span class="cell-num big">${projCell(p)}</span>
     <span class="cell-num h-ch ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))}</span>
     <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
-    <span class="opp h-op"><b>${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}</b><small>${esc(dayLabel(p.day))}</small></span>
+    ${(n=>`<span class="opp h-op"><b>${n?(n.ha==="H"?"vs ":"@ ")+(TEAMS[n.opp]||[n.opp])[0]:"—"}</b><small>${n?esc(nextWhen(n)):""}</small></span>`)(nextG(p))}
     ${pickBtn("no",p,av.has(p.id))}
   </div>`).join("");
   return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">♥ brings a player in and the other trades are rebuilt around him; on one of yours it keeps him. ⊘ does the opposite. Tap a name for his last five games against break-even.</p></div>
@@ -2964,8 +2966,22 @@ const projBox=s=>{if(!s.played)return "";const sg=v=>`<span class="${v>0?"up":v<
     +(s.cr!=null?`<small>${sg(s.cr)}${Math.abs(s.cr).toFixed(1)} value</span></small>`:"")+`</div>`;};
 // A Proj. cell or column holds a projection, never a score (CLAUDE.md rule 6): today's before his game, the deadline one after it
 // (with his score as a small note), "–" when there is no snapshot. projKey is the same number for sorting.
-const projCellHtml=s=>s.played?`${s.x??"–"}<small class="pj-sc">scored ${s.pts??"–"}</small>`:`${s.x}`;
-const projKey=s=>s.x??-999; // finite, so two players without a snapshot compare equal
+// Once he has played, next round's projection is not known until this round is finished: TBC, sorted last.
+const projCellHtml=s=>s.played?`<span class="tbc" title="To be calculated after the current round is finished">TBC</span>`:`${s.x}`;
+const projKey=s=>s.played?-999:s.x??-999; // finite, so two TBC players compare equal
+// A game in his log as a tooltip: date, opponent, result from his side, points vs the projection when one is on record
+// (x: the deadline projection for this round's game, null for older rounds), credit change
+// "Wed 21 Oct", the same in every browser (toLocaleDateString gives "Wed, 21 Oct" or "Sept" in some)
+const dayFmt=d=>{const t=new Date(d+"T12:00:00");return isNaN(t)?d:`${"Sun Mon Tue Wed Thu Fri Sat".split(" ")[t.getDay()]} ${t.getDate()} ${"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")[t.getMonth()]}`;};
+function gameTip(g,x){
+  const wd=dayFmt(g.d);
+  const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||""),res=m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"";
+  const pct=x>0?Math.round(100*(g.fpt-x)/x):null,sg=v=>v>0?"+":v<0?"−":"";
+  const pts=x!=null?`${g.fpt} pts vs ${x} projected${pct!=null?` (${sg(pct)}${Math.abs(pct)}%)`:""}`:`${g.fpt} pts · no projection on record`;
+  return `${wd} · ${g.ha==="A"?"@":"vs"} ${g.opp}${res?" · "+res:""}\n${pts}${g.cr!=null?`\n${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr`:""}`;
+}
+// His next game: this round's until he has played it, then next round's (p.next from the builder; null if not known)
+const upcoming=(p,played)=>played?(p.next?{opp:p.next.opp,ha:p.next.ha,day:p.next.date}:null):(p.opp?{opp:p.opp.opp,ha:p.opp.ha,day:p.day}:null); // finite, so two players without a snapshot compare equal
 // A coach's points from the final score in a player log ("W 90-81", home score first): README, coach projection
 function coachPts(res){
   const m=/^([WL]) (\d+)-(\d+)/.exec(res||"");if(!m)return null;
@@ -2995,6 +3011,9 @@ const projOf=p=>projTxt(shown(p));
 // a number cell: today's projection, or his points once he has played (deadline projection in the tooltip)
 const projCell=p=>{const s=shown(p);return s.played?`<span title="Projected at the deadline, before his game">${projCellHtml(s)}</span>`:projCellHtml(s);};
 const projSort=(a,b)=>projKey(shown(b))-projKey(shown(a));
+const nextG=p=>upcoming(p,shown(p).played);
+const nextWhen=n=>dayKeys.includes(n.day)?dayLabel(n.day):dayFmt(n.day);
+const nextShort=n=>dayKeys.includes(n.day)?dayShort(n.day):dayFmt(n.day); // "Wed" this round; "Wed 28 Oct" for next round
 // the ± cr column: the expected change before his game, the real change from it after (the same as Value in "turn by turn")
 const crShown=p=>{const s=shown(p);return s.played&&s.cr!=null?s.cr:r1(p.exp);};
 // The live round has started: Banja Luka time is past the first tip-off on deadline day. Trades are closed until the next round.

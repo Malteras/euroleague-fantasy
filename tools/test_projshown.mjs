@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
-const { projShown, projTxt, projBox, projCellHtml, projKey, coachPts } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,coachPts};")();
+const { projShown, projTxt, projBox, projCellHtml, projKey, gameTip, upcoming, coachPts } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameTip,upcoming,coachPts};")();
 
 // Round 7 after Wednesday: LeDay scored 36.3 (deadline projection 21.0, today's 39.9); Maledon plays Thursday.
 const W = "2026-10-21", T = "2026-10-22";
@@ -60,19 +60,34 @@ test("played: a score block with the points, % vs the deadline projection, then 
   assert.equal(projBox(projShown(maledon, ctx)), "");
 });
 
-test("a Proj. cell holds a projection, never a score: the deadline projection once he has played, his score only as a note", () => {
+test("Proj. once he has played: TBC, next round's projection comes after this round; sorts last", () => {
   const h = projCellHtml(projShown(leday, ctx));
-  assert.match(h, /^21<small class="pj-sc">scored 36\.3<\/small>$/);
-  assert.ok(!h.includes("39.9"));
-  // no deadline snapshot: no projection to show, never today's and never the score in its place
-  assert.match(projCellHtml(projShown(leday, { ...ctx, deadX: {} })), /^–<small class="pj-sc">scored 36\.3<\/small>$/);
+  assert.match(h, /^<span class="tbc" title="To be calculated after the current round is finished">TBC<\/span>$/);
+  assert.ok(!h.includes("39.9") && !h.includes("36.3") && !h.includes("21"));
   assert.equal(projCellHtml(projShown(maledon, ctx)), "20.6");
+  assert.equal(projKey(projShown(leday, ctx)), -999);
+  assert.equal(projKey(projShown(maledon, ctx)), 20.6);
+  assert.equal(projKey(projShown(leday, ctx)) - projKey(projShown(leday, ctx)), 0); // a sort comparator never gets NaN
 });
 
-test("sorting by projection uses the number in the Proj. column: deadline for a played player, last when there is none", () => {
-  assert.equal(projKey(projShown(leday, ctx)), 21);
-  assert.equal(projKey(projShown(maledon, ctx)), 20.6);
-  assert.equal(projKey(projShown(leday, { ...ctx, deadX: {} })), -999);
-  const none = projShown(leday, { ...ctx, deadX: {} });
-  assert.equal(projKey(none) - projKey(none), 0); // a sort comparator never gets NaN
+test("a Last 5 bar's tooltip: date, opponent, result from his side, points vs projection when on record, credit change", () => {
+  const away = { d: "2026-10-16", opp: "PAO", ha: "A", res: "W 81-91", fpt: 23.1, cr: 0.3 };
+  assert.equal(gameTip(away, null), "Fri 16 Oct · @ PAO · W 91–81\n23.1 pts · no projection on record\n+0.3 cr");
+  const home = { d: "2026-10-21", opp: "VIR", ha: "H", res: "W 90-81", fpt: 14.3, cr: -0.2 };
+  assert.equal(gameTip(home, 22.4), "Wed 21 Oct · vs VIR · W 90–81\n14.3 pts vs 22.4 projected (−36%)\n−0.2 cr");
+  assert.equal(gameTip({ ...home, cr: 0, fpt: 22.4 }, 22.4), "Wed 21 Oct · vs VIR · W 90–81\n22.4 pts vs 22.4 projected (0%)\n0.0 cr");
+});
+
+test("next game: this round's before he plays, next round's once he has played", () => {
+  const p = { ...leday, opp: { opp: "VIR", ha: "H" }, next: { opp: "EFS", ha: "H", date: "2026-10-28", round: 8 } };
+  assert.deepEqual(upcoming(p, true), { opp: "EFS", ha: "H", day: "2026-10-28" });
+  assert.deepEqual(upcoming(p, false), { opp: "VIR", ha: "H", day: W });
+  assert.equal(upcoming({ ...p, next: null }, true), null);
+});
+
+
+test("the whole page script parses (a name declared twice breaks the page, and the cut-out tests above can't see it)", () => {
+  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  assert.ok(blocks.length >= 3);
+  blocks.forEach(body => assert.doesNotThrow(() => new Function(body)));
 });
