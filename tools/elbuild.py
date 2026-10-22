@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build data.json for the Fazani Round Planner from FantaSheet.
+"""Build data.json for the Fazani Round Planner from FantaSheet; EuroLeague scores come from the official box scores.
 
 Usage: python3 -I elbuild.py <work_dir> <old_data.json or -> <out_data.json>
 Downloads go into <work_dir>/pages (keep it separate from this script's folder).
@@ -153,6 +153,69 @@ def norm(s):
     import unicodedata
     s = unicodedata.normalize('NFKD', s).encode('ascii','ignore').decode().lower()
     return re.sub(r'[^a-z ]', '', s).split()
+# Official EuroLeague box scores: the source for every EuroLeague score (PIR, minutes, points).
+# FantaSheet's game log is only the fallback for a game the official feed does not have yet.
+EL_API = 'https://api-live.euroleague.net/v2/competitions/E/seasons/E2026/games'
+EL_BOX = 'https://live.euroleague.net/api/Boxscore?seasoncode=E2026&gamecode='
+EL_CODE = {'BAS':'KBA','BES':'BJK','IST':'EFS','MAD':'RMB','MUN':'BAY','PAM':'VAL','PAN':'PAO','PRS':'PBB','RED':'CZV','TEL':'MTA','ULK':'FBT'}
+
+def el_name(s):
+    return [w for w in norm(s.replace(',', ' ').replace('-', ' ')) if w not in ('jr', 'ii', 'iii', 'iv')]
+
+def official_games(pages):
+    """{(date, club): {'opp', 'ha', 'win', 'res', 'players': [(name words, line)]}} for every finished EuroLeague game."""
+    f = get(EL_API, os.path.join(pages, 'el_games.json'))
+    try: games = [g for g in json.load(open(f))['data'] if g.get('played')]
+    except Exception: return {}
+    def box(g):
+        return g, get(EL_BOX + str(g['gameCode']), os.path.join(pages, f"el_box{g['gameCode']}.json"))
+    with ThreadPoolExecutor(8) as ex: boxes = list(ex.map(box, games))
+    out = {}
+    for g, bf in boxes:
+        try: stats = json.load(open(bf))['Stats']
+        except Exception: continue
+        loc, road = (EL_CODE.get(g[s]['club']['code'], g[s]['club']['code']) for s in ('local', 'road'))
+        ls, rs = g['local']['score'], g['road']['score']
+        d = g['date'][:10]
+        for side, club, opp, ha, win in ((0, loc, road, 'H', ls > rs), (1, road, loc, 'A', rs > ls)):
+            players = []
+            for x in stats[side]['PlayersStats']:
+                m = re.match(r'(\d+):(\d+)', str(x.get('Minutes') or ''))
+                if not m: continue  # DNP
+                pir = x['Valuation']
+                players.append((el_name(x['Player']), {'d': d, 'opp': opp, 'ha': ha, 'res': f"{'W' if win else 'L'} {ls}-{rs}",
+                    'min': round(int(m.group(1)) + int(m.group(2)) / 60, 1), 'pts': x['Points'], 'pir': float(pir),
+                    'fpt': round(pir + (abs(pir) / 10 if win else 0), 1), 'reb': float(x['TotalRebounds']), 'stl': float(x['Steals']),
+                    'tov': float(x['Turnovers']), 'ast': float(x['Assistances']), 'blk': float(x['BlocksFavour']), 'src': 'official'}))
+            out[(d, club)] = players
+    return out
+
+def find_line(name, lines):
+    """His line among one club's players in one game: same name words, else same surname and first initial, else a unique surname."""
+    w = el_name(name)
+    for ow, line in lines:
+        if set(ow) == set(w): return line
+    last = w[-1] if w else ''
+    hits = [(ow, line) for ow, line in lines if last in ow]
+    for ow, line in hits:
+        if any(o[0] == w[0][0] for o in ow if o != last): return line
+    return hits[0][1] if len(hits) == 1 else None
+
+def apply_official(players, games):
+    """Replace each player's EuroLeague game log with the official numbers; FantaSheet keeps only games the feed lacks."""
+    used = 0
+    for p in players:
+        log = {g['d']: g for g in p.get('log', [])}
+        for (d, club), lines in games.items():
+            if club != p['team']: continue
+            line = find_line(p['name'], lines)
+            if not line: continue
+            fs = log.get(d, {})
+            log[d] = dict(line, cr=fs.get('cr'))
+            used += 1
+        p['log'] = sorted(log.values(), key=lambda g: g['d'], reverse=True)
+    return used
+
 def sofa_team_id(code, cache):
     if code in cache: return cache[code]
     d = sget('/search/teams?q=' + SOFA_Q[code].replace(' ', '%20'))
@@ -352,6 +415,8 @@ def main():
             players.append(p)
         except Exception as e:
             bad.append((pid, slug, repr(e)[:80]))
+    games = official_games(pages)
+    print('official box scores', len(games) // 2, 'games, player lines used', apply_official(players, games))
     cache = old.get('sofaIds', {})
     since = (datetime.date.today() - datetime.timedelta(days=12)).isoformat()
     domgames = sofa_domestic(players, cache, since)

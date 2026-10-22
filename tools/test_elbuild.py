@@ -15,6 +15,38 @@ class ParseCoachesTest(unittest.TestCase):
         self.assertEqual(got[2], {'name': 'Coach 2', 'teamname': 'Club 2', 'price': 5.2, 'chg': 0.2, 'pts': 2})
 
 
+class OfficialScoresTest(unittest.TestCase):
+    # 21 Oct 2026, Hapoel 90-81 Virtus: the official box score gives Bryant PIR 13 in 24:22 (FantaSheet's log was misread as 24.2)
+    def games(self):
+        line = lambda pir, win: {'d': '2026-10-21', 'opp': 'VIR', 'ha': 'H', 'res': 'W 90-81', 'min': 24.4, 'pts': 12, 'pir': float(pir),
+                                 'fpt': round(pir + (abs(pir) / 10 if win else 0), 1), 'src': 'official'}
+        return {('2026-10-21', 'HTA'): [(['bryant', 'elijah'], line(13, True)), (['horton', 'tucker', 'talen'], line(-4, True))]}
+
+    def test_official_line_replaces_the_fantasheet_row_of_that_day(self):
+        p = {'name': 'Elijah Bryant', 'team': 'HTA', 'log': [
+            {'d': '2026-10-21', 'fpt': 24.2, 'min': 27.7, 'pts': 14, 'cr': -0.2},
+            {'d': '2026-10-16', 'fpt': 24.2, 'min': 27.7, 'pts': 14, 'cr': 0.2}]}
+        elbuild.apply_official([p], self.games())
+        self.assertEqual([(g['d'], g['fpt'], g['min'], g['pts']) for g in p['log']],
+                         [('2026-10-21', 14.3, 24.4, 12), ('2026-10-16', 24.2, 27.7, 14)])
+        self.assertEqual(p['log'][0]['cr'], -0.2)
+
+    def test_a_game_missing_from_the_fantasheet_log_is_added(self):
+        p = {'name': 'Elijah Bryant', 'team': 'HTA', 'log': []}
+        elbuild.apply_official([p], self.games())
+        self.assertEqual([g['d'] for g in p['log']], ['2026-10-21'])
+
+    def test_hyphenated_name_and_negative_pir_after_a_win(self):
+        p = {'name': 'Talen Horton-Tucker', 'team': 'HTA', 'log': []}
+        elbuild.apply_official([p], self.games())
+        self.assertEqual(p['log'][0]['fpt'], -3.6)
+
+    def test_other_clubs_games_are_not_used(self):
+        p = {'name': 'Elijah Bryant', 'team': 'VIR', 'log': []}
+        elbuild.apply_official([p], self.games())
+        self.assertEqual(p['log'], [])
+
+
 class ParsePlayerTest(unittest.TestCase):
     def parse(self, header):
         with tempfile.TemporaryDirectory() as d:
