@@ -428,6 +428,7 @@ section{padding-block:28px 8px}
 .news-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .news-list li{display:flex;gap:8px;align-items:baseline;font-size:14.5px}
 .list{display:flex;flex-direction:column}
+.lrow .up{color:var(--good);font-weight:600}.lrow .dn{color:var(--bad);font-weight:600}
 .lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 14px;border-top:1px solid var(--line-soft);align-items:center}
 .lrow:first-child{border-top:0}
 .lrow b{font-weight:700}
@@ -2796,7 +2797,7 @@ function report(){
   const lastG=p=>p.log.find(g=>rDates.includes(g.d));
   const played=P.filter(p=>lastG(p));
   const row=(p,g,extra="")=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${p.price.toFixed(1)} cr · ${g.ha==="A"?"@":"vs"} ${g.opp} · ${g.min} min</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir??"–"}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR</small></div><small class="muted">${g.fpt} FPT · ${extra}</small></div></div>`;
-  const top=played.slice().sort((a,b)=>lastG(b).fpt-lastG(a).fpt).slice(0,10).map(p=>row(p,lastG(p),`${fmt(p.chg??0)} cr`)).join("");
+  const top=played.slice().sort((a,b)=>lastG(b).fpt-lastG(a).fpt).slice(0,10).map(p=>row(p,lastG(p),`<span class="${(p.chg??0)>0?"up":(p.chg??0)<0?"dn":""}">${fmt(p.chg??0)} cr</span>`)).join("");
   const low=played.filter(p=>p.price>=8).map(p=>({p,g:lastG(p),d:lastG(p).fpt-p.be})).sort((a,b)=>a.d-b.d).slice(0,8).map(({p,g,d})=>row(p,g,`${r1(d)} vs break-even`)).join("");
   const domL=P.flatMap(p=>domRecent(p).slice(0,1).map(g=>({p,g}))).filter(({p,g})=>g.pir>=1.1*p.price+3&&g.min>=10).sort((a,b)=>(b.g.pir-1.1*b.p.price)-(a.g.pir-1.1*a.p.price)).slice(0,10)
     .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${esc(g.comp)} · ${g.ha==="A"?"@":"vs"} ${esc(g.opp)} · ${g.min} min · ${g.pts} pts ${g.reb} reb ${g.ast} ast</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr · break-even ${p.be}</small></div></div>`).join("");
