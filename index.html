@@ -1489,7 +1489,8 @@ function tagsFor(p){
   if(!p.out&&p.price<=8&&p.exp>=0.1)T.push(["Credit gainer","good"]);
   if(dA!=null&&p.price<=9&&dA>=1.1*p.price+3)T.push(["Domestic form","good"]);
   if(capOpt.has(p.id)&&!p.out)T.push(["Captain option","warn"]);
-  if(p.rise!=null&&p.rise>=60)T.push([`Rise ${Math.round(p.rise)}%`,"good"]);
+  // FantaSheet's rise chance is for his next game: once he has played this round, that is next round's (#66)
+  if(p.rise!=null&&p.rise>=60&&!shown(p).played)T.push([`Rise ${Math.round(p.rise)}%`,"good"]);
   const m=matchup(p);if(m!=null&&m>=15)T.push(["Soft matchup","good"]);else if(m!=null&&m<=-15)T.push(["Tough matchup","warn"]);
   if(p.log[0]&&p.log[0].min<12&&p.gp>0&&!p.out)T.push(["Minutes risk","warn"]);
   return T;

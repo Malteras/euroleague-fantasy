@@ -112,7 +112,9 @@ def parse_team(f):
     for m in re.finditer(r'href="/players/(\d+)-([^"?#]+)"', open(f, encoding='utf-8').read()):
         if (int(m.group(1)), m.group(2)) not in ids: ids.append((int(m.group(1)), m.group(2)))
     s = t[t.find('Price gap |'):]
-    R = re.compile(r'☆ \| ⇄ \| (.+?) \| (?:[🔥🧊] \| )?(.+?) \| (?:[🔥🧊] \| )?([GFC]) \| \3 \| ([\d.]+) \| ([^|]+?) \| ([^|]+?) \| ([^|]+?) \|')
+    # Price | Δ Price | Rise % | xPTS. Once he has played this round, FantaSheet marks the price change "est." in a cell of its
+    # own; without the optional (?:est\. \| ) the Rise % was read as xPTS (#66: Bryant 53 instead of 21.1)
+    R = re.compile(r'☆ \| ⇄ \| (.+?) \| (?:[🔥🧊] \| )?(.+?) \| (?:[🔥🧊] \| )?([GFC]) \| \3 \| ([\d.]+) \| ([^|]+?) \| (?:est\. \| )?([^|]+?) \| ([^|]+?) \|')
     rows = {}
     for m in R.finditer(s):
         rows[m.group(2).strip()] = {'rise':num(m.group(6)),'xpts':num(m.group(7))}
@@ -355,6 +357,16 @@ def fill_actual(snap, data):
         added = True
     return added
 
+def xpts_jumps(players, snap, factor=2.0):
+    """Players whose xPTS moved more than x2 from the round's deadline snapshot: a sign the team table was misread (#66).
+    Values both under 5 are left out: a bench player going from 1 to 3 is noise."""
+    was = {p['id']: p.get('xpts') for p in snap.get('players', [])}
+    out = []
+    for p in players:
+        a, b = was.get(p['id']), p.get('xpts')
+        if a and b and max(a, b) >= 5 and max(a, b) > factor * min(a, b): out.append(f"{p['name']} {a} → {b}")
+    return out
+
 def status_alerts(old, new):
     """Players whose status changed since the previous data.json: [{id, name, team, from, to, src, d, mine}].
     A player's status is his entry in the daily report's injury list, else his FantaSheet flag, else Available.
@@ -508,6 +520,10 @@ def main():
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
     print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)} ownership {sum(p.get("pop") is not None for p in players)}')
     for b in bad[:15]: print('  bad', b)
+    hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
+    if os.path.exists(hp):
+        jumps = xpts_jumps(players, json.load(open(hp, encoding='utf-8')))
+        if jumps: print(f'WARNING xPTS moved more than x2 since the deadline snapshot ({len(jumps)} players; FantaSheet table misread?):', '; '.join(jumps[:10]))
 
 if __name__ == '__main__':
     if sys.argv[1:2] == ['--history']:
