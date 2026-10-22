@@ -20,3 +20,6 @@ Six rules that must never be broken:
    (`p.x`) is never shown or sorted on for him. Every day of the round more players are in this state: Wednesday's
    players on Thursday, Thursday's on Friday. Use `shown(p)` / `projCell` / `projKey` / `crShown` / `nextG` in
    index.html, never `p.x`, `p.exp`, `p.opp` or `p.day` directly, for anything a reader sees this round.
+
+Tooltips: always the site's own tooltip (`tipPick()` → `.tip.tip-pick`: context line, title, text, footer, on a
+`.has-tip` parent that also opens it on keyboard focus). Never a browser tooltip: no `title` attribute, no SVG `<title>`.

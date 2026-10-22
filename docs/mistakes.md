@@ -90,3 +90,5 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - For every change during a round, run the later days too (tools/test_capstrip.mjs, or fake scores on the page): the turn after next, the last turn, after the round.
 - A label that counts or totals ("All done", "Round over") must be true for the whole thing it names.
 - A column or field shows what its header says, and its sort uses the same number (CLAUDE.md rule 6).
+- Tooltips use the site's design (`tipPick()`), never a browser `title` tooltip. A container with `overflow:hidden` cuts
+  them off: round its first and last rows instead (`.mkt`).
