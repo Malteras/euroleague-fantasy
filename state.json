@@ -3,7 +3,7 @@
  "avoids": [],
  "coachPin": null,
  "budget": 99.6,
- "maxT": 4,
+ "maxT": 99,
  "lam": 20,
  "pos": "ALL",
  "day": "ALL",
@@ -32,5 +32,6 @@
   "k": "2026-10-21|HTA|VIR|",
   "t": "VIR"
  },
- "savedAt": "2026-10-22T14:24:06.111Z"
+ "maxTAuto": "7:true",
+ "savedAt": "2026-10-22T14:51:36.039Z"
 }
