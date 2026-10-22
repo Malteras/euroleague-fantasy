@@ -55,6 +55,7 @@ def get(url, path):
 
 def parse_log(t, domestic=False):
     gl = t[t.find('PIR pub. Box'):t.find('Totals (')]
+    gl = gl.replace(' * ', ' ')  # '*' after a provisional credit change shifted the row and mixed games
     out = []
     for g in re.finditer(r'(\d{1,2} \w+) (.+?) \1 · ([WL]) (\d+)–(\d+) (.+?) (✈️ )?[WL] \d+–\d+ '+N+' '+N+' '+N+r' (\S+) '+N+r' (\S+) (\S+) (\S+) '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' '+N+' ', gl):
         opp = g.group(2) if domestic else SHORT.get(g.group(2), g.group(2))
