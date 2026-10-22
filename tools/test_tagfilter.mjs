@@ -16,12 +16,12 @@ test("Rise tags with different percentages count as one", () => {
 });
 
 test("counts every tag in the data, most common first, then by name", () => {
-  const P = [p("Credit gainer", "Rise 63%"), p("Credit gainer", "Rise 71%"), p("Buy low · back"), p("Out")];
-  assert.deepEqual(tagCounts(P), [["Credit gainer", 2], ["Rise %", 2], ["Buy low · back", 1], ["Out", 1]]);
+  const P = [p("Credit gainer", "Rise 63%"), p("Credit gainer", "Rise 71%"), p("Buy low: back"), p("Out")];
+  assert.deepEqual(tagCounts(P), [["Credit gainer", 2], ["Rise %", 2], ["Buy low: back", 1], ["Out", 1]]);
 });
 
 test("a player matches a tag by its grouped name; no tag picked matches everyone", () => {
   assert.equal(hasTag(p("Rise 63%"), "Rise %"), true);
-  assert.equal(hasTag(p("Credit gainer"), "Buy low · back"), false);
+  assert.equal(hasTag(p("Credit gainer"), "Buy low: back"), false);
   assert.equal(hasTag(p(), null), true);
 });

@@ -139,3 +139,11 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   played and one who has not. `xpts_jumps()`: the builder prints a WARNING when any xPTS moved more than ×2 from the deadline
   snapshot (history/round-N.json). FantaSheet's Rise % is for his next game, so the "Rise N%" tag is not shown for a player who
   has played this round.
+
+## 22 Oct 2026 · facts joined by " · " all over the site (#61)
+- **What went wrong:** about 130 lines joined facts with a middle dot: "Hapoel · 13.5 cr · vs VIR · 29.6 min". The lines grew
+  long, were hard to scan, and put unrelated facts side by side with equal weight. **Guard:** never join facts with " · ".
+  Use layout: a line of its own, a column, a small label before the value, or facts side by side with space between them
+  (`facts()` in index.html: most important first, `[label, value]` for a labelled fact). `tools/test_nodots.mjs` fails on
+  any dot in rendered text that is not on its list of dots still to remove, and the list only shrinks. Tag names, tooltips
+  and the daily report text follow the same rule.

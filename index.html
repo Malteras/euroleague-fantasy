@@ -804,6 +804,11 @@ html.locked,html.locked body{overflow:hidden}
 footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 .loading{padding:60px 0;text-align:center;color:var(--muted)}
 
+/* facts(): facts about one thing grouped by space, not by " · " (#61); one fact never breaks across lines */
+.facts{display:flex;flex-wrap:wrap;gap:1px 12px}
+.facts .f{white-space:nowrap}
+.facts i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:5px}
+
 @media (max-width:1240px){
   .split{grid-template-columns:1fr}
   .side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
@@ -961,6 +966,14 @@ function loadRemote(){
 
 const r1=v=>Math.round(v*10)/10;
 const fmt=(v,d=1)=>(v>0?"+":"")+v.toFixed(d);
+// facts:begin
+// Facts about one thing, side by side with space between them, never joined by " · " (#61). Most important first.
+// Each fact is an HTML string, or [label, value] for a small label before the value; empty facts are left out.
+function facts(...xs){
+  const f=xs.map(x=>Array.isArray(x)?(x[1]==null||x[1]===""?"":`<i>${x[0]}</i>${x[1]}`):x).filter(x=>x!=null&&x!==""&&x!==false);
+  return f.length?`<span class="facts">${f.map(x=>`<span class="f">${x}</span>`).join("")}</span>`:"";
+}
+// facts:end
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const turnOf2=d=>{const k=dayKeys.indexOf(d);return k>=0?`Turn ${k+1}`:"";};
 const plink=(p,txt)=>p?`<button type="button" class="plink" data-open="${p.id}">${esc(txt==null?p.name:txt)}</button>`:"";
@@ -1538,7 +1551,7 @@ function absenceOf(p,dates){
   return {first:first+1,last:last+1,missed:last-first+1,before,drop:rd(before-p.price),usual,usualSrc:pre.length?"before":usual!=null?"last season":null,
     back:p.status==="Return"||!!(latest&&latest.on)};
 }
-// Buy low · back: he is back, not Out or Doubtful, at least 0.3 cr under his price before the absence, and his usual level reaches his break-even now
+// Buy low: back. He is back, not Out or Doubtful, at least 0.3 cr under his price before the absence, and his usual level reaches his break-even now
 function buyLow(p,a){return !!a&&a.back&&!p.out&&p.status!=="Doubtful"&&a.drop>=0.3-1e-9&&a.usual!=null&&a.usual>=p.be;}
 // absenceOf:end
 function tagsFor(p){
@@ -1549,12 +1562,12 @@ function tagsFor(p){
   if(alertOf(p))T.push(["Status changed","warn"]);
   if(mine){
     if(p.out||p.exp<=-0.25||(l2!=null&&l2<p.be-4&&p.exp<0))T.push(["Consider dropping","bad"]);
-    else if(p.exp>=0.15)T.push(["Keep · gaining","good"]);else T.push(["Keep · price steady","neutral"]);  /* projected near break-even: price should barely move */
+    else if(p.exp>=0.15)T.push(["Keep: gaining","good"]);else T.push(["Keep: price steady","neutral"]);  /* projected near break-even: price should barely move */
   }else if(!p.out){
     if(p.x>=18&&p.exp>=0.15)T.push(["Must have","accent"]);
     else if(p.exp>=0.12&&p.x>=9)T.push(["Consider for next round","accent"]);
   }
-  if(buyLow(p,p.abs))T.push(["Buy low · back","good"]);
+  if(buyLow(p,p.abs))T.push(["Buy low: back","good"]);
   if(!p.out&&p.price<=8&&p.exp>=0.1)T.push(["Credit gainer","good"]);
   if(dA!=null&&p.price<=9&&dA>=1.1*p.price+3)T.push(["Domestic form","good"]);
   if(capOpt.has(p.id)&&!p.out)T.push(["Captain option","warn"]);
@@ -1565,8 +1578,10 @@ function tagsFor(p){
   return T;
 }
 // tagFilter:begin
-// The Player market tag filter. Rise tags carry their percentage, so they group as one.
-const tagKey=t=>/^Rise /.test(t)?"Rise %":t;
+// The Player market tag filter. Rise tags carry their percentage, so they group as one. A filter saved before the
+// tags lost their dots (#61) is read under the new name.
+const TAG_RENAMED={"Keep \u00b7 gaining":"Keep: gaining","Keep \u00b7 price steady":"Keep: price steady","Buy low \u00b7 back":"Buy low: back"};
+const tagKey=t=>/^Rise /.test(t)?"Rise %":TAG_RENAMED[t]||t;
 const hasTag=(p,k)=>!k||p.tags.some(t=>tagKey(t[0])===k);
 function tagCounts(P){const n={};P.forEach(p=>new Set(p.tags.map(t=>tagKey(t[0]))).forEach(k=>n[k]=(n[k]||0)+1));
   return Object.entries(n).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));}
@@ -1578,15 +1593,15 @@ function tagTip(p,t){
   const opp=p.opp&&TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:"His opponent",pos=POSN[p.pos].toLowerCase()+"s";
   if(/^Rise /.test(t))return ["Price",`FantaSheet gives him a ${Math.round(p.rise)}% chance of a price rise after this round.`,ex];
   if(t===p.status&&!p.out)return ["Injury news",`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
-  if(t==="Buy low · back"){const a=p.abs,g=a.missed===1?"game":"games";
+  if(t==="Buy low: back"){const a=p.abs,g=a.missed===1?"game":"games";
     return ["Price",`He missed ${a.missed} of his club's recent EuroLeague ${g} and is back. His price has fallen ${a.drop.toFixed(1)} cr since then (a round without him costs 0.1 cr), while his ${a.usualSrc==="before"?"average before the absence":"PIR last season"} still reaches his break-even.`,
       `${a.before.toFixed(1)} → ${p.price.toFixed(1)} cr · ${a.usualSrc==="before"?"average before":"last season"} ${a.usual} vs break-even ${p.be} · expected ${fmt(r1(p.exp))} cr`];}
   if(t==="Status changed"){const a=alertOf(p);return ["Injury news",`${a.from} → ${a.to} since the last daily report.`,`${a.src} · ${fmtDate(a.d)}`];}
   return ({
     "Out":["Injury news","Listed out for this round's game.",null],
     "Consider dropping":["In your squad","He is out, his price is expected to fall by 0.25 cr or more, or his last two games averaged over 4 points under break-even while his price is falling.",ex],
-    "Keep · gaining":["In your squad","His price is expected to go up by 0.15 cr or more after this round.",ex],
-    "Keep · price steady":["In your squad","He is projected close to his break-even, so his price should barely move.",pb],
+    "Keep: gaining":["In your squad","His price is expected to go up by 0.15 cr or more after this round.",ex],
+    "Keep: price steady":["In your squad","He is projected close to his break-even, so his price should barely move.",pb],
     "Must have":["Not in your squad","Projected 18 points or more, and his price is expected to go up by 0.15 cr or more.",`${pb} · ${fmt(r1(p.exp))} cr`],
     "Consider for next round":["Not in your squad","Projected 9 points or more, and his price is expected to go up by 0.12 cr or more.",`${pb} · ${fmt(r1(p.exp))} cr`],
     "Credit gainer":["Price","Costs 8 cr or less and his price is expected to go up by 0.1 cr or more. A cheap way to grow team value.",ex],
@@ -2556,7 +2571,7 @@ function lineupPartial(early,all){
   if(!best)throw 0;return best;
 }
 function pcard(p,role,isNew){
-  const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Keep · price steady","Must have","Out"].includes(t[0]));
+  const v=p.tags.find(t=>["Consider dropping","Keep: gaining","Keep: price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
   const o=(n=>n?(n.ha==="H"?"vs ":"@ ")+n.opp:"")(nextG(p));
   return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${projCell(p)}</span><span class="chg ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))} cr</span>${b}</div></div>`;
@@ -2586,6 +2601,7 @@ function detail(p){
   return `<div class="detail"><div><div class="eyebrow" style="margin-bottom:6px">Fantasy points, last ${g.length} games · bars in colour beat break-even</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fantasy points by game against break-even ${p.be}">${grid}${bars}<line x1="${pad}" x2="${W-6}" y1="${by}" y2="${by}" stroke="var(--be)" stroke-width="1.5" stroke-dasharray="5 4"></line><text class="bel" x="${W-8}" y="${by-5}" text-anchor="end">break-even ${p.be}</text></svg></div><div><div class="kv">${m.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("")}</div><p class="note" style="margin:10px 0 0">${p.price.toFixed(1)} cr (${fmt(p.chg??0)} last round). Next: ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}, ${esc(dayLabel(p.day))}. Expected change ${fmt(r1(p.exp))} cr. Projection: ${p.src==="FantaSheet"?`half FantaSheet xPTS (${p.xpts}), half recent form (${p.own})`:"his recent form"}.${mu!=null?` ${p.opp?TEAMS[p.opp.opp][0]:""} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s vs league average.`:""}</p><div class="ptags" style="margin-top:8px">${tagHtml(p,10)}</div></div>${domRows?`<div style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Domestic games · PIR estimated (fouls drawn and blocks against not published)</div><div class="panel list">${domRows}</div></div>`:""}</div>`;
 }
 function market(){
+  if(state.tag)state.tag=tagKey(state.tag);
   const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>projKey(shown(p)),exp:crShown,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
