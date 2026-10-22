@@ -26,8 +26,6 @@ function dotsByPlace() {
 // The dots still to remove, place by place (#61 parts 2–6). This list only shrinks: when you remove dots, lower or
 // delete the entry; a dot in a new place, or one more in an old place, fails here. Use facts() instead.
 const LEFT = {
-  // part 2: My team, player picker, compare, replace drawer
-  syncLabel: 1, slotHtml: 1, myteam: 6, picker: 1, compareTable: 1, suggestPanel: 7,
   // part 3: Teams and the team analysis drawer
   teamPanel: 6, teamsPage: 2,
   // part 4: player drawer, cards, Player market rows, tag tooltips

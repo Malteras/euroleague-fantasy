@@ -950,7 +950,7 @@ function save(){try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e
   if(SYNC.mode!=="on")return;
   clearTimeout(SYNC.timer);SYNC.timer=setTimeout(pushPrefs,1200);}
 function setSync(st){SYNC.status=st;const el=document.getElementById("syncPill");if(el){el.textContent=syncLabel();el.className="syncpill "+(st==="fail"?"bad":st==="saving"?"busy":"ok");}}
-function syncLabel(){return SYNC.status==="saving"?"Syncing…":SYNC.status==="fail"?"Sync failed · will retry":"Synced on all devices";}
+function syncLabel(){return SYNC.status==="saving"?"Syncing…":SYNC.status==="fail"?"Sync failed, will retry":"Synced on all devices";}
 function api(path,opt={}){const ac=typeof AbortController!=="undefined"?new AbortController():null;const t=ac?setTimeout(()=>ac.abort(),15000):null;
   return fetch("api/"+path,{...opt,cache:"no-store",signal:ac?ac.signal:undefined,headers:{"Content-Type":"application/json","x-pass":SYNC.pass,...(opt.headers||{})}}).finally(()=>t&&clearTimeout(t));}
 function applyRemote(j){SYNC.mode="on";SYNC.status="ok";if(j.prefs){const {savedAt,...p}=j.prefs;Object.assign(state,p,{open:null,q:""});snapLam();try{localStorage.setItem(LS,JSON.stringify(prefsOut()));}catch(e){}}return j.squad||null;}
@@ -1295,7 +1295,7 @@ function slotHtml(i,ep){
   const id=team.slots[i],p=id?byId[id]:null,role=i<5?(ep?POSN[ep]:"Starter"):i===5?"6th man":"Bench";
   const cls=`slot${p?"":" empty"}${sel===i?" sel":""}`;
   if(!p)return `<button type="button" class="${cls}" data-slot="${i}"${ep?` data-epos="${ep}"`:""} aria-label="${role}: add a player"><span class="plus">+</span><small>${role}</small></button>`;
-  return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}${team.cap===id?", captain":""}">${team.cap===id?`<span class="capb has-tip">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr · ${esc(turnOf2(p.day))}</small></button>`;
+  return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}${team.cap===id?", captain":""}">${team.cap===id?`<span class="capb has-tip">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr</small>${turnOf2(p.day)?`<small>${esc(turnOf2(p.day))}</small>`:""}</button>`;
 }
 function myteam(){
   const saved=sameTeam(team,savedTeam);
@@ -1305,7 +1305,7 @@ function myteam(){
   const coach=team.coach&&coachByTeam[team.coach];
   const cr=courtRows(),fk=cr.f.join("-");
   const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="has-tip${k===fk?" on":""}" aria-pressed="${k===fk}">${f[0]}G ${f[1]}F ${f[2]}C${tipPick("Formation",`${f[0]}G ${f[1]}F ${f[2]}C`,`${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""} and ${f[2]} centre${f[2]>1?"s":""} on the court.`)}</button>`}).join("")}</div></div>`;
-  return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?`Saved team${savedTeam.updated?` · ${esc(fmtDate(savedTeam.updated))}`:""} · the daily report uses this`:`Changed in this browser only · not saved for the daily report yet`}</div><h2>My team</h2></div>
+  return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?facts("Saved for the daily report",savedTeam.updated&&`updated ${esc(fmtDate(savedTeam.updated))}`):facts("Not saved for the daily report yet","changed in this browser only")}</div><h2>My team</h2></div>
    <div class="mt-actions">${SYNC.mode==="on"?`<span id="syncPill" class="syncpill ${SYNC.status==="fail"?"bad":SYNC.status==="saving"?"busy":"ok"}">${syncLabel()}</span>`:""}</div></div>
    ${SYNC.mode==="locked"?`<form class="connect" id="connectForm"><div><b>Connect this device</b><small>Enter your passcode once. Your team, picks and settings then stay the same on every device, and Save goes straight to the daily report.</small></div><input id="passIn" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode"><button class="btn-primary" type="submit">Connect</button><span class="note" id="passMsg" role="status"></span></form>`:""}
    ${formSeg}
@@ -1315,9 +1315,9 @@ function myteam(){
       ${["C","F","G"].map(k=>`<div class="crow" data-row="${k}">${cr.rows[k].map(i=>slotHtml(i,cr.epos[i])).join("")}</div>`).join("")}
     </div>
     <div class="mt-side">
-      <div class="benchrow"><div class="lbl">6th man · 100%</div>${slotHtml(5)}</div>
-      <div><div class="lbl">Bench · 50%</div><div class="bench">${[6,7,8,9].map(i=>slotHtml(i)).join("")}</div></div>
-      <div class="mt-coach"><div class="lbl">Head coach</div><button type="button" class="slot coachslot${coach?"":" empty"}" data-coach-slot>${coach?`<b>${esc(coach.name)}</b><small>${TEAMS[coach.team][0]} · ${coach.price.toFixed(1)} cr</small>`:'<span class="plus">+</span><small>Add coach</small>'}</button></div>
+      <div class="benchrow"><div class="lbl">${facts("6th man","counts 100%")}</div>${slotHtml(5)}</div>
+      <div><div class="lbl">${facts("Bench","counts 50%")}</div><div class="bench">${[6,7,8,9].map(i=>slotHtml(i)).join("")}</div></div>
+      <div class="mt-coach"><div class="lbl">Head coach</div><button type="button" class="slot coachslot${coach?"":" empty"}" data-coach-slot>${coach?`<b>${esc(coach.name)}</b><small>${facts(TEAMS[coach.team][0],`${coach.price.toFixed(1)} cr`)}</small>`:'<span class="plus">+</span><small>Add coach</small>'}</button></div>
       <div class="mt-money"><div><div class="lbl"><label for="bank">Bank (credits left)</label></div><input id="bank" class="num-input" type="number" step="0.1" min="0" max="30" value="${team.bank}"></div><div><div class="lbl">Team value</div><div class="tv">${teamValue().toFixed(1)}<small> cr</small></div></div></div>
     </div>
    </div>
@@ -1348,7 +1348,7 @@ function picker(){
     const pos=pick.pos==="ALL"?null:pick.pos;
     list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort(projSort).slice(0,80).map(p=>{
       const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
-      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):["Next",(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))])}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
   }
   const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
   return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
@@ -1408,7 +1408,7 @@ function compareTable(o,c){
   const cell=(txt,me,other,hib)=>{const win=me!=null&&other!=null&&hib!=null&&Math.abs(me-other)>1e-9&&(hib?me>other:me<other);return `<td class="${win?"win":""}">${win?`<b>${txt}</b>`:txt}</td>`;};
   const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
   return `<div class="cmp"><button type="button" class="chip-toggle" data-sg-back>← Back to the list</button>
-    <table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${esc(TEAMS[o.team][0])} · now</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${esc(TEAMS[c.team][0])}</small></span></th></tr></thead>
+    <table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${facts(esc(TEAMS[o.team][0]),"in your team")}</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${esc(TEAMS[c.team][0])}</small></span></th></tr></thead>
     <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>
     <p class="note" style="margin:8px 0 12px">Bold = better of the two. ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
     <div class="cmp-act"><button type="button" class="chip-toggle" data-sg-back>Keep ${esc(o.short)}</button><button type="button" class="btn-primary" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></div>`;
@@ -1419,12 +1419,12 @@ function suggestPanel(){
   const cmpP=sugCmp!=null?byId[sugCmp]:null;
   const best=list[0];
   const row=({c,score,why})=>{const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
-    return `<li class="sg-item"><div class="sg-top">${jersey(c.team,c.pos)}<div class="sg-n">${plink(c)}<small>${esc(TEAMS[c.team][0])} · ${c.price.toFixed(1)} cr · ${esc(turnOf2(c.day))} · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+esc(c.opp.opp):""}</small></div><div class="sg-s"><b class="${score>=0?"pos":"neg"}">${score>=0?"+":""}${score}</b><small>value</small></div></div>
+    return `<li class="sg-item"><div class="sg-top">${jersey(c.team,c.pos)}<div class="sg-n">${plink(c)}<small>${facts(esc(TEAMS[c.team][0]),`${c.price.toFixed(1)} cr`,`${esc(turnOf2(c.day))}${c.opp?(c.opp.ha==="H"?" vs ":" @ ")+esc(c.opp.opp):""}`)}</small></div><div class="sg-s"><b class="${score>=0?"pos":"neg"}">${score>=0?"+":""}${score}</b><small>value</small></div></div>
       <ul class="sg-why">${why.slice(0,4).map(t=>`<li>${t}</li>`).join("")}</ul>
-      <div class="sg-act"><span class="muted">${diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price"} · bank after ${bankAfter.toFixed(1)}</span><span class="sg-btns"><button type="button" class="chip-toggle" data-sg-cmp="${c.id}">Compare</button><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></span></div></li>`;};
+      <div class="sg-act"><span class="muted">${facts(diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price",["Bank after",bankAfter.toFixed(1)])}</span><span class="sg-btns"><button type="button" class="chip-toggle" data-sg-cmp="${c.id}">Compare</button><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></span></div></li>`;};
   return `<div class="scrim" data-sg-close></div><aside class="drawer sugg" role="dialog" aria-modal="true" aria-label="Replacements for ${esc(o.name)}">
     <div class="dr-top" style="--tc:${(TEAMS[o.team]||["","#445"])[1]}"><button type="button" class="dr-x" data-sg-close aria-label="Close">✕</button>
-      <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${o.price.toFixed(1)} cr · ${projOf(o)} · ${esc(turnOf2(o.day))} · bank ${team.bank.toFixed(1)}</div></div></div></div>
+      <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${facts(`${o.price.toFixed(1)} cr`,projOf(o),esc(turnOf2(o.day)),["Bank",team.bank.toFixed(1)])}</div></div></div></div>
     <div class="dr-body">${cmpP?compareTable(o,cmpP):`
       ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<tradeBar()?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${tradeBar()}+ value. Best options are below anyway.</div>`:""}
       <p class="note" style="margin:10px 0">${POSN[o.pos]}s you can afford (up to ${r1(o.price+team.bank).toFixed(1)} cr), best first. "Value" = projected points + credit growth, compared with ${esc(o.short)}, using the planner's "What matters more" setting.</p>
