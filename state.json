@@ -14,24 +14,7 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
- "team": {
-  "slots": [
-   73,
-   23,
-   38,
-   165,
-   118,
-   361,
-   91,
-   185,
-   236,
-   8
-  ],
-  "coach": "ZAL",
-  "bank": 0.3,
-  "cap": 23,
-  "base": "2026-10-21"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "mine",
@@ -43,5 +26,5 @@
   "7:check:11",
   "7:check:245"
  ],
- "savedAt": "2026-10-22T08:37:50.368Z"
+ "savedAt": "2026-10-22T08:37:53.485Z"
 }
