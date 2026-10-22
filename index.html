@@ -1470,6 +1470,8 @@ function fitTip(e){const g=e.target.closest&&e.target.closest(".ptag.has-tip");i
 document.addEventListener("pointerover",fitTip);document.addEventListener("focusin",fitTip);
 
 // optimiser:begin
+// true once the live round has started (render sets it from roundStarted()); history rounds run with it off
+let TRADES_CLOSED=false;
 /* ---------- scoring ---------- */
 function lineup(ids){
   const ps=ids.map(i=>byId[i]);
@@ -1559,12 +1561,12 @@ function withMode(mode,fn){
    W: {key (part of the optimiser cache key), data, P, C, dayKeys, look, orig, budget, maxT, lam, bar (the trade bar; null = as live)} */
 let roundKey="live",roundBar=null;
 function withRound(W,fn){
-  const live={D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar},keep={};
+  const live={D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED},keep={};
   const KEYS=["pins","avoids","coachPin","budget","maxT","lam"];KEYS.forEach(k=>keep[k]=state[k]);
   D=W.data;P=W.P;byId=Object.fromEntries(P.map(p=>[p.id,p]));C=W.C;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
-  orig=W.orig;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;
+  orig=W.orig;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;TRADES_CLOSED=false;
   Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam});
-  try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar}=live);Object.assign(state,keep);}
+  try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED}=live);Object.assign(state,keep);}
 }
 let resultAlt=null;
 // Search score: the same number as evalSquad(ids,coach).obj at this lam, without building the lineup (the search calls it tens of thousands of times).
@@ -1592,8 +1594,10 @@ function quickObj(ids,coach,lam){
 }
 // One local search for one "What matters more" stop: the squad with the most points + lam × expected credit change.
 function searchPlan(lam){
-  const pins=state.pins.filter(i=>byId[i]),avoids=new Set(state.avoids);
-  const B=state.budget,maxT=state.maxT;
+  // after the first tip-off the squad is fixed until next round's deadline (GLOSSARY): no trades, no new players
+  const closed=TRADES_CLOSED;
+  const pins=state.pins.filter(i=>byId[i]&&(!closed||orig.players.includes(i))),avoids=new Set(state.avoids);
+  const B=state.budget,maxT=closed?0:state.maxT;
   let S=orig.players.filter(i=>byId[i]);let coach=orig.coach;
   const warnings=[];
   const pool=P.filter(p=>!avoids.has(p.id));
@@ -1619,7 +1623,7 @@ function searchPlan(lam){
     if(pick){S=pick.T;if(!ok[0])warnings.push(`${p.short} only fits if other moves free up credits.`);}
     else warnings.push(`No ${POSN[p.pos].toLowerCase()} slot is free for ${p.short}; unpin another ${POSN[p.pos].toLowerCase()}.`);
   }
-  if(state.coachPin&&coachByTeam[state.coachPin])coach=state.coachPin;
+  if(!closed&&state.coachPin&&coachByTeam[state.coachPin])coach=state.coachPin;
   const forced=trades(S,coach);
   const lim=Math.max(maxT,forced);
   if(forced>maxT)warnings.push(`Your picks need ${forced} trades, more than the ${maxT} you allowed.`);
@@ -1740,7 +1744,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,TRADES_CLOSED]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -1847,6 +1851,7 @@ function goPage(p,anchor){
 document.querySelectorAll(".top nav a[data-page]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();goPage(a.dataset.page);}));
 window.addEventListener("popstate",()=>{const p=pageFromHash()||"team";if(p!==page){page=p;if(D)render();window.scrollTo(0,0);}});
 function render(){
+  TRADES_CLOSED=roundStarted();
   const pm=state.pmode==="m"?"m":"q";
   result=teamValid()?withMode(pm,optimise):null;
   resultAlt=(teamValid()&&page==="team")?withMode(pm==="m"?"q":"m",optimise):null;
@@ -2120,11 +2125,12 @@ function proposalParts(R){
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
-    <div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`;
+    ${TRADES_CLOSED?`<div class="tile"><div class="v">Closed</div><div class="k">Trades · round started</div></div>`:`<div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`}`;
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
   const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
     return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?`${fmt(r1(b.x-a.x),1)} now · ${fmt(r1(b.nx-a.nx),1)} next`:`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
-  const trades=`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
+  const trades=TRADES_CLOSED?`<div class="card ptrades"><h3>Trades</h3><div class="warnbox">${esc(D.roundLabel)} has started (first tip-off ${esc(dayShort(D.deadline))}). Trades are closed until the next round's deadline. You can only swap court and bench players and move the captain to players who have not played yet.</div></div>`
+    :`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
   return {tiles,warn,trades,body};
 }
@@ -2185,7 +2191,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
       ${who?`<div class="tl-who">${who}</div>`:'<p class="note" style="margin:4px 0 0">None of your players.</p>'}
       ${acts.length?`<p class="tl-lbl">${lbl}</p>${acts.map(a=>`<p class="tl-txt">${a}</p>`).join("")}`:`<p class="tl-txt muted" style="margin-top:6px">${k===dayKeys.length-1?"Nothing to do. The round ends after these games.":"Nothing to change."}</p>`}${warn}</li>`;
   }).join("");
-  const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl"><li class="now"><div class="tl-h"><b>Now</b><small>before ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""} · trades close</small></div>${nowBody}</li>${turns}</ol></div>`;
+  const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl">${TRADES_CLOSED?`<li class="now"><div class="tl-h"><b>Trades closed</b><small>the round started ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div><p class="note" style="margin:0">No trades until next round's deadline. Follow the turns below: move the captain and bring in only players who have not played yet.</p></li>`:`<li class="now"><div class="tl-h"><b>Now</b><small>before ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""} · trades close</small></div>${nowBody}</li>`}${turns}</ol></div>`;
   return `<div class="plan">${court}${timeline}</div>`;
 }
 function initPlan(R,L){
@@ -2633,6 +2639,14 @@ function watchItems(){
   return items;
 }
 // "Tomorrow 18:00"; the weekday and date when trades close further away
+// The live round has started: Banja Luka time is past the first tip-off on deadline day. Trades are closed until the next round.
+function roundStarted(){
+  if(roundKey!=="live"||!D.deadline)return false;
+  const f=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Sarajevo",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const v=k=>f.find(x=>x.type===k).value,day=`${v("year")}-${v("month")}-${v("day")}`,hm=`${v("hour")}:${v("minute")}`;
+  const tip=D.fixtures.filter(x=>x[0]===D.deadline).map(x=>x[3]).filter(Boolean).sort()[0];
+  return day>D.deadline||(day===D.deadline&&!!tip&&hm>=tip);
+}
 function deadlineRel(){
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
   const n=new Date(),dd=Math.round((new Date(D.deadline+"T12:00:00")-new Date(n.getFullYear(),n.getMonth(),n.getDate(),12))/864e5);
