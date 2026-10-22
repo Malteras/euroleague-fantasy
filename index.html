@@ -394,6 +394,8 @@ section{padding-block:28px 8px}
 .tcard{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer}
 .tcard:hover{border-color:var(--accent)}.tcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tc-n{display:flex;flex-direction:column;gap:2px;min-width:0}.tc-n b{font-size:16px}.tc-n small{color:var(--muted);font-size:12.5px}
+.tc-res{font-weight:700}.tc-res.w{color:var(--good)}.tc-res.l{color:var(--bad)}
+.tg-h{grid-column:1/-1;margin:8px 0 -2px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.tg-h:first-child{margin-top:0}
 .tp-body{display:flex;flex-direction:column;gap:12px;padding-top:14px;padding-bottom:20px}
 .tp-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
 .tp-card h4{margin:0 0 8px;font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
@@ -1475,11 +1477,30 @@ function teamPanel(){
     ${outs.length?`<div class="tp-card"><h4>Injuries</h4><p class="tp-line">${outs.map(p=>`${plink(p,p.short)} <span class="tag ${esc(p.status)}">${esc(p.status)}</span>`).join(" ")}</p></div>`:""}
    </div></aside>`;
 }
+// teamOrder:begin
+// The Teams tab order: clubs that played this round first, then the clubs still to play, each by game day and tip-off;
+// clubs with no game this round last. f: the club's fixture from its side; g: its played game (gameOf(t,day)), or null.
+function teamOrder(teams,fixtures,gameOf){
+  const fx={};fixtures.forEach(([d,h,a,time])=>{fx[h]={d,time:time||"",ha:"H",opp:a};fx[a]={d,time:time||"",ha:"A",opp:h};});
+  // a game's two clubs together, home club first
+  const when=r=>r.f?`${r.f.d} ${r.f.time} ${r.f.ha==="H"?r.t:r.f.opp} ${r.f.ha==="H"?0:1}`:"";
+  const rows=teams.map((t,i)=>{const f=fx[t]||null;return {t,f,g:f?gameOf(t,f.d)||null:null,i};});
+  const rank=r=>r.f?(r.g?0:1):2;
+  return rows.sort((a,b)=>rank(a)-rank(b)||when(a).localeCompare(when(b))||a.i-b.i).map(({t,f,g})=>({t,f,g}));
+}
+// teamOrder:end
 function teamsPage(){
-  const cards=Object.keys(TEAMS).filter(t=>(D.defence||{})[t]||P.some(p=>p.team===t)).map(t=>{const I=teamInfo(t);
+  const gameOf=(t,d)=>teamInfo(t).games.find(g=>g.d===d&&g.res)||null;
+  const rows=teamOrder(Object.keys(TEAMS).filter(t=>(D.defence||{})[t]||P.some(p=>p.team===t)),D.fixtures||[],gameOf);
+  const card=({t,f,g})=>{const I=teamInfo(t);
     const chips=I.pos.map(({k,v})=>{const V=verdict(v,k);return V.cls?`<span class="ptag ${V.cls==="bad"?"good":"warn"}">${V.cls==="bad"?"Easy":"Hard"} for ${POSW[k]} ${v>0?"+":""}${v}</span>`:"";}).join("");
-    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${I.games.length?`${I.w}–${I.l}`:""}${I.opp?` · next ${I.opp.ha==="H"?"vs":"@"} ${esc(I.opp.opp)} (${esc(turnOf2(turnOf[t]))})`:""}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;}).join("");
-  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">Defence by position · from the player's point of view</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${cards}</div></section>`;
+    // this round: the result once played (from the club's side), else when and where it plays; no projection either way
+    const R=g?gameInfo(g,null):null,vs=f?`${f.ha==="H"?"vs":"@"} ${esc((TEAMS[f.opp]||[f.opp])[0])}`:"";
+    const now=!f?"":R&&R.res?`<span class="tc-res ${R.win?"w":"l"}">${R.res[0]}</span> ${esc(R.res.slice(2))} ${vs}`:g?`Played ${vs}`:`${esc(dayShort(f.d))}${f.time?" "+esc(f.time):""} ${vs}`;
+    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${[I.games.length?`${I.w}–${I.l}`:"",now].filter(Boolean).join(" · ")}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;};
+  const played=rows.filter(r=>r.g),rest=rows.filter(r=>!r.g);
+  const grid=played.length?`<h3 class="tg-h">Played in Round ${D.round}</h3>${played.map(card).join("")}<h3 class="tg-h">${rest.some(r=>r.f)?"Still to play":"No game this round"}</h3>${rest.map(card).join("")}`:rows.map(card).join("");
+  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">Defence by position · from the player's point of view</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${grid}</div></section>`;
 }
 function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
 
