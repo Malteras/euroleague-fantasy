@@ -15,3 +15,16 @@ test("Price and Proj. have the same hook in the header and the rows", () => {
     assert.equal((part.match(/class="cell-num[^"]*\bc-pj\b/g) || []).length, 1, "one Proj. cell");
   }
 });
+
+// QA on #76: on a phone the next game, the credit change and the ownership are labelled facts that never break
+// inside, with the drawer's words (Exp. change before his game, Value after it), not one line joined by dots
+test("phone facts under the name are labelled, with no dot separators", () => {
+  const m = row.match(/<span class="mfacts mobile-only">([\s\S]*?)<\/span>`\)\(p\)\}/);
+  assert.ok(m, "a .mfacts block in the row");
+  const f = m[1];
+  for (const label of ["Next", "Owned"]) assert.ok(f.includes(`<i>${label}</i>`), label);
+  assert.match(f, /<i>\$\{[^}]*\?"Value":"Exp\. change"\}<\/i>/, "Value after his game, Exp. change before");
+  assert.doesNotMatch(f, / · /);
+  assert.match(f, /crShown\(p\)/, "the credit change goes through crShown (CLAUDE.md rule 7)");
+  assert.match(f, /nextG\(p\)/, "the next game goes through nextG (CLAUDE.md rule 7)");
+});
