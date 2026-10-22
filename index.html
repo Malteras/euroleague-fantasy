@@ -1265,13 +1265,13 @@ function picker(){
   const cnt=posCount(others),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
   let list;
   if(isCoach){
-    list=C.slice().sort((a,b)=>b.x-a.x).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${c.x}</span></button>`).join("");
+    list=C.slice().sort((a,b)=>b.x-a.x).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`).join("");
   }else{
     const need=Object.keys(POSMAX).filter(k=>cnt[k]<POSMAX[k]);
     const pos=pick.pos==="ALL"?null:pick.pos;
     list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort((a,b)=>b.x-a.x).slice(0,80).map(p=>{
       const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
-      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${p.x}</span></button>`;}).join("");
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
   }
   const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
   return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
@@ -1292,7 +1292,7 @@ function suggestFor(slot){
 }
 function reasons(c,o){
   const R=[];const l3=avg(c.log.slice(0,3).map(g=>g.fpt));const gain=r1(c.x-o.x);
-  R.push(`Projected <b>${c.x}</b> this round vs ${o.x} for ${esc(o.short)} (${gain>=0?"+":""}${gain}).`);
+  R.push(shown(c).played||shown(o).played?`This round: ${projOf(c)} vs ${projOf(o)} for ${esc(o.short)}.`:`Projected <b>${c.x}</b> this round vs ${o.x} for ${esc(o.short)} (${gain>=0?"+":""}${gain}).`);
   const m=matchup(c);const opp=c.opp?(c.opp.ha==="H"?"vs ":"@ ")+c.opp.opp:"";
   if(m!=null&&m>=15)R.push(`Easy matchup ${esc(opp)}: they give ${POSN[c.pos].toLowerCase()}s ${m} PIR more than average.`);
   else if(m!=null&&m<=-15)R.push(`Hard matchup ${esc(opp)}: they give ${POSN[c.pos].toLowerCase()}s ${-m} PIR less than average.`);
@@ -1319,7 +1319,7 @@ function compareTable(o,c){
     ["Price",o.price.toFixed(1),c.price.toFixed(1),o.price,c.price,false],
     ["Next game",opp(o),opp(c),null,null],
     [`Opponent vs ${POSW[o.pos]}`,mtxt(m(o)),mtxt(m(c)),m(o),m(c),true],
-    ["Projection",o.x,c.x,o.x,c.x,true],
+    ["Projection",shown(o).played?projOf(o):o.x,shown(c).played?projOf(c):c.x,o.x,c.x,true],
     ["With matchup bonus",r1(o.x+mBonus(o)),r1(c.x+mBonus(c)),o.x+mBonus(o),c.x+mBonus(c),true],
     ["Last 3 EuroLeague (FPT)",l3(o).join(", ")||"–",l3(c).join(", ")||"–",a3(o),a3(c),true],
     ["Season average",o.fpt??"–",c.fpt??"–",o.fpt,c.fpt,true],
@@ -1347,7 +1347,7 @@ function suggestPanel(){
       <div class="sg-act"><span class="muted">${diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price"} · bank after ${bankAfter.toFixed(1)}</span><span class="sg-btns"><button type="button" class="chip-toggle" data-sg-cmp="${c.id}">Compare</button><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></span></div></li>`;};
   return `<div class="scrim" data-sg-close></div><aside class="drawer sugg" role="dialog" aria-modal="true" aria-label="Replacements for ${esc(o.name)}">
     <div class="dr-top" style="--tc:${(TEAMS[o.team]||["","#445"])[1]}"><button type="button" class="dr-x" data-sg-close aria-label="Close">✕</button>
-      <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${o.price.toFixed(1)} cr · proj ${o.x} · ${esc(turnOf2(o.day))} · bank ${team.bank.toFixed(1)}</div></div></div></div>
+      <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${o.price.toFixed(1)} cr · ${projOf(o)} · ${esc(turnOf2(o.day))} · bank ${team.bank.toFixed(1)}</div></div></div></div>
     <div class="dr-body">${cmpP?compareTable(o,cmpP):`
       ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<tradeBar()?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${tradeBar()}+ value. Best options are below anyway.</div>`:""}
       <p class="note" style="margin:10px 0">${POSN[o.pos]}s you can afford (up to ${r1(o.price+team.bank).toFixed(1)} cr), best first. "Value" = projected points + credit growth, compared with ${esc(o.short)}, using the planner's "What matters more" setting.</p>
@@ -1397,7 +1397,7 @@ function teamPanel(){
   let attack="";
   if(I.opp&&I.weak&&I.weak.v>=12){
     const o=I.opp.opp,cands=P.filter(p=>p.team===o&&p.pos===I.weak.k&&!p.out).sort((a,b)=>b.x-a.x).slice(0,3);
-    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · proj ${p.x} · ${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul></div>`;
+    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${projOf(p)} · ${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul></div>`;
   }
   let avoid="";
   if(I.opp&&I.strong&&I.strong.v<=-12){const o=I.opp.opp;const mine=P.filter(p=>p.team===o&&p.pos===I.strong.k&&orig.players.includes(p.id));
@@ -1405,7 +1405,7 @@ function teamPanel(){
   const top=I.players.filter(p=>!p.out).sort((a,b)=>b.x-a.x).slice(0,6);
   const risers=I.players.filter(p=>!p.out&&p.price<=9&&p.exp>=0.1).sort((a,b)=>b.exp-a.exp).slice(0,4);
   const outs=I.players.filter(p=>p.status);
-  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · proj ${p.x} · ${p.exp>=0?"+":""}${r1(p.exp)} cr</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul>`;
+  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${projOf(p)} · ${p.exp>=0?"+":""}${r1(p.exp)} cr</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul>`;
   const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"}" title="${esc(g.d)}">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small></span>`).join("");
   const next=((D.teamNext||{})[tp]||[]).filter(x=>x.el).slice(0,3).map(x=>`<li><span>${esc(fmtShort(x.d))}</span><span>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</span></li>`).join("");
   const coach=coachByTeam[tp];
@@ -1488,7 +1488,7 @@ function tagCounts(P){const n={};P.forEach(p=>new Set(p.tags.map(t=>tagKey(t[0])
 const tagHtml=(p,n=3)=>p.tags.slice(0,n).map(([t,c])=>`<span class="ptag ${c}">${esc(t)}</span>`).join("");
 // What each tag means, for its tooltip in the player panel: [what it is about, the rule in plain words, this player's numbers]. Same thresholds as tagsFor.
 function tagTip(p,t){
-  const ex=`Expected ${fmt(r1(p.exp))} cr after this round`,pb=`Projection ${p.x} · break-even ${p.be}`,mu=matchup(p);
+  const ex=`Expected ${fmt(r1(p.exp))} cr after this round`,pb=`${projOf(p).replace(/^proj/,"Projection")} · break-even ${p.be}`,mu=matchup(p);
   const opp=p.opp&&TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:"His opponent",pos=POSN[p.pos].toLowerCase()+"s";
   if(/^Rise /.test(t))return ["Price",`FantaSheet gives him a ${Math.round(p.rise)}% chance of a price rise after this round.`,ex];
   if(t===p.status&&!p.out)return ["Injury news",`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
@@ -1505,7 +1505,7 @@ function tagTip(p,t){
     "Consider for next round":["Not in your squad","Projected 9 points or more, and his price is expected to go up by 0.12 cr or more.",`${pb} · ${fmt(r1(p.exp))} cr`],
     "Credit gainer":["Price","Costs 8 cr or less and his price is expected to go up by 0.1 cr or more. A cheap way to grow team value.",ex],
     "Domestic form":["Form","Costs 9 cr or less and scored well above his price in his last two domestic league games.",null],
-    "Captain option":["Captain",`One of the two highest projections on ${dayLabel(p.day)}, so a strong captain pick for that turn.`,`Projection ${p.x}`],
+    "Captain option":["Captain",`One of the two highest projections on ${dayLabel(p.day)}, so a strong captain pick for that turn.`,projOf(p).replace(/^proj/,"Projection")],
     "Soft matchup":["Matchup",`${opp} let ${pos} score ${mu}% more than an average team.`,null],
     "Tough matchup":["Matchup",`${opp} let ${pos} score ${mu!=null?-mu:""}% less than an average team.`,null],
     "Minutes risk":["Form","He played under 12 minutes in his last game.",p.log[0]?`Last game: ${p.log[0].min} min`:null]
@@ -2022,7 +2022,7 @@ function drawer(){
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
   const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>Next game</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
-      <div><small>Projection</small><b class="tp">${p.x}</b><em>break-even ${p.be}</em></div>
+      ${shown(p).played?`<div><small>Points</small><b class="tp">${shown(p).pts}</b><em>${shown(p).x!=null?`proj ${shown(p).x} at the deadline`:"played"}</em></div>`:`<div><small>Projection</small><b class="tp">${p.x}</b><em>break-even ${p.be}</em></div>`}
       <div><small>Exp. change</small><b class="${r1(p.exp)<0?"neg":"tc"}">${fmt(r1(p.exp))} cr</b><em>after this round</em></div>
       <div><small>Matchup</small>${mu!=null?`<b class="${mu<0?"neg":mu>0?"pos":""}">${mu>0?"+":""}${mu}%</b><em>PIR for ${POSN[p.pos].toLowerCase()}s</em>`:`<b class="muted">–</b><em>no data</em>`}</div></div></div>`
     :`<div class="ng-none">No EuroLeague game this round.</div>`;
@@ -2369,7 +2369,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     its.filter(i=>i.kind==="wait"&&/^Lineup changes/.test(i.title)).forEach(i=>acts.push(`<span class="muted">${esc(i.title)}: ${i.ps.map(p=>`${name(p)} (proj ${p.x})`).join(", ")} can come in for anyone in his position who scores under that.</span>`));
     const changes=its.filter(i=>i.apply&&(i.apply.out!=null||(i.apply.cap!=null&&i.apply.cap!==team.cap)));
     if(changes.length)acts.push(`<span class="tl-act"><button type="button" class="btn-primary" data-apply-turn="${d}">Apply to My team</button><span class="note">Then press <b>Save for daily report</b> on My team. The Bottom line ticks these off.</span></span>`);
-    if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (proj ${coach.x}).</span>`);
+    if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (${projOf(coach)}).</span>`);
     const rk=risky.filter(p=>p.day===d);
     const warn=rk.length?`<div class="tl-warn">Minutes watch: ${rk.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.</div>`:"";
     const lbl=done?`${esc(dayShort(d))}: played`:`Before ${esc(dayShort(d))}'s games`;
@@ -2431,7 +2431,7 @@ function pcard(p,role,isNew){
   const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Keep · price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
   const o=p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"";
-  return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${p.x}</span><span class="chg ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</span>${b}</div></div>`;
+  return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${projCell(p)}</span><span class="chg ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</span>${b}</div></div>`;
 }
 function spark(p){
   const g=(p.log||[]).slice(0,5).reverse();const W=150,H=36,max=Math.max(45,...g.map(x=>x.fpt),p.be+5);
@@ -2450,7 +2450,7 @@ function detail(p){
   const by=y(p.be);
   const mu=matchup(p);
   const domRows=(p.dom||[]).slice(0,4).map(g=>`<div class="lrow"><div><b>${g.ha==="A"?"@":"vs"} ${esc(g.opp)}</b><small>${esc(g.comp)} · ${esc(g.d)} · ${esc(g.res)}</small></div><span class="muted" style="text-align:right">${g.absent?"Not in the box score":g.dnp?"Did not play":`${g.min} min · ${g.pts} pts · ${g.reb} reb · ${g.ast} ast · <b style="color:var(--fg)">PIR ≈ ${g.pir}</b>`}</span></div>`).join("");
-  const m=[["Proj.",p.x],["Season FPT",p.fpt],["Last 3",p.l3],["Minutes",p.min],["PTS / REB / AST",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`],["PIR 25-26",p.pir2526??"–"]];
+  const ps=shown(p),m=[ps.played?["Points",ps.pts]:["Proj.",p.x],["Season FPT",p.fpt],["Last 3",p.l3],["Minutes",p.min],["PTS / REB / AST",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`],["PIR 25-26",p.pir2526??"–"]];
   return `<div class="detail"><div><div class="eyebrow" style="margin-bottom:6px">Fantasy points, last ${g.length} games · bars in colour beat break-even</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fantasy points by game against break-even ${p.be}">${grid}${bars}<line x1="${pad}" x2="${W-6}" y1="${by}" y2="${by}" stroke="var(--be)" stroke-width="1.5" stroke-dasharray="5 4"></line><text class="bel" x="${W-8}" y="${by-5}" text-anchor="end">break-even ${p.be}</text></svg></div><div><div class="kv">${m.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("")}</div><p class="note" style="margin:10px 0 0">${p.price.toFixed(1)} cr (${fmt(p.chg??0)} last round). Next: ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}, ${esc(dayLabel(p.day))}. Expected change ${fmt(r1(p.exp))} cr. Projection: ${p.src==="FantaSheet"?`half FantaSheet xPTS (${p.xpts}), half recent form (${p.own})`:"his recent form"}.${mu!=null?` ${p.opp?TEAMS[p.opp.opp][0]:""} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s vs league average.`:""}</p><div class="ptags" style="margin-top:8px">${tagHtml(p,10)}</div></div>${domRows?`<div style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Domestic games · PIR estimated (fouls drawn and blocks against not published)</div><div class="panel list">${domRows}</div></div>`:""}</div>`;
 }
 function market(){
@@ -2464,7 +2464,7 @@ function market(){
     <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
-    <span class="cell-num big">${p.x}</span>
+    <span class="cell-num big">${projCell(p)}</span>
     <span class="cell-num h-ch ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))}</span>
     <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
@@ -2483,7 +2483,7 @@ function market(){
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
 }
 function coaches(){
-  const list=C.slice().sort((a,b)=>b.x-a.x).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${c.x}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
+  const list=C.slice().sort((a,b)=>b.x-a.x).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
   return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">Win by 1–10 +10 · 11–20 +20 · 21+ +25</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
 }
 /* ---------- how the projections did ---------- */
@@ -2940,6 +2940,42 @@ function watchItems(){
   return items;
 }
 // "Tomorrow 18:00"; the weekday and date when trades close further away
+// projShown:begin
+// What a card may show for a player or coach this round (#57). Once his club's game this round is played, today's projection
+// already includes the game (it has moved toward his score), so it is never shown: his points, and the projection at the
+// deadline (history snapshot) if there is one. Before his game: today's projection. A coach is keyed "c:"+club in deadX.
+function projShown(p,{played,score,deadX}){
+  if(!played(p))return {played:false,x:p.x};
+  return {played:true,pts:score(p),x:deadX[p.id??"c:"+p.team]??null};
+}
+// "proj 20.6" before his game; "36.3 pts (proj 21)" after it
+const projTxt=s=>s.played?`${s.pts!=null?`${s.pts} pts`:"played"}${s.x!=null?` (proj ${s.x})`:""}`:`proj ${s.x}`;
+// A coach's points from the final score in a player log ("W 90-81", home score first): README, coach projection
+function coachPts(res){
+  const m=/^([WL]) (\d+)-(\d+)/.exec(res||"");if(!m)return null;
+  const d=Math.abs(m[2]-m[3]),b=d<=10?0:d<=20?1:2;
+  return m[1]==="W"?[10,20,25][b]:[-5,-10,-20][b];
+}
+// projShown:end
+// projShown's context for the round on the page: the clubs that have played their game this round (from the game logs),
+// the points, and the deadline projections from history/round-N.json. Only the live round has played games.
+let shownMemo=null;
+function shownCtx(){
+  const M=shownMemo;if(M&&M.P===P&&M.C===C&&M.H===HIST&&M.k===roundKey)return M.c;
+  const done=new Map(),deadX={};
+  if(roundKey==="live")P.forEach(p=>(p.log||[]).forEach(g=>{if(!done.has(p.team+"|"+g.d))done.set(p.team+"|"+g.d,g);}));
+  const played=p=>done.has(p.team+"|"+p.day);
+  const snap=roundKey==="live"&&HIST&&HIST.find(h=>h.round===D.round);
+  if(snap){const S=project(snap);S.players.forEach(p=>deadX[p.id]=p.x);S.coaches.forEach(c=>deadX["c:"+c.team]=c.x);}
+  else if(roundKey==="live"&&done.size&&P.some(played))loadHistory();
+  const score=p=>{if(p.id==null){const g=done.get(p.team+"|"+p.day);return g?coachPts(g.res):null;}
+    const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
+  const c={played,score,deadX};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
+}
+const shown=p=>projShown(p,shownCtx());
+const projOf=p=>projTxt(shown(p));
+// a number cell: today's projection, or his points once he has played (deadline projection in the tooltip)
+const projCell=p=>{const s=shown(p);return s.played?`<span title="${s.x!=null?`Projected ${s.x} at the deadline`:"Played"}">${s.pts??"–"}<small> pts</small></span>`:`${s.x}`;};
 // The live round has started: Banja Luka time is past the first tip-off on deadline day. Trades are closed until the next round.
 function roundStarted(){
   if(roundKey!=="live"||!D.deadline)return false;

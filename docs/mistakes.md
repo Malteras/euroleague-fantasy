@@ -56,6 +56,17 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **What:** "Plan for the round" walked the captain from the saved one, so once the armband was on Etienne, Turn 2 showed no captain.
 - **Guard:** `liveRound()` starts the walk at the round's first captain; history text shows no projection for a played game.
 
+## 22 Oct 2026 · team analysis showed a projection made after the game: LeDay "proj 39.9" after he scored 36.3
+- **What:** the Virtus card "This round: attack Virtus with Hapoel forwards" showed LeDay proj 39.9 and Coffey proj 21.7 on
+  Thursday. Both had played on Wednesday. Those numbers were never on the site before the game, so it looked like we had
+  predicted his score.
+- **Why:** the card used today's projection (`p.x`). After a game it is rebuilt with that game in his form, so it moves
+  toward the score. The same was true of the market, the player cards and drawer, the coaches page and the replace drawer.
+- **Guard:** `projShown()` / `projOf()` / `projCell()` in index.html (CLAUDE.md rule 4: a played turn is history). Once his
+  club has played this round, a card shows his points and the projection at the deadline from history/round-N.json, never
+  today's projection. Before his game, today's projection. Tests: tools/test_projshown.mjs. Any new place that shows a
+  projection next to a player this round goes through `projOf(p)` or `projCell(p)`, never `p.x`.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
