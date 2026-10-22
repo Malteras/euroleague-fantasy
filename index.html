@@ -810,6 +810,35 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .mrow .h-be,.mrow .h-ch,.mrow .h-ow,.mrow .h-sp,.mrow .h-op{display:none}
   .mrow.head .h-be,.mrow.head .h-ch,.mrow.head .h-ow,.mrow.head .h-sp,.mrow.head .h-op{display:none}
   .mobile-only{display:block}
+  /* the row's facts on a narrow screen: a small label, then the value; one fact never breaks across lines */
+  .mfacts.mobile-only{display:flex;flex-wrap:wrap;gap:1px 12px;margin-top:2px;font-size:12px;color:var(--fg)}
+  .mfacts .mf{white-space:nowrap}
+  .mfacts i{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:5px}
+}
+/* Player market on a phone (#48): filters in a tidy grid; in a row the name wraps, Must have sits above Leave out on
+   the right, and the tags get their own line under the player, across the Price and Proj. columns */
+@media (max-width:600px){
+  #market .tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #market .tools>*{width:100%;min-width:0}
+  #market .search{grid-column:1/-1}
+  #market #sort,#market #tagf{order:1}#market #only,#market #clear{order:2}
+  #market .tools .seg{flex-wrap:nowrap}
+  #market .tools .seg button{padding-inline:4px;min-width:0}
+  #market .tools .chip-toggle{padding-inline:8px}
+  .mrow{grid-template-columns:minmax(0,1fr) 44px 46px 32px;column-gap:8px;row-gap:6px;padding:10px 10px 10px 12px;align-items:start}
+  .mrow>.ico.pin,.mrow.head>:first-child{grid-column:4;grid-row:1}
+  .mrow>.ico.no{grid-column:4;grid-row:2}
+  .mrow.head>:last-child{display:none}
+  .mrow.head{align-items:center}
+  .mrow .c-pr{grid-column:2;grid-row:1}.mrow .c-pj{grid-column:3;grid-row:1}
+  .mrow:not(.head)>.who-c>.who,.mrow:not(.head)>.c-pr,.mrow:not(.head)>.c-pj{align-self:baseline}
+  .mrow.head>:nth-child(2){grid-column:1;grid-row:1}
+  .who-c{display:contents}
+  .who-c>.who{grid-column:1;grid-row:1;align-items:flex-start}
+  .who-c>.ptags{grid-column:1/4;grid-row:2;padding-left:0;margin-top:0;align-self:center}
+  .mrow .who .jersey{width:28px;height:28px;font-size:9.5px}
+  .mrow .who b,.mrow .who small{white-space:normal;overflow:visible}
+  .mrow .who b{line-height:1.25}
 }
 @media (max-width:760px){
   .days{grid-template-columns:1fr}
@@ -2529,13 +2558,13 @@ function market(){
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>projKey(shown(p)),exp:crShown,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
-  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
+  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num c-pr sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num c-pj sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
-    <div class="who-c"><button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${n.round!=null?`R${n.round} `:""}${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small></span></button><span class="ptags">${tagTipHtml(p,3)}</span></div>
-    <span class="cell-num">${p.price.toFixed(1)}</span>
+    <div class="who-c"><button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small>${(p=>`<span class="mfacts mobile-only">${(n=>n?`<span class="mf"><i>Next</i>${n.ha==="H"?"vs":"@"} ${n.opp} ${esc(nextShort(n))}${n.round!=null&&n.round!==D.round?` (R${n.round})`:""}</span>`:"")(nextG(p))}<span class="mf"><i>${shown(p).played&&shown(p).cr!=null?"Value":"Exp. change"}</i><span class="${crShown(p)>0?"pos":crShown(p)<0?"neg":""}">${fmt(crShown(p))} cr</span></span>${p.pop!=null?`<span class="mf"><i>Owned</i>${p.pop}%</span>`:""}</span>`)(p)}</span></button><span class="ptags">${tagTipHtml(p,3)}</span></div>
+    <span class="cell-num c-pr">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
-    <span class="cell-num big">${projCell(p)}</span>
+    <span class="cell-num c-pj big">${projCell(p)}</span>
     <span class="cell-num h-ch ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))}</span>
     <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
