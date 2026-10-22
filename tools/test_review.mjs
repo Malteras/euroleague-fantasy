@@ -100,3 +100,12 @@ test("a captain whose club played but who did not scores 0, so the plan says mov
   assert.equal(R.cap.scored, 0);
   assert.equal(R.cap.call, "move");
 });
+
+test("the armband moved to the Thursday captain: his own score counts double, not once", () => {
+  // first captain 1 scores 9 (under the keep mark), the saved lineup has the armband on 6, who then scores 30
+  const saved = { slots: [6, 2, 3, 4, 5, 1, 7, 8, 9, 10], cap: 6, updated: W };
+  const R = turnReview(snap(), live({ ...wed, 1: [W, 9], 3: [T, 10], 4: [T, 2], 6: [T, 30], 8: [T, 6], 9: [T, 1] }), saved);
+  const r6 = R.turns[1].rows.find(r => r.id === 6), r1 = R.turns[0].rows.find(r => r.id === 1);
+  assert.equal(r6.cap, true); assert.equal(r6.moved, undefined); assert.equal(r6.counted, 60);
+  assert.equal(r1.mult, 1); assert.equal(r1.counted, 9);
+});

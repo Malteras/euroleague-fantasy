@@ -32,6 +32,15 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Guard:** ADR 0002 lists what each card does during a round; `blLiveItems()`, the turn card's "C moved ×1",
   one keep mark from the deadline snapshot.
 
+## 22 Oct 2026 · the captain walk and the turn table were wrong once later turns were played (found before it showed)
+- **What:** (1) `liveCapPlan()` left out players who had already played when it picked the next captain, so a walk from the
+  first captain jumped over a played turn (Bryant → Etienne once Thursday was played). (2) The turn table tagged whoever held
+  the armband in the saved lineup "C moved ×1" when the first captain was moved, so a Maledon who kept it would count once.
+  (3) A played turn's keep mark moved when a later game changed today's projections (19 → 21).
+- **Why:** each was written for the day it was looked at; nobody ran the later days of the round.
+- **Guard:** tools/test_capstrip.mjs walks every day of a round (keep, move, armband not moved, last turn, round over);
+  tools/test_review.mjs has the moved-armband case. Players who have played keep their deadline projection in the strip.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.

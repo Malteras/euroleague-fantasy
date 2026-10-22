@@ -691,13 +691,37 @@ html.locked,html.locked body{overflow:hidden}
 .rv-tot div{background:var(--raise);border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
 .rv-tot small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
 .rv-tot b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}.rv-tot .rv-got b{color:var(--accent)}
-.rv-cap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 12px;border:1px solid var(--line-soft);border-left:4px solid var(--line);border-radius:10px;background:var(--raise)}
-.rv-cap.ok{border-left-color:var(--good)}.rv-cap.off{border-left-color:var(--bad)}
-.rv-cs{position:relative;min-width:0;padding:8px 12px}.rv-cs+.rv-cs{border-left:1px solid var(--line-soft)}
-.rv-cs+.rv-cs::before{content:"›";position:absolute;left:-7px;top:50%;transform:translateY(-50%);width:13px;line-height:15px;text-align:center;font-size:13px;color:var(--faint);background:var(--raise)}
-.rv-cs small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
-.rv-cs>b{display:block;margin:2px 0 6px;font-family:var(--display);font-size:18px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rv-cs>span{display:block;font-size:12.5px;line-height:1.35;color:var(--muted)}
+/* the captain strip: one line for the next call, then the armband's walk, one stop per captain */
+.rv-arm{margin:0 0 14px}
+.rv-al{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding-bottom:10px;margin-bottom:16px;border-bottom:1px solid var(--line-soft);font-size:15px}
+.rv-al .lab{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
+.rv-al.bad{border-bottom-color:var(--bad)}.rv-al.bad .lab,.rv-al.bad>b{color:var(--bad)}
+.rv-bonus{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.rv-bonus b{font-family:var(--display);font-size:18px;color:var(--fg)}
+.rv-tk{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));align-items:start}
+.rv-ln{position:absolute;top:23px;height:3px;background:var(--line)}
+.rv-ln.done{background:var(--accent)}.rv-ln.hot{background:repeating-linear-gradient(90deg,var(--accent) 0 6px,transparent 6px 10px)}
+.rv-st{position:relative;min-width:0;padding:0 6px;text-align:center}
+.rv-st .bdg{position:relative;z-index:1;width:48px;height:48px;margin:0 auto 8px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:14px;background:var(--tc);color:var(--ti);border:3px solid var(--surface);box-shadow:0 0 0 2px var(--line)}
+.rv-st.hold .bdg{box-shadow:0 0 0 3px var(--accent)}
+.rv-st .cb{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--warn);color:var(--surface);font-size:12px}
+.rv-st .nm{display:block;font-weight:700;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-st .num{font-family:var(--display);font-size:22px;line-height:1.15;color:var(--muted)}
+.rv-st .num.sc{color:var(--fg)}.rv-st .num.lo,.rv-st .lo{color:var(--bad)}.rv-st .num.hi{color:var(--good)}
+.rv-st small{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+.rv-st.gone{opacity:.65}
+.rv-bar{position:relative;width:min(140px,90%);height:4px;margin:10px auto 6px;border-radius:2px;background:color-mix(in srgb,var(--line) 70%,transparent);cursor:help}
+.rv-bar::before{content:"";position:absolute;inset:-8px 0}
+.rv-bar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:color-mix(in srgb,var(--accent) 45%,transparent)}
+.rv-bar i.lo{background:color-mix(in srgb,var(--bad) 42%,transparent)}.rv-bar i.pj{background:color-mix(in srgb,var(--faint) 55%,transparent)}
+.rv-bar u{position:absolute;top:-3px;width:2px;height:10px;border-radius:1px;background:var(--muted)}
+.rv-bar .pk{position:absolute;top:-2px;width:2px;height:8px;border-radius:1px;background:var(--faint);opacity:0}
+.rv-bar .tip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 8px;border-radius:6px;background:var(--fg);color:var(--surface);font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0}
+.rv-bar .tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--fg)}
+.rv-bar:hover .tip,.rv-bar:focus-visible .tip,.rv-bar.open .tip,.rv-bar:hover .pk,.rv-bar:focus-visible .pk,.rv-bar.open .pk{opacity:1}
+@media (max-width:560px){.rv-tk{grid-template-columns:1fr;gap:14px}.rv-ln{display:none}
+  .rv-st{display:grid;grid-template-columns:52px minmax(0,1fr);gap:0 10px;align-items:center;text-align:left}
+  .rv-st .bdg{grid-row:1/span 6;margin:0}.rv-bar{margin:8px 0 6px}.rv-bar .tip{left:0;transform:none}.rv-bar .tip::after{left:12px}}
 .rv-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--line-soft);color:var(--muted)}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
@@ -720,7 +744,6 @@ html.locked,html.locked body{overflow:hidden}
 .rr-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
 .rr-row>span:nth-child(odd){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rr-row .rv-c{color:var(--accent);font-weight:700}.rr-row .muted{color:var(--muted)}
-@media (max-width:560px){.rv-cap{grid-template-columns:1fr}.rv-cs+.rv-cs{border-left:0;border-top:1px solid var(--line-soft)}.rv-cs+.rv-cs::before{display:none}}
 @media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 46px 46px 46px;gap:6px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
@@ -1078,12 +1101,15 @@ function turnReview(snap,logs,saved){
       call:done?(f.keepAt==null||scored>=f.keepAt?"keep":"move"):null,now:who(by[cap])};}
   // the first captain's double counts only if he keeps the armband: a score under the keep mark counts once,
   // because the armband moves to a later player (keep or move is judged on his raw score, not the doubled one)
-  if(capCall&&capCall.call==="move")for(const t of turns)for(const r of t.rows)if(r.cap){
+  // only his own row: once the armband is on a later player in the saved lineup, that player's row is the captain's
+  const firstCap=capCall&&capCall.call==="move"&&cap===capCall.first.id;
+  if(firstCap)for(const t of turns)for(const r of t.rows)if(r.cap){
     const m=r.mult/2;got+=r1((r.fpt||0)*m)-r.counted;projSoFar+=r1(r.x*m)-r.px;
     projRound+=r1(r.x*m)-r.px;
     Object.assign(r,{cap:false,moved:true,mult:m,counted:r1((r.fpt||0)*m),px:r1(r.x*m)});}
-  if(capCall&&capCall.call==="move"&&capCall.next)projRound+=capCall.next.x;
-  return {round:snap.round,from,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall};
+  if(firstCap&&capCall.next)projRound+=capCall.next.x;
+  return {round:snap.round,from,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall,
+    squad:ps.map(({p})=>p),days:R.dayKeys,fixtures:snap.fixtures||[]};
 }
 // review:end
 
@@ -2173,6 +2199,7 @@ function capSteps(capPath,name,turn){
   return capPath.slice(0,-1).map(({p,keepAt},k)=>{const n=capPath[k+1].p;
     return {day:p.day,txt:`${k?`If the armband is on ${name(p)} now: keep it if he scores`:`If ${name(p)} scores`} <b>${Math.round(keepAt)}+</b>${k?"":", keep the armband"}. Otherwise move it to ${name(n)} (${esc(turn(n.day))}, proj ${n.x}). Bring him into the starting five first if needed.`};});
 }
+// capStrip:begin
 // After the round has started: walk the turns with his real captain and the real scores of the turns played.
 // A played turn is history: its captain and scores stay as they were. Each step goes under the turn it must be done before.
 // ps: his players (projected, with .day); cap: his captain; score(p): his points if his turn was played, else null.
@@ -2182,7 +2209,8 @@ function liveCapPlan(ps,cap,days,score,name,turn,firstKeep=null){
   for(let k=0;k<days.length-1&&c;k++){
     const d=days[k],nd=days[k+1];
     if(c.day!==d)continue;
-    const rest=ps.filter(p=>days.indexOf(p.day)>k&&score(p)==null);
+    // everyone after turn k: at the time of this decision none of them had played (filtering out played ones re-picks history)
+    const rest=ps.filter(p=>days.indexOf(p.day)>k);
     const {v,path}=capPath(rest.map(p=>({...p,sd:spreadOf(p)})),days.slice(k+1));
     if(!path.length)break;
     const own=q=>ps.find(p=>p.id===q.id); // capPath works on copies
@@ -2202,6 +2230,35 @@ function liveCapPlan(ps,cap,days,score,name,turn,firstKeep=null){
   }
   return {cur:c,steps,held,calls};
 }
+// The captain strip on "Round N, turn by turn": the armband's walk through the turns, from liveCapPlan (one captain walk,
+// not a third version). first: the round's first captain; firstKeep: his keep mark from the deadline snapshot.
+// nowId: the captain in his saved lineup. tipOf(day): that turn's first tip-off: every change for a turn is due before it.
+// Returns the stops (one per captain on the walk), the top line and the armband bonus (the doubled part of his score).
+function capStrip({ps,days,first,firstKeep,score,nowId,played,tipOf}){
+  const W=liveCapPlan(ps,first,days,score,p=>p.short,d=>d,firstKeep),stops=[];
+  const final=p=>days.indexOf(p.day)===days.length-1;
+  W.held.forEach((p,i)=>{const c=W.calls[i];
+    stops.push({p,keep:c&&c.c===p?c.keepAt:null,score:score(p),
+      res:c&&c.c===p&&c.kind==="move"?"moved":c&&c.c===p&&c.kind==="keep"?"kept":null});});
+  const last=W.calls[W.calls.length-1],ifc=last&&last.kind==="if"?last:null;
+  if(ifc)ifc.path.forEach((st,j)=>stops.push({p:st.p,keep:j<ifc.path.length-1?Math.round(st.keepAt):null,score:null,res:null,later:true}));
+  // a captain with no keep mark (the last turn, or nobody after him) counts double whatever he scores
+  for(const s of stops)if(s.keep==null&&!s.later&&s.score!=null)s.res="kept";
+  const kept=stops.find(s=>s.res==="kept"),over=days.every(played),cur=W.cur;
+  // after a keep, the later turns still show, faded: their planned captain gets no armband
+  if(kept){const k=days.indexOf(kept.p.day);
+    capPath(ps.filter(p=>days.indexOf(p.day)>k).map(p=>({...p,sd:spreadOf(p)})),days.slice(k+1)).path
+      .forEach(st=>{const p=ps.find(q=>q.id===st.p.id);stops.push({p,keep:null,score:score(p),res:null,gone:true});});}
+  let top;
+  if(over)top={k:"over",who:kept&&kept.p};
+  else if(kept)top={k:"kept",who:kept.p};
+  else if(cur&&nowId!==cur.id&&score(cur)==null)top={k:"todo",who:cur,by:tipOf(cur.day)};
+  else if(ifc)top={k:"if",who:ifc.c,keep:ifc.keepAt,alt:ifc.nx,by:tipOf(ifc.nx.day)};
+  else top={k:"last",who:cur};
+  for(const s of stops)s.last=s.keep==null&&!s.res&&!s.gone&&(final(s.p)||s===stops[stops.length-1]);
+  return {stops,top,bonus:kept?kept.score:0,holdId:over?(kept?kept.p.id:null):nowId};
+}
+// capStrip:end
 // The round in progress (null before the first tip-off): his saved lineup, the real scores, the captain walk, the next turn.
 // Played games ARE the information that a turn is over: a day is played when any player has a game on it.
 function liveRound(){
@@ -2446,6 +2503,52 @@ function roundCard(){
 }
 /* ---------- turn by turn: the squad's scores after each turn of the round (#29) ---------- */
 function redrawReview(){const el=document.getElementById("rvCard");if(el)el.outerHTML=reviewCard();}
+// The captain strip (capStrip) as HTML. The round in progress uses his saved lineup and today's projections (liveRound),
+// the same walk as "Plan for the round"; a finished round uses the deadline snapshot and the real scores.
+function capStripHtml(V){
+  const C=V.cap;if(!C||!C.first)return "";
+  const logs=Object.fromEntries(P.map(p=>[p.id,p.log])),playedSet=new Set(Object.values(logs).flat().filter(Boolean).map(g=>g.d));
+  const LR=V.round===D.round?liveRound():null;
+  const days=LR?dayKeys:V.days,fx=LR?D.fixtures:V.fixtures,played=LR?LR.playedDay:d=>playedSet.has(d);
+  // a player who has played keeps his deadline projection (today's includes the game), so a played turn's keep mark stays put
+  const snapX=Object.fromEntries(V.squad.map(p=>[p.id,p.x]));
+  const ps=(LR?LR.sl:V.squad.map(p=>({...p,short:p.short||p.name.split(" ").slice(-1)[0]}))).map(p=>played(p.day)&&snapX[p.id]!=null?{...p,x:snapX[p.id]}:p),first=ps.find(p=>p.id===C.first.id);if(!first)return "";
+  const score=LR?LR.score:p=>{if(!played(p.day))return null;const g=(logs[p.id]||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
+  const tipOf=d=>fx.filter(f=>f[0]===d).map(f=>f[3]).filter(Boolean).sort()[0]||"";
+  const gameOf=p=>(fx.find(f=>f[0]===p.day&&(f[1]===p.team||f[2]===p.team))||[])[3]||"";
+  const wd=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short"});}catch(e){return d;}};
+  const S=capStrip({ps,days,first,firstKeep:C.keepAt,score,nowId:C.now?C.now.id:null,played,tipOf});
+  // the projection at the deadline for a played game (today's already includes it), today's for one still to play
+  const deadX={};V.turns.forEach(t=>t.rows.forEach(r=>deadX[r.id]=r.x));
+  const proj=s=>s.score!=null&&deadX[s.p.id]!=null?deadX[s.p.id]:s.p.x;
+  const f=v=>v.toFixed(1),nm=p=>byId[p.id]?plink(byId[p.id],p.short):esc(p.short),MAX=40;
+  const T=S.top,by=d=>`${wd(d)} ${tipOf(d)}`;
+  let lab,main,rest="";
+  if(T.k==="over"){lab="Round over";main=T.who?`${esc(T.who.short)} was captain`:"No captain scored double";}
+  else if(T.k==="todo"){lab="✗ To do";main=`Move the armband to ${esc(T.who.short)}`;rest=`before ${by(T.who.day)}`;}
+  else{lab="Today";main="Nothing to do";
+    rest=T.k==="kept"?`${esc(T.who.short)} keeps the armband (×2)`
+      :T.k==="last"?`${esc(T.who.short)} is the last captain: his score counts double, whatever it is`
+      :`After ${esc(T.who.short)}'s game: under ${T.keep}, move the armband to ${esc(T.alt.short)} before ${by(T.alt.day)}`;}
+  const n=S.stops.length,lines=S.stops.slice(1).map((s,i)=>{const a=S.stops[i];
+    const cls=a.res==="moved"?"done":a.score==null&&T.k!=="over"&&!S.stops.slice(0,i).some(x=>x.score==null)?"hot":"";
+    return `<div class="rv-ln ${cls}" style="left:${(i+.5)*100/n}%;width:${100/n}%"></div>`;}).join("");
+  const lum=h=>{const v=parseInt(h.slice(1),16);return(.299*(v>>16)+.587*(v>>8&255)+.114*(v&255))/255;};
+  const stops=S.stops.map(s=>{const p=s.p,col=(TEAMS[p.team]||["","#56637d"])[1],x=proj(s),sc=s.score;
+    const tip=(sc!=null?`Scored ${f(sc)} · `:"")+`Projected ${f(x)}`+(s.gone?" · no armband":s.keep!=null?` · keep mark ${s.keep}`:" · last turn");
+    const kind=sc==null?"pj":s.res==="moved"?"lo":"";
+    const tag=s.gone?`no armband${sc==null?` · projected ${f(x)}`:""}`:sc!=null?(s.res==="moved"?`<span class="lo">under ${s.keep}</span> · ${T.k==="todo"&&C.now&&C.now.id===p.id?"move the armband on":"armband moved on"}`
+        :s.res==="kept"?(s.keep!=null?`${s.keep}+ · armband stayed (×2)`:"last turn · counts ×2"):"scored")
+      :`projected · ${s.keep!=null?`keep at ${s.keep}+`:"last turn"}`;
+    return `<div class="rv-st${p.id===S.holdId?" hold":""}${s.gone?" gone":""}"><div class="bdg" style="--tc:${col};--ti:${lum(col)>.6?"#0f1a2d":"#fff"}">${esc(p.team)}${p.id===S.holdId?'<span class="cb" aria-label="Captain">C</span>':""}</div>
+      <span class="nm">${nm(p)}</span><div class="num${sc==null||s.gone?"":s.res==="moved"?" lo":s.res==="kept"?" hi":" sc"}">${f(sc!=null?sc:x)}</div>
+      <div class="rv-bar" tabindex="0" role="img" aria-label="${tip}"><i class="${kind}" style="width:${Math.max(0,Math.min(100,(sc!=null?sc:x)/MAX*100))}%"></i>${s.keep!=null?`<u style="left:${s.keep/MAX*100}%"></u>`:""}${sc!=null?`<span class="pk" style="left:${Math.min(100,x/MAX*100)}%"></span>`:""}<span class="tip">${tip}</span></div>
+      <small>T${days.indexOf(p.day)+1} · ${wd(p.day)} ${gameOf(p)}</small><small>${tag}</small></div>`;}).join("");
+  return `<div class="rv-arm"><div class="rv-al${T.k==="todo"?" bad":""}"><span class="lab">${lab}</span><b>${main}</b>${rest?`<span class="muted">${rest}</span>`:""}<span class="rv-bonus">Armband bonus <b>+${f(S.bonus)}</b></span></div>
+    <div class="rv-tk" style="--n:${n}">${lines}${stops}</div></div>`;
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".rv-bar");
+  document.querySelectorAll(".rv-bar.open").forEach(x=>x!==b&&x.classList.remove("open"));if(b)b.classList.toggle("open");});
 function reviewCard(){
   if(!HIST){loadHistory();return '<div id="rvCard"></div>';}
   const logs=Object.fromEntries(P.map(p=>[p.id,p.log]));
@@ -2461,16 +2564,7 @@ function reviewCard(){
       `<span class="muted">${f(r.x)}</span></div>`).join("");
     return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
       <div class="rv-h"><span>Player</span><span>Value</span><span>Scored</span><span>Proj</span></div>${rows}`;}).join("");
-  const C=V.cap;let cap="";
-  if(C){const nm=c=>byId[c.id]?plink(byId[c.id],c.short):esc(c.short),step=(k,v,x)=>`<div class="rv-cs"><small>${k}</small><b>${v}</b><span>${x}</span></div>`;
-    const plan=step("Captain plan",nm(C.first),C.keepAt==null?"The last turn to use the armband":`Keep at <b>${Math.ceil(C.keepAt)}+</b>, else ${nm(C.next)}`);
-    const res=C.call==null?step(`${nm(C.first)} scored`,"–","Not played yet")
-      :step(`${nm(C.first)} scored`,f(C.scored),`<span class="rv-pill">${C.call==="keep"?"Keep the armband":`Move it to ${esc(C.next.short)}`}</span>`);
-    // only where the armband is now is known, not when it got there
-    const ok=C.now&&(C.call==="keep"?C.now.id===C.first.id:C.now.id!==C.first.id),st=C.call==null||!C.now?"":ok?"ok":"off";
-    const now=step("Armband now",C.now?nm(C.now):"–",!C.now?"No captain on court in your saved lineup":C.call==null?"Waiting on the first captain's game"
-      :`<span class="rv-pill ${st}">${ok?"✓ Matches the plan":C.call==="keep"?`✗ The plan has it on ${esc(C.first.short)}`:`✗ The plan moves it to ${esc(C.next.short)}`}</span>`);
-    cap=`<div class="rv-cap${st?" "+st:""}">${plan}${res}${now}</div>`;}
+  const cap=capStripHtml(V);
   const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
   return `<div class="card rv" id="rvCard"><h3>Round ${V.round}, turn by turn</h3>${tot}${cap}${turns}
     <p class="note sc-foot">Players only: coach points come after the round. Scored is his own score; the turn totals count court and 6th man 100%, bench ½, captain ×2 (the tags). Value is the credit change from the game.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
