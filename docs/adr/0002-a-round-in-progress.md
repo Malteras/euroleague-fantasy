@@ -37,7 +37,7 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   the projection at the deadline (the snapshot; the live projection already includes the game) and the credit change from
   the game. The header says trades are closed.
 - **A player who has played** (his club's game this round is in the logs; more players every day of the round), on every
-  page (CLAUDE.md rule 6). Decided with Ognjen, 22 Oct 2026 (#57, #65, #67):
+  page (CLAUDE.md rules 6 and 7). Decided with Ognjen, 22 Oct 2026 (#57, #65, #67):
   - **Proj.**: TBC, with the site's tooltip "To be calculated after the current round is finished", sorted last. Next
     round's projection is made after the round. Never his score, never today's projection (it already includes the game).
   - **± cr / Value**: the real credit change from his game, not the estimate.
