@@ -19,6 +19,17 @@ One game day inside a round. You can change the lineup and the captain between t
 A turn starts at its first tip-off (the first game of that day, whoever plays in it): every lineup and captain change for the turn is done before then, never "before my player's game".
 _Avoid_: Day, session
 
+**Lineup change**:
+Between turns: a bench player who has not played comes onto the court (or in as 6th man) for a player in the same position.
+The player going out may already have played: his score then counts half, as a bench score. A player who has played never comes in.
+The site suggests one when it gains at least 1 point, and waits while a court player in that position still has a game before it.
+_Avoid_: Swap, sub, transfer
+
+**Points**:
+A player's fantasy points for a game: PIR, +10% when his team wins (Bryant: PIR 13, win → 14.3). Every number the site shows
+as a score is points, never raw PIR.
+_Avoid_: PIR (for a score), FPT
+
 **Double week**:
 A calendar week holding two rounds, so every club plays twice in a few days. Each round still has its own deadline and its own trades.
 _Avoid_: Double round, double-game week

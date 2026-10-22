@@ -19,8 +19,19 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 - **When a decision is due**: before the first tip-off of the turn it belongs to, not before the player's own game.
   Turn 3 of Round 7 starts with ZAL–ASV at Fri 19:00, so moving the armband to Etienne (who plays at 20:45) is due before Fri 19:00.
   Decided with Ognjen, 22 Oct 2026: the earlier time is never wrong, a later one could be.
-- **Bottom line**: no trade item. The captain call for the next turn, the lineup for the next turn (players who have not
-  played; played ones listed as locked), checks only for players who have not played. The pill shows the next tip-off.
+- **Bottom line**: one section per turn still to play, never "all done for the round" while a turn is left. The next turn's
+  to-dos (captain, lineup changes, lineup, checks) can be ticked; a later turn shows what is already known and "decide after
+  Thu's games" lines for what the earlier games decide. The progress line names each turn ("Turn 2: ✓ all done · Turn 3:
+  after Thu's games"). The pill shows the next tip-off. Decided with Ognjen, 22 Oct 2026.
+- **Lineup changes between turns** (GLOSSARY): only same position, so the formation stays. Court and 6th man count 100%,
+  bench 50%, so bringing in B for A gains half of (B's projection − A's score, or A's projection if he has not played).
+  Shown when it gains 1 point or more. While a court player in B's position still plays before B, it waits for that game
+  (Etienne could replace Bryant now, but Feliz scoring 5 on Thursday would make Etienne-for-Feliz better). A new captain on
+  the bench comes into the five first. Under the turn the change is due before, in "Plan for the round" and the Bottom line.
+- **Apply to My team**: each coming turn with changes has the button in "Plan for the round". It sets the captain and the
+  lineup changes on My team and ticks that turn's Bottom line items. Nothing reaches the daily report until Save on My team.
+- **The captain walk** starts at the round's first captain (the deadline snapshot), not the saved one, so a played turn keeps
+  the captain it had after the armband moves on.
 - **Your players' matchups**: only games still to play.
 - **Round schedule**: a played game shows "Final" and the score; his players in it show their score, PIR and ± % against
   the projection at the deadline (the snapshot; the live projection already includes the game). The header says trades are closed.

@@ -41,8 +41,25 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Guard:** tools/test_capstrip.mjs walks every day of a round (keep, move, armband not moved, last turn, round over);
   tools/test_review.mjs has the moved-armband case. Players who have played keep their deadline projection in the strip.
 
+## 22 Oct 2026 · the Bottom line said "All done for Round 7" with Turn 3 still to play
+- **What:** the checklist held only the next turn's to-dos, but its progress line named the round. Between turns the plan
+  gave a generic "swap in X, Y, Z for anyone who scored below his projection" instead of a real lineup change.
+- **Why:** the checklist was built for the deadline (one set of to-dos per round) and only patched for a round in progress.
+- **Guard:** ADR 0002 (Bottom line per turn, lineup changes, Apply to My team); `blLiveItems()` / `turnSwaps()`;
+  tools/test_capstrip.mjs (lineup changes wait for earlier games, same position only, captain first).
+
+## 22 Oct 2026 · the round schedule showed PIR next to the points
+- **What:** "Bryant 14.3 −36% (PIR 13, proj 22.4)". PIR is not the score; points are PIR +10% on a win (GLOSSARY: Points).
+- **Guard:** the schedule shows points and the projection only. Never show raw PIR as a player's score.
+
+## 22 Oct 2026 · a played turn lost its captain after the armband moved on
+- **What:** "Plan for the round" walked the captain from the saved one, so once the armband was on Etienne, Turn 2 showed no captain.
+- **Guard:** `liveRound()` starts the walk at the round's first captain; history text shows no projection for a played game.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
 - Be suspicious of numbers that look too neat (a last game equal to the season average, the same numbers as the game before).
 - Say "I did not check" instead of giving an unchecked number as a fact.
+- For every change during a round, run the later days too (tools/test_capstrip.mjs, or fake scores on the page): the turn after next, the last turn, after the round.
+- A label that counts or totals ("All done", "Round over") must be true for the whole thing it names.

@@ -6,7 +6,8 @@ Mistakes already made and what stops them: docs/mistakes.md. Read it before chan
 
 Five rules that must never be broken:
 1. Ask "what day is it, and which games are already played?" before any advice. Played games mean the round has started:
-   no trades until the next deadline, and players who have played are locked (docs/adr/0002-a-round-in-progress.md).
+   no trades until the next deadline. A player who has played never comes onto the court; he can only go to the bench
+   for a same-position player who has not played (docs/adr/0002-a-round-in-progress.md).
 2. Scores come from the official EuroLeague box scores. Never give a captain or lineup call from a number you did not check.
 3. Keep or move the captain is judged on the raw score against the keep mark, never on the doubled score.
 4. A played turn is history: show what happened, never re-pick it from new projections.

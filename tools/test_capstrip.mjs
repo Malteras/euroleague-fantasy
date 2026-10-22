@@ -91,3 +91,42 @@ test("after a keep, the later turn still shows, faded, with no armband", () => {
   assert.equal(S.stops[2].last, false);
   assert.equal(S.top.k, "kept");
 });
+
+// turnSwaps: bench swaps between turns. Court and 6th man count 100%, bench 50%; only same-position swaps.
+const { turnSwaps } = new Function(src + "\nreturn {turnSwaps};")();
+const sq = () => {
+  const B = { id: 1, short: "Bryant", pos: "G", day: W, x: 22.4 }, M = { id: 3, short: "Maledon", pos: "G", day: T, x: 20.6 },
+    Fe = { id: 4, short: "Feliz", pos: "G", day: T, x: 16.2 }, O = { id: 7, short: "Ojeleye", pos: "F", day: T, x: 12.7 },
+    Di = { id: 2, short: "Diarra", pos: "C", day: W, x: 15.1 }, Da = { id: 8, short: "Davidovac", pos: "F", day: T, x: 5.6 },
+    E = { id: 5, short: "Etienne", pos: "G", day: F, x: 18.6 }, J = { id: 9, short: "Jackson", pos: "F", day: F, x: 8 },
+    Fa = { id: 10, short: "Faye", pos: "C", day: F, x: 10.1 }, N = { id: 6, short: "Ndiaye", pos: "F", day: F, x: 17.7 };
+  return { st: [B, M, Fe, O, Di], six: Da, bench: [E, J, Fa, N], days, E, M, B, O, N, J, Da };
+};
+const sc = (m) => p => m[p.id] ?? null;
+
+test("swaps: on Thursday the Friday bench players wait for Thursday's games in their position", () => {
+  const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 14.3, 2: 22 }) });
+  assert.deepEqual(R.swaps, []);
+  assert.deepEqual(R.wait.map(p => p.short).sort(), ["Etienne", "Jackson", "Ndiaye"]);
+});
+
+test("swaps: after Thursday, a bench player comes in for a same-position player who scored under his projection", () => {
+  const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 14.3, 2: 22, 3: 25, 4: 16, 7: 5, 8: 6 }) });
+  const s = R.swaps.map(s => [s.in.short, s.out.short, s.gain]);
+  // Ndiaye for Ojeleye: (17.7 − 5) / 2; Jackson for Davidovac: (8 − 6) / 2; Etienne for Bryant: (18.6 − 14.3) / 2
+  assert.deepEqual(s, [["Ndiaye", "Ojeleye", 6.4], ["Etienne", "Bryant", 2.2], ["Jackson", "Davidovac", 1]]);
+  assert.ok(R.swaps.every(x => x.in.pos === x.out.pos));
+  assert.deepEqual(R.wait, []);
+});
+
+test("swaps: a new captain on the bench comes in first, even for a small gain", () => {
+  const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 14.3, 2: 22, 3: 12, 4: 16, 7: 13, 8: 6 }), capTo: S.E });
+  assert.equal(R.swaps[0].in.short, "Etienne");
+  assert.equal(R.swaps[0].out.short, "Maledon");
+  assert.equal(R.swaps[0].cap, true);
+});
+
+test("swaps: gains under 1 point are left out", () => {
+  const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 18, 2: 22, 3: 25, 4: 18, 7: 17, 8: 17.5 }) });
+  assert.deepEqual(R.swaps.map(s => s.in.short), []);
+});
