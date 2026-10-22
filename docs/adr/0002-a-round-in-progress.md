@@ -33,8 +33,19 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 - **The captain walk** starts at the round's first captain (the deadline snapshot), not the saved one, so a played turn keeps
   the captain it had after the armband moves on.
 - **Your players' matchups**: only games still to play.
-- **Round schedule**: a played game shows "Final" and the score; his players in it show their score, PIR and ± % against
-  the projection at the deadline (the snapshot; the live projection already includes the game). The header says trades are closed.
+- **Round schedule**: a played game shows "Final" and the score; his players in it show their points (never PIR), ± % against
+  the projection at the deadline (the snapshot; the live projection already includes the game) and the credit change from
+  the game. The header says trades are closed.
+- **A player who has played** (his club's game this round is in the logs; more players every day of the round), on every
+  page (CLAUDE.md rule 6). Decided with Ognjen, 22 Oct 2026 (#57, #65, #67):
+  - **Proj.**: TBC, with the site's tooltip "To be calculated after the current round is finished", sorted last. Next
+    round's projection is made after the round. Never his score, never today's projection (it already includes the game).
+  - **± cr / Value**: the real credit change from his game, not the estimate.
+  - **Next game**: next round's game with its round ("vs Efes · R8 · Wed 28 Oct"), in the column, the line under his name,
+    the player card and the picker. In his drawer, the played game is headed "This round · played".
+  - **Team analysis**: a score block, like the report lists: points; % against the deadline projection, next to it; value.
+  - **Last 5**: each bar's tooltip (the site's design) shows the round, date, opponent, result, points against the
+    projection when one is on record, and the credit change, in green or red.
 - **Watch before the deadline**: hidden. All its checks are due before trades close. It comes back with the next round's data.
 
 ## Consequences

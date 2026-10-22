@@ -63,8 +63,9 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Why:** the card used today's projection (`p.x`). After a game it is rebuilt with that game in his form, so it moves
   toward the score. The same was true of the market, the player cards and drawer, the coaches page and the replace drawer.
 - **Guard:** `projShown()` / `projOf()` / `projCell()` in index.html (CLAUDE.md rule 4: a played turn is history). Once his
-  club has played this round, a card shows his points and the projection at the deadline from history/round-N.json, never
-  today's projection. Before his game, today's projection. Tests: tools/test_projshown.mjs. Any new place that shows a
+  club has played this round, a card about this round shows his points and the projection at the deadline from
+  history/round-N.json, never today's projection; a Proj. column shows TBC (see the next entry). Before his game, today's
+  projection. Tests: tools/test_projshown.mjs. Any new place that shows a
   projection next to a player this round goes through `projOf(p)` or `projCell(p)`, never `p.x`.
 
 ## 22 Oct 2026 · the fix for the line above put the score in the "Proj." column
