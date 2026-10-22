@@ -46,8 +46,7 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   gave a generic "swap in X, Y, Z for anyone who scored below his projection" instead of a real lineup change.
 - **Why:** the checklist was built for the deadline (one set of to-dos per round) and only patched for a round in progress.
 - **Guard:** ADR 0002 (Bottom line per turn, lineup changes, Apply to My team); `blLiveItems()` / `turnSwaps()`;
-  tools/test_capstrip.mjs (lineup changes wait for earlier games, captain first). The tests also check "same position
-  only", which is wrong: see the entry below.
+  tools/test_capstrip.mjs (lineup changes wait for earlier games, captain first, any position the formation allows).
 
 ## 22 Oct 2026 · the round schedule showed PIR next to the points
 - **What:** "Bryant 14.3 −36% (PIR 13, proj 22.4)". PIR is not the score; points are PIR +10% on a win (GLOSSARY: Points).
@@ -125,4 +124,5 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   Round 7 (deadline 21 Oct) was a free-trade window and nothing told him.
 - **Why:** the rule was written from memory and copied from file to file. Nobody opened the official rules book.
 - **Guard:** docs/rules.md is the one place for game rules, with quotes and links to the rules book. CLAUDE.md Part A: never
-  write a game rule from memory. The site fix is GitHub issue #70.
+  write a game rule from memory. `turnSwaps()` now takes any swap that leaves a formation after each turn (#70);
+  tools/test_capstrip.mjs has a cross-position swap, a swap that would leave no centre, and a five checked turn by turn.

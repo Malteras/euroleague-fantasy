@@ -23,8 +23,8 @@ _Avoid_: Day, session
 Between turns: a bench player who has not played comes onto the court (or in as 6th man) for any player, as long as the new
 five is one of the five formations (docs/rules.md: there is no same-position rule). The player going out may already have
 played: his score then counts half, as a bench score. A player who has played never comes in.
-The site suggests one when it gains at least 1 point, and waits while a court player in that position still has a game before it.
-Until GitHub issue #70 is fixed, the site only suggests same-position swaps.
+The site suggests the set of changes with the most points (each 1 point or more), checks the five is a formation after each
+turn, and waits while a court player still has a game before the bench player.
 _Avoid_: Swap, sub, transfer
 
 **Points**:
