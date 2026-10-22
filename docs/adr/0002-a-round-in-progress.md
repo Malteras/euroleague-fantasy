@@ -23,7 +23,10 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   to-dos (captain, lineup changes, lineup, checks) can be ticked; a later turn shows what is already known and "decide after
   Thu's games" lines for what the earlier games decide. The progress line names each turn ("Turn 2: ✓ all done · Turn 3:
   after Thu's games"). The pill shows the next tip-off. Decided with Ognjen, 22 Oct 2026.
-- **Lineup changes between turns** (GLOSSARY): only same position, so the formation stays. Court and 6th man count 100%,
+- **Lineup changes between turns** (GLOSSARY, docs/rules.md): any swap, as long as the player coming in has not played
+  and the new five is one of the five formations; the formation may change. Corrected with Ognjen on 22 Oct 2026 against
+  the official rules book: this bullet first said "only same position, so the formation stays", a rule nobody had checked.
+  The site still suggests same-position swaps only (GitHub issue #70). Court and 6th man count 100%,
   bench 50%, so bringing in B for A gains half of (B's projection − A's score, or A's projection if he has not played).
   Shown when it gains 1 point or more. While a court player in B's position still plays before B, it waits for that game
   (Etienne could replace Bryant now, but Feliz scoring 5 on Thursday would make Etienne-for-Feliz better). A new captain on

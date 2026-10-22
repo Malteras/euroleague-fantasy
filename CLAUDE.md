@@ -4,14 +4,15 @@ Two kinds of work happen here. Read Part A always. Read Part B only when you cha
 **The daily report run reads Part A only** and skips Part B, docs/mistakes.md and the design notes, unless that run has to
 fix the builder or the site.
 
-Game rules: README.md. Words the site and the report use: GLOSSARY.md. Why the planner works as it does: docs/adr/.
+Game rules: docs/rules.md (from the official rules book; it wins over every other file). Words the site and the report use: GLOSSARY.md. Why the planner works as it does: docs/adr/.
 
 ## Part A · Every run, including the daily report: advice and numbers
 
 Rules that must never be broken:
 1. Ask "what day is it, and which games are already played?" before any advice. Played games mean the round has started:
-   no trades until the next deadline. A player who has played never comes onto the court; he can only go to the bench
-   for a same-position player who has not played (docs/adr/0002-a-round-in-progress.md).
+   no trades until the next deadline. A player who has played never comes onto the court and never becomes captain; he
+   can go from the court to the bench (his score then counts 50%). Any swap and any of the five formations is allowed;
+   there is no same-position rule (docs/rules.md, docs/adr/0002-a-round-in-progress.md).
 2. Scores come from the official EuroLeague box scores. Never give a captain or lineup call from a number you did not check.
 3. Keep or move the captain is judged on the raw score against the keep mark, never on the doubled score.
 4. A played turn is history: show what happened, never re-pick it from new projections.
@@ -19,6 +20,8 @@ Rules that must never be broken:
 6. A player who has played this round: report his score and his real credit change from the game. Never give a projection
    for a game that is played (today's projection already includes it), and his next game is next round's. Next round's
    projection is not known until this round is finished. Every day of the round more players are in this state.
+
+Never write a game rule from memory: find it in docs/rules.md or the official rules book first.
 
 Be suspicious of numbers that look too neat (a last game equal to the season average, the same numbers as the game
 before). Say "I did not check" instead of giving an unchecked number as a fact.
