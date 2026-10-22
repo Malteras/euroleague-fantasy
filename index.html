@@ -14,6 +14,7 @@
   --bg:#0a1120; --surface:#111a2c; --raise:#17233a; --line:#22314d; --line-soft:#1a2741;
   --fg:#e9eef8; --muted:#8e9bb6; --faint:#7f8cab; /* faint text still meets WCAG AA 4.5:1 on surface and raise */
   --accent:#27b7c4; --accent-soft:rgba(39,183,196,.14); --accent-ink:#04252a;
+  --tip-good:#0c6a41; --tip-bad:#b02842; /* on the light tooltip (its background is --fg): the light theme's colours */
   --good:#3fcf8f; --good-ink:#04251a; --good-soft:rgba(63,207,143,.14); --bad:#f7889b; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15); --warn-ink:#1d1300;
   --be:#8e9bb6; --credit:#f3b64b;
   --court-a:#1d2a3f; --court-b:#152036; --court-line:rgba(255,255,255,.10);
@@ -26,12 +27,14 @@
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#5f6c85;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
+  --tip-good:#3fcf8f; --tip-bad:#f7889b; /* on the dark tooltip: the dark theme's colours */
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
   --fg:#0f1a2d; --muted:#56637d; --faint:#5f6c85;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
+  --tip-good:#3fcf8f; --tip-bad:#f7889b; /* on the dark tooltip: the dark theme's colours */
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}
 *{box-sizing:border-box}
@@ -315,7 +318,9 @@ section{padding-block:28px 8px}
 .tools .seg{background:var(--surface)}
 .chip-toggle{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px;cursor:pointer;color:var(--muted)}
 .chip-toggle.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-.mkt{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.mkt{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+/* rounded by its first and last rows, not overflow:hidden, so the tooltips in a row are not cut off */
+.mkt>:first-child{border-radius:15px 15px 0 0}.mkt>:last-child{border-radius:0 0 15px 15px}
 .mrow{display:grid;grid-template-columns:40px minmax(150px,1.6fr) 62px 62px 70px 64px 64px 150px minmax(110px,1fr) 40px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line-soft)}
 .mrow.head{border-top:0;background:var(--raise);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding-block:9px}
 .mrow.head .sortable{cursor:pointer}
@@ -400,6 +405,16 @@ section{padding-block:28px 8px}
 .tp-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .tp-pl li{display:flex;align-items:center;gap:10px}.tp-pl .jersey{width:32px;height:32px;font-size:10px;flex:none}.tp-pl .jersey::after{display:none}
 .tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}
+.tbc{position:relative;color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
+/* the site's tooltip on a TBC cell and on each Last 5 bar (an invisible hit area over the bar holds it) */
+.tbc .tip,.sp-hit .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;white-space:normal;text-decoration:none}
+.tbc .tip b,.sp-hit .tip b{display:block}
+.tip .tg-up{color:var(--tip-good);font-style:normal}.tip .tg-dn{color:var(--tip-bad);font-style:normal}
+/* fade the grey text by colour, not opacity, so green and red inside it stay at full contrast */
+.sp-hit .tip.tip-pick small{opacity:1;color:color-mix(in srgb,var(--bg) 65%,var(--fg))}.sp-hit .tip.tip-pick i{opacity:1;color:color-mix(in srgb,var(--bg) 80%,var(--fg))}
+.tbc:hover .tip,.tbc:focus-visible .tip,.sp-hit:hover .tip,.sp-hit:focus-visible .tip{opacity:1}
+.sp-w{position:relative;display:block;width:150px}.sp-hit{position:absolute;top:0;bottom:0;width:20%;cursor:help;border-radius:3px}
+.sp-hit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .tp-sc{flex:none;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.25}.tp-sc .score{font-size:17px}.tp-sc .score small{font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted)}.tp-sc small .up{color:var(--good)}.tp-sc small .dn{color:var(--bad)}.tp-pl .plink{font-weight:700}.tp-pl small{color:var(--muted);font-size:12.5px}
 .tp-form{display:flex;flex-wrap:wrap;gap:6px}
 .tp-g{padding:4px 9px;border-radius:999px;font-weight:800;font-size:13px}.tp-g small{font-weight:500;color:var(--muted)}
@@ -600,10 +615,10 @@ html.locked,html.locked body{overflow:hidden}
 .ico .tip b,.ptag .tip b{display:block}
 .ico:hover .tip,.ico:focus-visible .tip,.ptag:hover .tip,.ptag:focus-visible .tip{opacity:1}
 /* Must have / Leave out and tag tooltips: who or what it is about, the name, what it means */
-.ico .tip-pick,.ptag .tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.ico .tip-pick small,.ptag .tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
-.ico .tip-pick b,.ptag .tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
-.ico .tip-pick i,.ptag .tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
+.ico .tip-pick,.ptag .tip-pick,.tbc .tip-pick,.sp-hit .tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.ico .tip-pick small,.ptag .tip-pick small,.tbc .tip-pick small,.sp-hit .tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
+.ico .tip-pick b,.ptag .tip-pick b,.tbc .tip-pick b,.sp-hit .tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
+.ico .tip-pick i,.ptag .tip-pick i,.tbc .tip-pick i,.sp-hit .tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
 /* Tag tooltips open from the tag's left edge; the script nudges them back inside the drawer */
 .ptag.has-tip{position:relative;cursor:help}
 .ptag .tip{left:0;transform:none;text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
@@ -1266,13 +1281,13 @@ function picker(){
   const cnt=posCount(others),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
   let list;
   if(isCoach){
-    list=C.slice().sort((a,b)=>b.x-a.x).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`).join("");
+    list=C.slice().sort(projSort).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`).join("");
   }else{
     const need=Object.keys(POSMAX).filter(k=>cnt[k]<POSMAX[k]);
     const pos=pick.pos==="ALL"?null:pick.pos;
-    list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort((a,b)=>b.x-a.x).slice(0,80).map(p=>{
+    list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort(projSort).slice(0,80).map(p=>{
       const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
-      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):`next ${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))}`}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
   }
   const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
   return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
@@ -1397,13 +1412,13 @@ function teamPanel(){
   // attack them: this round's opponent players at their weak position
   let attack="";
   if(I.opp&&I.weak&&I.weak.v>=12){
-    const o=I.opp.opp,cands=P.filter(p=>p.team===o&&p.pos===I.weak.k&&!p.out).sort((a,b)=>b.x-a.x).slice(0,3);
+    const o=I.opp.opp,cands=P.filter(p=>p.team===o&&p.pos===I.weak.k&&!p.out).sort(projSort).slice(0,3);
     if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${shown(p).played?"":`${projOf(p)} · `}${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul></div>`;
   }
   let avoid="";
   if(I.opp&&I.strong&&I.strong.v<=-12){const o=I.opp.opp;const mine=P.filter(p=>p.team===o&&p.pos===I.strong.k&&orig.players.includes(p.id));
     if(mine.length)avoid=`<div class="tp-warn">Your ${mine.map(p=>plink(p,p.short)).join(", ")} ${mine.length>1?"face":"faces"} ${esc(n)}'s strong side this round.</div>`;}
-  const top=I.players.filter(p=>!p.out).sort((a,b)=>b.x-a.x).slice(0,6);
+  const top=I.players.filter(p=>!p.out).sort(projSort).slice(0,6);
   const risers=I.players.filter(p=>!p.out&&p.price<=9&&p.exp>=0.1).sort((a,b)=>b.exp-a.exp).slice(0,4);
   const outs=I.players.filter(p=>p.status);
   const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr${shown(p).played?"":` · ${projOf(p)} · ${p.exp>=0?"+":""}${r1(p.exp)} cr`}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul>`;
@@ -2023,10 +2038,10 @@ function drawer(){
   const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
   const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span>`;
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
-  const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>Next game</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
+  const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>${shown(p).played?"This round · played":"Next game"}</span><span>${esc(dayLabel(p.day))}${tipoff(p)?` · ${tipoff(p)}`:""}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
       ${shown(p).played?`<div><small>Points</small><b class="tp">${shown(p).pts}</b><em>${shown(p).x!=null?`proj ${shown(p).x} at the deadline`:"played"}</em></div>`:`<div><small>Projection</small><b class="tp">${p.x}</b><em>break-even ${p.be}</em></div>`}
-      <div><small>Exp. change</small><b class="${r1(p.exp)<0?"neg":"tc"}">${fmt(r1(p.exp))} cr</b><em>after this round</em></div>
+      ${shown(p).played?`<div><small>Value</small><b class="${crShown(p)<0?"neg":"tc"}">${fmt(crShown(p))} cr</b><em>from this game</em></div>`:`<div><small>Exp. change</small><b class="${r1(p.exp)<0?"neg":"tc"}">${fmt(r1(p.exp))} cr</b><em>after this round</em></div>`}
       <div><small>Matchup</small>${mu!=null?`<b class="${mu<0?"neg":mu>0?"pos":""}">${mu>0?"+":""}${mu}%</b><em>PIR for ${POSN[p.pos].toLowerCase()}s</em>`:`<b class="muted">–</b><em>no data</em>`}</div></div></div>`
     :`<div class="ng-none">No EuroLeague game this round.</div>`;
   const stats=[["Price",p.price.toFixed(1)+" cr",(p.chg!=null?fmt(p.chg):"")+" last round"],["Last 3 FPT",p.l3??"–","last 3 EuroLeague games"],["Season FPT",p.fpt??"–",`${p.gp} games`],["PIR avg",p.pir??"–",p.pir2526!=null?`25-26: ${p.pir2526}`:""],["Minutes",p.min??"–","per game"],["Pts / Reb / Ast",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`,"per game"]];
@@ -2433,15 +2448,19 @@ function lineupPartial(early,all){
 function pcard(p,role,isNew){
   const v=p.tags.find(t=>["Consider dropping","Keep · gaining","Keep · price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
-  const o=p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"";
-  return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${projCell(p)}</span><span class="chg ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))} cr</span>${b}</div></div>`;
+  const o=(n=>n?(n.ha==="H"?"vs ":"@ ")+n.opp:"")(nextG(p));
+  return `<div class="pc${isNew?" new":""}" data-open="${p.id}" role="button" tabindex="0" aria-haspopup="dialog">${jersey(p.team,p.pos)}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="sub">${p.price.toFixed(1)} cr · ${o} · break-even ${p.be}</div>${v?`<span class="ptags"><span class="ptag ${v[1]}">${esc(v[0])}</span></span>`:""}</div><div class="right"><span class="xp">${projCell(p)}</span><span class="chg ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))} cr</span>${b}</div></div>`;
 }
 function spark(p){
   const g=(p.log||[]).slice(0,5).reverse();const W=150,H=36,max=Math.max(45,...g.map(x=>x.fpt),p.be+5);
   const bw=W/5-6;
+  const dx=shownCtx().deadX[p.id]??null;
+  // each bar's tooltip: the game, points against the projection (on record for this round's game only), credit change
   const bars=g.map((x,i)=>{const h=Math.max(2,Math.max(0,x.fpt)/max*(H-2));return `<rect class="bar${x.fpt<p.be?" lo":""}" x="${i*(W/5)+3}" y="${H-h}" width="${bw}" height="${h}" rx="2"></rect>`}).join("");
+  const hits=g.map((x,i)=>{const t=gameInfo(x,x.d===p.day?dx:null,shownCtx().rnd(p,x.d));
+    return `<span class="sp-hit has-tip" tabindex="0" style="left:${i*20}%" aria-label="${esc(`${t.when}: ${t.pts}, ${t.vs}${t.cr?", "+t.cr:""}`)}">${gameTipHtml(t)}</span>`;}).join("");
   const y=H-p.be/max*(H-2);
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${g.length} games: ${g.map(x=>x.fpt).join(", ")} fantasy points; break-even ${p.be}">${bars}<line class="be" x1="0" x2="${W}" y1="${y}" y2="${y}"></line></svg>`;
+  return `<span class="sp-w"><svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${g.length} games: ${g.map(x=>x.fpt).join(", ")} fantasy points; break-even ${p.be}">${bars}<line class="be" x1="0" x2="${W}" y1="${y}" y2="${y}"></line></svg>${hits}</span>`;
 }
 function detail(p){
   const g=(p.log||[]).slice().reverse();const W=520,H=210,pad=28,max=Math.max(40,...g.map(x=>x.fpt),p.be+6);
@@ -2453,25 +2472,25 @@ function detail(p){
   const by=y(p.be);
   const mu=matchup(p);
   const domRows=(p.dom||[]).slice(0,4).map(g=>`<div class="lrow"><div><b>${g.ha==="A"?"@":"vs"} ${esc(g.opp)}</b><small>${esc(g.comp)} · ${esc(g.d)} · ${esc(g.res)}</small></div><span class="muted" style="text-align:right">${g.absent?"Not in the box score":g.dnp?"Did not play":`${g.min} min · ${g.pts} pts · ${g.reb} reb · ${g.ast} ast · <b style="color:var(--fg)">PIR ≈ ${g.pir}</b>`}</span></div>`).join("");
-  const ps=shown(p),m=[ps.played?["Points",ps.pts]:["Proj.",p.x],["Season FPT",p.fpt],["Last 3",p.l3],["Minutes",p.min],["PTS / REB / AST",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`],["PIR 25-26",p.pir2526??"–"]];
+  const ps=shown(p),m=[["Proj.",ps.played?"TBC":p.x],["Season FPT",p.fpt],["Last 3",p.l3],["Minutes",p.min],["PTS / REB / AST",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`],["PIR 25-26",p.pir2526??"–"]];
   return `<div class="detail"><div><div class="eyebrow" style="margin-bottom:6px">Fantasy points, last ${g.length} games · bars in colour beat break-even</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fantasy points by game against break-even ${p.be}">${grid}${bars}<line x1="${pad}" x2="${W-6}" y1="${by}" y2="${by}" stroke="var(--be)" stroke-width="1.5" stroke-dasharray="5 4"></line><text class="bel" x="${W-8}" y="${by-5}" text-anchor="end">break-even ${p.be}</text></svg></div><div><div class="kv">${m.map(([k,v])=>`<div><b>${v}</b><small>${k}</small></div>`).join("")}</div><p class="note" style="margin:10px 0 0">${p.price.toFixed(1)} cr (${fmt(p.chg??0)} last round). Next: ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}, ${esc(dayLabel(p.day))}. Expected change ${fmt(r1(p.exp))} cr. Projection: ${p.src==="FantaSheet"?`half FantaSheet xPTS (${p.xpts}), half recent form (${p.own})`:"his recent form"}.${mu!=null?` ${p.opp?TEAMS[p.opp.opp][0]:""} allow ${mu>0?"+":""}${mu}% PIR to ${POSN[p.pos].toLowerCase()}s vs league average.`:""}</p><div class="ptags" style="margin-top:8px">${tagHtml(p,10)}</div></div>${domRows?`<div style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Domestic games · PIR estimated (fouls drawn and blocks against not published)</div><div class="panel list">${domRows}</div></div>`:""}</div>`;
 }
 function market(){
   const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
-  const key={x:p=>p.x,exp:p=>p.exp,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
+  const key={x:p=>projKey(shown(p)),exp:crShown,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
-    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:""} · ${esc(dayShort(p.day))} · ${fmt(r1(p.exp))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
+    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${n.round!=null?`R${n.round} `:""}${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
     <span class="cell-num big">${projCell(p)}</span>
-    <span class="cell-num h-ch ${p.exp>=0?"pos":"neg"}">${fmt(r1(p.exp))}</span>
+    <span class="cell-num h-ch ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))}</span>
     <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
-    <span class="opp h-op"><b>${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+TEAMS[p.opp.opp][0]:"—"}</b><small>${esc(dayLabel(p.day))}</small></span>
+    ${(n=>`<span class="opp h-op"><b>${n?(n.ha==="H"?"vs ":"@ ")+(TEAMS[n.opp]||[n.opp])[0]:"—"}</b><small>${n?`${n.round!=null?`R${n.round} · `:""}${esc(nextWhen(n))}`:""}</small></span>`)(nextG(p))}
     ${pickBtn("no",p,av.has(p.id))}
   </div>`).join("");
   return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">♥ brings a player in and the other trades are rebuilt around him; on one of yours it keeps him. ⊘ does the opposite. Tap a name for his last five games against break-even.</p></div>
@@ -2486,7 +2505,7 @@ function market(){
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
 }
 function coaches(){
-  const list=C.slice().sort((a,b)=>b.x-a.x).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
+  const list=C.slice().sort(projSort).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
   return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">Win by 1–10 +10 · 11–20 +20 · 21+ +25</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
 }
 /* ---------- how the projections did ---------- */
@@ -2961,6 +2980,41 @@ const projBox=s=>{if(!s.played)return "";const sg=v=>`<span class="${v>0?"up":v<
   return `<div class="tp-sc"><div class="score">${s.pts!=null?(+s.pts).toFixed(1):"–"}<small> points</small></div>`
     +(s.pct!=null?`<small>${sg(s.pct)}${Math.abs(s.pct)}%</span> vs ${s.x} proj</small>`:"")
     +(s.cr!=null?`<small>${sg(s.cr)}${Math.abs(s.cr).toFixed(1)} value</span></small>`:"")+`</div>`;};
+// A Proj. cell or column holds a projection, never a score (CLAUDE.md rule 6): today's before his game, the deadline one after it
+// (with his score as a small note), "–" when there is no snapshot. projKey is the same number for sorting.
+// The site's tooltip (never a title attribute): context line, title, text, optional footer. Its parent needs .has-tip.
+const tipPick=(ctx,title,text,foot)=>`<span class="tip tip-pick" role="tooltip"><small>${esc(ctx)}</small><b>${esc(title)}</b><span>${esc(text)}</span>${foot?`<i>${esc(foot)}</i>`:""}</span>`;
+// Once he has played, next round's projection is not known until this round is finished: TBC, sorted last.
+const projCellHtml=s=>s.played?`<span class="tbc has-tip" tabindex="0">TBC${tipPick("Projection","TBC","To be calculated after the current round is finished.")}</span>`:`${s.x}`;
+const projKey=s=>s.played?-999:s.x??-999; // finite, so two TBC players compare equal
+// "Wed 21 Oct", the same in every browser (toLocaleDateString gives "Wed, 21 Oct" or "Sept" in some)
+const dayFmt=d=>{const t=new Date(d+"T12:00:00");return isNaN(t)?d:`${"Sun Mon Tue Wed Thu Fri Sat".split(" ")[t.getDay()]} ${t.getDate()} ${"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")[t.getMonth()]}`;};
+// A game in his log, for a Last 5 bar's tooltip: date, opponent, result from his side; points; against the projection when
+// one is on record (x: the deadline projection for this round's game, null for older rounds); credit change
+// rnd: the round of the game (roundOf), left out when unknown
+function gameInfo(g,x,rnd){
+  const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||""),res=m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"";
+  const pct=x>0?Math.round(100*(g.fpt-x)/x):null,sg=v=>v>0?"+":v<0?"−":"";
+  const head=`${rnd!=null?`R${rnd} · `:""}${dayFmt(g.d)} · ${g.ha==="A"?"@":"vs"} ${g.opp}`;
+  return {when:`${head}${res?" · "+res:""}`,pts:`${g.fpt} points`,
+    vs:x!=null?`${x} projected${pct!=null?` · ${sg(pct)}${Math.abs(pct)}%`:""}`:"No projection on record",
+    cr:g.cr!=null?`${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr value`:null,
+    head,res,win:m?m[1]==="W":null,pct,crN:g.cr??null};
+}
+// The same as the site's tooltip, in colour: green for a win, points above the projection, a gain; red for the opposite.
+// Points are judged only against a projection on record; zero is neither colour.
+function gameTipHtml(t){
+  const c=v=>v>0?' class="tg-up"':v<0?' class="tg-dn"':"",em=(v,txt)=>v?`<em${c(v)}>${esc(txt)}</em>`:esc(txt);
+  const vs=t.pct!=null?esc(t.vs.slice(0,t.vs.lastIndexOf(" · ")+3))+em(t.pct,t.vs.slice(t.vs.lastIndexOf(" · ")+3)):esc(t.vs);
+  return `<span class="tip tip-pick" role="tooltip"><small>${esc(t.head)}${t.res?` · ${em(t.win?1:-1,t.res)}`:""}</small>`
+    +`<b${t.pct?c(t.pct):""}>${esc(t.pts)}</b><span>${vs}</span>${t.cr?`<i>${em(t.crN,t.cr)}</i>`:""}</span>`;
+}
+// His next game: this round's until he has played it, then next round's (p.next from the builder; null if not known)
+const upcoming=(p,played,round)=>played?(p.next?{opp:p.next.opp,ha:p.next.ha,day:p.next.date,round:p.next.round??round+1}:null)
+  :(p.opp?{opp:p.opp.opp,ha:p.opp.ha,day:p.day,round}:null);
+// The round of a game in the log. A club plays once a round, so its game dates (all its players' logs, newest first)
+// count back from this round, or from the last one if it has not played this round yet. null for a date not in the list.
+const roundOf=(dates,d,round,played)=>{const L=[...dates].sort().reverse(),i=L.indexOf(d);return i<0?null:(played?round:round-1)-i;}; // finite, so two players without a snapshot compare equal
 // A coach's points from the final score in a player log ("W 90-81", home score first): README, coach projection
 function coachPts(res){
   const m=/^([WL]) (\d+)-(\d+)/.exec(res||"");if(!m)return null;
@@ -2975,7 +3029,10 @@ function shownCtx(){
   const M=shownMemo;if(M&&M.P===P&&M.C===C&&M.H===HIST&&M.k===roundKey)return M.c;
   const done=new Map(),deadX={},deadPr={};
   if(roundKey==="live")P.forEach(p=>(p.log||[]).forEach(g=>{if(!done.has(p.team+"|"+g.d))done.set(p.team+"|"+g.d,g);}));
-  const played=p=>done.has(p.team+"|"+p.day);
+  const played=p=>done.has(p.team+"|"+p.day),clubDates={};
+  P.forEach(p=>(p.log||[]).forEach(g=>(clubDates[p.team]=clubDates[p.team]||new Set()).add(g.d)));
+  // the round of a game in his log; only the live round's data counts back from D.round
+  const rnd=(p,d)=>roundKey==="live"&&clubDates[p.team]?roundOf(clubDates[p.team],d,D.round,played(p)):null;
   const snap=roundKey==="live"&&HIST&&HIST.find(h=>h.round===D.round);
   if(snap){const S=project(snap);S.players.forEach(p=>{deadX[p.id]=p.x;deadPr[p.id]=p.price;});S.coaches.forEach(c=>deadX["c:"+c.team]=c.x);}
   else if(roundKey==="live"&&done.size&&P.some(played))loadHistory();
@@ -2983,12 +3040,18 @@ function shownCtx(){
     const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
   // the credit change from the game, the same number as the Value column of "Round N, turn by turn"
   const cr=p=>p.id==null?null:creditChange((p.log||[]).find(g=>g.d===p.day),deadPr[p.id]??p.price);
-  const c={played,score,deadX,cr};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
+  const c={played,score,deadX,cr,rnd};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
 }
 const shown=p=>projShown(p,shownCtx());
 const projOf=p=>projTxt(shown(p));
 // a number cell: today's projection, or his points once he has played (deadline projection in the tooltip)
-const projCell=p=>{const s=shown(p);return s.played?`<span title="${s.x!=null?`Projected ${s.x} at the deadline`:"Played"}">${s.pts??"–"}<small> pts</small></span>`:`${s.x}`;};
+const projCell=p=>projCellHtml(shown(p));
+const projSort=(a,b)=>projKey(shown(b))-projKey(shown(a));
+const nextG=p=>upcoming(p,shown(p).played,D.round);
+const nextWhen=n=>dayKeys.includes(n.day)?dayLabel(n.day):dayFmt(n.day);
+const nextShort=n=>dayKeys.includes(n.day)?dayShort(n.day):dayFmt(n.day); // "Wed" this round; "Wed 28 Oct" for next round
+// the ± cr column: the expected change before his game, the real change from it after (the same as Value in "turn by turn")
+const crShown=p=>{const s=shown(p);return s.played&&s.cr!=null?s.cr:r1(p.exp);};
 // The live round has started: Banja Luka time is past the first tip-off on deadline day. Trades are closed until the next round.
 function roundStarted(){
   if(roundKey!=="live"||!D.deadline)return false;

@@ -53,7 +53,14 @@ _Avoid_: Ban, block, exclude
 ## Projections
 
 **Projection**:
-The points a player or coach is expected to score in one round.
+The points a player or coach is expected to score in one round. Made before his game. Once he has played, this round's projection is the one at the
+deadline and never changes, shown only beside his **score**; the Proj. column says **TBC** until next round's projection is
+calculated after the round is finished.
+
+**TBC**:
+"To be calculated": the Proj. column for a player whose game this round is played. Next round's projection is made once
+the round is finished.
+_Avoid_: showing his score or this round's projection under Proj.
 _Avoid_: xPTS (that is FantaSheet's input to it), prediction
 
 **Matchup**:

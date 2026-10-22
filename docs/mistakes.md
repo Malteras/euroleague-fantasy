@@ -67,6 +67,21 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   today's projection. Before his game, today's projection. Tests: tools/test_projshown.mjs. Any new place that shows a
   projection next to a player this round goes through `projOf(p)` or `projCell(p)`, never `p.x`.
 
+## 22 Oct 2026 · the fix for the line above put the score in the "Proj." column
+- **What:** after #57 the Players table's Proj. column showed "14.3 pts" for Bryant: his score, under a header that says
+  projection. The list was still sorted by today's inflated projection (#66), so Bryant, Carr (1 pt) and Moore (5 pts) sat at
+  the top of "Proj.". The ± cr column and the drawer's "Exp. change" still showed an estimate after the real change was known.
+- **Why:** the fix asked "what number is safe to show?" and not "what does this column's name promise?". A score is not a
+  projection. The sort key was left on `p.x` because the sort shows no number.
+- **Guard:** CLAUDE.md rule 6 (a label is a promise). `projCellHtml()` / `projKey()` in the projShown block: once he has
+  played, Proj. is **TBC** (next round's projection comes after the round) and sorts last. `crShown()`: ± cr is the real change
+  from his game. `upcoming()` / `nextG()`: Next game is next round's game once this round's is played (QA on #67: "Virtus was
+  his last game, it was already played"). Each Last 5 bar has a tooltip (`gameTip()`): opponent, result, points against the
+  projection when one is on record, credit change. Tests: tools/test_projshown.mjs, which also parses every inline script of
+  the page (a name declared twice broke the whole page once and the cut-out tests could not see it).
+  Before shipping a change to what a cell shows, read its header and ask: is this number what the header says, on every day
+  of the round? Do the same for the sort that header drives.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
@@ -74,3 +89,6 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - Say "I did not check" instead of giving an unchecked number as a fact.
 - For every change during a round, run the later days too (tools/test_capstrip.mjs, or fake scores on the page): the turn after next, the last turn, after the round.
 - A label that counts or totals ("All done", "Round over") must be true for the whole thing it names.
+- A column or field shows what its header says, and its sort uses the same number (CLAUDE.md rule 6).
+- Tooltips use the site's design (`tipPick()`), never a browser `title` tooltip. A container with `overflow:hidden` cuts
+  them off: round its first and last rows instead (`.mkt`).
