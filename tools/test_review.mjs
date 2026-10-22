@@ -109,3 +109,11 @@ test("the armband moved to the Thursday captain: his own score counts double, no
   assert.equal(r6.cap, true); assert.equal(r6.moved, undefined); assert.equal(r6.counted, 60);
   assert.equal(r1.mult, 1); assert.equal(r1.counted, 9);
 });
+
+test("each row carries his matchup at the deadline: the snapshot's allowance of his opponent for his position (#58)", () => {
+  // KBA allows guards +30 and PAO allows centres −17; PAO's guard 1 faces KBA, KBA's guard 2 faces PAO (no number: null)
+  const s = { ...snap(), defence: { KBA: { vs_g: 30, vs_f: 2, vs_c: 5 }, PAO: { vs_g: null, vs_f: -4, vs_c: -17 } } };
+  const R = turnReview(s, live({ 1: [W, 22], 2: [W, 14], 5: [W, 10], 7: [W, 3], 10: null }), null);
+  const mu = Object.fromEntries(R.turns[0].rows.map(r => [r.id, r.mu]));
+  assert.deepEqual(mu, { 1: 30, 2: null, 5: 5, 7: -4, 10: 2 });
+});
