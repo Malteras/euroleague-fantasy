@@ -1069,6 +1069,13 @@ function turnReview(snap,logs,saved){
   if(f){const done=played.has(f.p.day),g=game(f.p),scored=done?(g?g.fpt:0):undefined;
     capCall={first:who(f.p),next:who(path[1]&&path[1].p),keepAt:f.keepAt,scored,
       call:done?(f.keepAt==null||scored>=f.keepAt?"keep":"move"):null,now:who(by[cap])};}
+  // the first captain's double counts only if he keeps the armband: a score under the keep mark counts once,
+  // because the armband moves to a later player (keep or move is judged on his raw score, not the doubled one)
+  if(capCall&&capCall.call==="move")for(const t of turns)for(const r of t.rows)if(r.cap){
+    const m=r.mult/2;got+=r1((r.fpt||0)*m)-r.counted;projSoFar+=r1(r.x*m)-r.px;
+    projRound+=r1(r.x*m)-r.px;
+    Object.assign(r,{cap:false,moved:true,mult:m,counted:r1((r.fpt||0)*m),px:r1(r.x*m)});}
+  if(capCall&&capCall.call==="move"&&capCall.next)projRound+=capCall.next.x;
   return {round:snap.round,from,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall};
 }
 // review:end
@@ -2152,8 +2159,9 @@ function capSteps(capPath,name,turn){
 // After the round has started: walk the turns with his real captain and the real scores of the turns played.
 // A played turn is history: its captain and scores stay as they were. Each step goes under the turn it must be done before.
 // ps: his players (projected, with .day); cap: his captain; score(p): his points if his turn was played, else null.
-function liveCapPlan(ps,cap,days,score,name,turn){
-  const steps=[],held=[cap];let c=cap;
+// firstKeep: the first captain's keep mark from the plan at the deadline, when known (the history snapshot)
+function liveCapPlan(ps,cap,days,score,name,turn,firstKeep=null){
+  const steps=[],held=[cap],calls=[];let c=cap;
   for(let k=0;k<days.length-1&&c;k++){
     const d=days[k],nd=days[k+1];
     if(c.day!==d)continue;
@@ -2161,39 +2169,53 @@ function liveCapPlan(ps,cap,days,score,name,turn){
     const {v,path}=capPath(rest.map(p=>({...p,sd:spreadOf(p)})),days.slice(k+1));
     if(!path.length)break;
     const own=q=>ps.find(p=>p.id===q.id); // capPath works on copies
-    const keepAt=Math.round(v),nx=own(path[0].p),s=score(c);
+    const keepAt=c===cap&&firstKeep!=null?Math.ceil(firstKeep):Math.round(v),nx=own(path[0].p),s=score(c);
     const moveTo=`move the armband to ${name(nx)} (${esc(turn(nx.day))}, proj ${nx.x}). Bring him into the starting five first if needed.`;
     if(s==null){
+      calls.push({day:nd,kind:"if",c,keepAt,nx,path});
       steps.push({day:nd,txt:`If ${name(c)} scored <b>${keepAt}+</b>, keep the armband on him. Otherwise ${moveTo}`});
       path.slice(0,-1).forEach((st,j)=>{const n2=path[j+1].p;
         steps.push({day:days[days.indexOf(st.p.day)+1],txt:`If the armband is on ${name(st.p)} now: keep it if he scored <b>${Math.round(st.keepAt)}+</b>. Otherwise move it to ${name(n2)} (${esc(turn(n2.day))}, proj ${n2.x}). Bring him into the starting five first if needed.`});});
       break;
     }
-    if(s>=keepAt){steps.push({day:nd,txt:`${name(c)} scored <b>${s}</b> (${keepAt}+ needed): keep the armband on him. His score counts double.`});break;}
+    if(s>=keepAt){calls.push({day:nd,kind:"keep",c,s,keepAt});steps.push({day:nd,txt:`${name(c)} scored <b>${s}</b> (${keepAt}+ needed): keep the armband on him. His score counts double.`});break;}
+    calls.push({day:nd,kind:"move",c,s,keepAt,nx});
     steps.push({day:nd,txt:`${name(c)} scored <b>${s}</b>, below ${keepAt}: ${moveTo}`});
     c=nx;held.push(nx);
   }
-  return {cur:c,steps,held};
+  return {cur:c,steps,held,calls};
+}
+// The round in progress (null before the first tip-off): his saved lineup, the real scores, the captain walk, the next turn.
+// Played games ARE the information that a turn is over: a day is played when any player has a game on it.
+function liveRound(){
+  if(!TRADES_CLOSED||!team||team.slots.filter(i=>i&&byId[i]).length!==10)return null;
+  const sl=team.slots.map(i=>byId[i]),playedDay=d=>P.some(p=>(p.log||[]).some(g=>g.d===d));
+  const score=p=>{if(!playedDay(p.day))return null;const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
+  const cap=team.cap&&byId[team.cap]||sl.slice(0,5).sort((a,b)=>b.x-a.x)[0];
+  const next=dayKeys.find(d=>!playedDay(d))||null;
+  const tip=next&&D.fixtures.filter(f=>f[0]===next).map(f=>f[3]).filter(Boolean).sort()[0];
+  // the keep mark set at the deadline (Round N, turn by turn uses the same one), so both cards give one number
+  let firstKeep=null;
+  if(!HIST)loadHistory();
+  const snap=HIST&&HIST.find(h=>h.round===D.round);
+  if(snap){const V=turnReview(snap,Object.fromEntries(P.map(p=>[p.id,p.log])),savedTeam);
+    if(V&&V.cap&&V.cap.first&&V.cap.first.id===cap.id&&V.cap.keepAt!=null)firstKeep=V.cap.keepAt;}
+  return {sl,st:sl.slice(0,5),six:sl[5],bench:sl.slice(6),cap,playedDay,score,next,tip,
+    walk:(name,turn)=>liveCapPlan(sl,cap,dayKeys,score,name,turn,firstKeep)};
 }
 function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   let {ps,finalDay,init,cap0,capPath,reserves}=initPlan(R,L);
   // after the first tip-off: his own lineup and captain, real scores for the turns played (nothing is re-picked for them)
-  const playedDay=d=>P.some(p=>(p.log||[]).some(g=>g.d===d));
-  const score=p=>{if(!playedDay(p.day))return null;const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
-  const live=TRADES_CLOSED&&team&&team.slots.filter(i=>i&&byId[i]).length===10;
+  const LR=liveRound(),live=!!LR,playedDay=LR?LR.playedDay:()=>false,score=LR?LR.score:()=>null;
   let liveCap=null;
-  if(live){
-    const sl=team.slots.map(i=>byId[i]);
-    init={st:sl.slice(0,5),six:sl[5]};reserves=sl.slice(6);
-    cap0=team.cap&&byId[team.cap]||init.st.slice().sort((a,b)=>b.x-a.x)[0];
-  }
+  if(live){init={st:LR.st,six:LR.six};reserves=LR.bench;cap0=LR.cap;}
   const isNew=p=>!orig.players.includes(p.id);
   const T=d=>turnOf2(d).replace("Turn ","T");
   const name=p=>`<b>${plink(p,p.short)}</b>`;
   const st=init.st,six=init.six;
   const cnt={G:0,F:0,C:0};st.forEach(p=>cnt[p.pos]++);const form=`${cnt.G}-${cnt.F}-${cnt.C}`;
   // court
-  if(live)liveCap=liveCapPlan(ps,cap0,dayKeys,score,name,turnOf2);
+  if(live)liveCap=LR.walk(name,turnOf2);
   const capNow=live?liveCap.cur:cap0;
   const val=p=>{const sc=live?score(p):null;return sc==null?`${p.x} · ${esc(turnOf2(p.day))}`:`${sc} pts · played`;};
   const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===capNow?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${val(p)}</small></div>`;
@@ -2350,7 +2372,10 @@ function loadHistory(){
   if(HIST||histLoading)return;histLoading=true;
   const ns=[];for(let n=HIST_FROM;n<=(D.round||0);n++)ns.push(n);
   Promise.all(ns.map(n=>fetch(`history/round-${n}.json`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)))
-    .then(a=>{HIST=a.filter(Boolean);redrawScore();redrawReview();redrawRound();});
+    .then(a=>{HIST=a.filter(Boolean);
+      // a round in progress takes its keep mark from the deadline snapshot: redraw the plan and the Bottom line with it
+      if(TRADES_CLOSED){const y=window.scrollY;render();window.scrollTo(0,y);return;}
+      redrawScore();redrawReview();redrawRound();});
 }
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",look:"next round"};
@@ -2411,7 +2436,7 @@ function reviewCard(){
   let V=null;for(const s of HIST.slice().sort((a,b)=>b.round-a.round)){V=turnReview(s,logs,savedTeam);if(V)break;}
   if(!V)return '<div id="rvCard"></div>';
   const f=v=>v.toFixed(1),day=d=>(D.turns&&D.turns[d])||fmtShort(d),pl=r=>byId[r.id]?plink(byId[r.id],r.short):esc(r.short);
-  const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
+  const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.moved?'<span class="rv-tag" title="Under the keep mark: the armband moves on, so his score counts once">C moved ×1</span>':r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
   const turns=V.turns.map(t=>{const got=t.rows.reduce((a,r)=>a+r.counted,0),px=t.rows.reduce((a,r)=>a+r.px,0);
     const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>`+
       (r.fpt==null?`<span class="muted">DNP</span>`:`<span class="${r.fpt>=r.x+.05?"up":r.fpt<=r.x-.05?"dn":""}">${f(r.fpt)}</span>`)+
@@ -2513,21 +2538,48 @@ function blInputs(){
       cap,lineup:{st,six,form},checks,dayName:dayShort};
   });
 }
+// The Bottom line once the round has started: no trades; the captain call and lineup for the next turn, from his saved
+// lineup and the real scores; checks only for players who have not played. Ids carry the turn, so old ticks don't carry over.
+function blLiveItems(LR){
+  const items=[],nd=LR.next,when=nd?`${dayShort(nd)}${LR.tip?" "+LR.tip:""}`:"";
+  if(!nd)return [{id:`${D.round}:live:over`,kind:"none",title:"Round over",detail:[["","All turns are played. Trades open again before the next round's deadline."]]}];
+  const W=LR.walk(p=>p.short,turnOf2),call=W.calls.find(c=>c.day===nd),cur=W.cur;
+  if(call&&call.kind==="move")items.push({id:`${D.round}:live:cap:${nd}:${call.nx.id}`,kind:"captain",title:`Move captain to ${call.nx.short}`,ps:[call.nx,call.c],
+    detail:[["",`${call.c.short} scored `],["pts",`${call.s}`],["",`, under ${call.keepAt}\nDo it before ${when}`]]});
+  else if(call&&call.kind==="keep")items.push({id:`${D.round}:live:cap:${nd}:${call.c.id}`,kind:"captain",title:`Keep captain ${call.c.short}`,ps:[call.c],
+    detail:[["",`${call.c.short} scored `],["pts",`${call.s}`],["",` (${call.keepAt}+ needed): his score counts double`]]});
+  else if(cur)items.push({id:`${D.round}:live:cap:${nd}:${cur.id}`,kind:"captain",title:`Captain ${cur.short}`,ps:[cur],
+    detail:[["pts",`${cur.x.toFixed(1)} projected`],["",`, plays ${dayShort(cur.day)}`]]});
+  // what comes after the next turn: the next keep-or-move mark
+  const nextIf=W.calls.find(c=>c.kind==="if");
+  if(nextIf&&items.length)items[items.length-1].detail.push(["",`\nThen: if ${nextIf.c.short} scores under ${nextIf.keepAt} → ${nextIf.nx.short} `],["pts",nextIf.nx.x.toFixed(1)]);
+  // the lineup for the next turn: his court players who have not played yet, and the captain on court
+  const unplayed=p=>LR.score(p)==null,court=LR.st.filter(unplayed),six=LR.six&&unplayed(LR.six)?LR.six:null;
+  const capIn=cur&&!LR.st.includes(cur)&&unplayed(cur)?`\nBring ${cur.short} into the starting five (he is your captain)`:"";
+  const locked=LR.sl.filter(p=>!unplayed(p)).map(p=>`${p.short} ${LR.score(p)}`).join(", ");
+  items.push({id:`${D.round}:live:lineup:${nd}:${court.map(p=>p.id).join(",")}`,kind:"lineup",title:`Lineup before ${when}`,ps:court.concat(six?[six]:[]),
+    detail:[["",`On court: ${court.map(p=>p.short).join(", ")||"none"}${six?`, 6th man ${six.short}`:""}${capIn}${locked?`\nPlayed, locked: ${locked}`:""}`]]});
+  // status checks for players who have not played yet
+  watchItems().filter(x=>x.kind==="status"&&unplayed(x.p)&&LR.sl.includes(x.p)).forEach(x=>items.push({id:`${D.round}:live:check:${x.p.id}`,kind:"check",
+    title:`Check ${x.p.short} before ${dayShort(x.p.day)}`,ps:[x.p],detail:[["",`${x.st}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`]]}));
+  return items;
+}
 function bottomLine(){
   const sum=(D.report||{}).summary||[];
   if(!result)return sum.length?`<div class="card" style="margin-bottom:16px"><h3>Bottom line</h3><ul class="bl">${sum.map(t=>`<li>${linkify(t)}</li>`).join("")}</ul></div>`:"";
-  const items=blItems(blInputs()),done=blTicks(state.blTicks,D.round),n=items.filter(i=>done.has(i.id)).length,all=n===items.length;
+  const LR=liveRound();
+  const items=LR?blLiveItems(LR):blItems(blInputs()),done=blTicks(state.blTicks,D.round),n=items.filter(i=>done.has(i.id)).length,all=n===items.length;
   const title=it=>{let h=esc(it.title);(it.ps||[]).filter(p=>p.pos).forEach(p=>{h=h.replace(esc(p.short),plink(p,p.short));});return h;};
   const det=it=>it.detail.map(([c,t])=>c?`<span class="${c==="pts"?"bl-pts":"bl-cr"}">${esc(t)}</span>`:esc(t)).join("");
   const rows=items.map(it=>`<label class="bl-i${it.kind==="check"?" bl-al":""}${done.has(it.id)?" done":""}"><input type="checkbox" data-bl="${esc(it.id)}" id="bl-${esc(it.id)}"${done.has(it.id)?" checked":""}><span><b>${title(it)}</b><small>${det(it)}</small></span></label>`).join("");
   const prog=`<div class="bl-prog${all?" all":""}"><span>${all?`<b>✓ All done for Round ${D.round}</b>`:`<b>${n} of ${items.length}</b> done`}</span><span class="bl-bar"><i style="width:${items.length?(100*n/items.length).toFixed(1):0}%"></i></span></div>`;
   // good to know: this round's matchups for the proposed squad (±15% and more, as the Soft/Tough tags), best first
-  const ms=result.S.map(i=>byId[i]).filter(p=>p&&!p.out&&p.opp).map(p=>({p,m:matchup(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
+  const ms=result.S.map(i=>byId[i]).filter(p=>p&&!p.out&&p.opp&&!(LR&&LR.score(p)!=null)).map(p=>({p,m:matchup(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
   const mRows=ms.map(({p,m})=>`<div class="bl-r"><span>${plink(p,p.short)} <span class="muted">${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</span></span><b class="${m>0?"up":"dn"}">${m>0?"+":"−"}${Math.abs(m)}%</b><small>${POSW[p.pos]}</small></div>`).join("");
   const G=blGainers(sum),byName=nm=>P.find(p=>p.name===nm);
   const gRows=G?G.rows.length?G.rows.map(g=>`<div class="bl-r"><span>${byName(g.name)?plink(byName(g.name),g.name):esc(g.name)} <span class="muted">${esc(g.team)}</span></span><b class="bl-cr">${g.price.toFixed(1)}</b><small>${esc(g.why)}</small></div>`).join(""):`<p class="bl-txt">${linkify(G.text)}</p>`:"";
   const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">Your players' matchups</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
-  return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">⏱ Trades close ${esc(deadlineRel())}</span></div>
+  return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">${LR?`⏱ Trades closed · ${LR.next?`next game ${esc(dayShort(LR.next))}${LR.tip?" "+esc(LR.tip):""}`:"round over"}`:`⏱ Trades close ${esc(deadlineRel())}`}</span></div>
     <div class="bl-cols${know?"":" one"}"><div class="bl-todo">${prog}${rows}</div>${know}</div></div>`;
 }
 document.addEventListener("change",e=>{const id=e.target.dataset&&e.target.dataset.bl;if(id==null)return;
@@ -2696,6 +2748,8 @@ function deadlineRel(){
   return (dd===0?"Today":dd===1?"Tomorrow":dayLabel(D.deadline))+(tip?" "+tip:"");
 }
 function watchBox(){
+  // its checks are all due before trades close; once the round has started it comes back with the next round's data
+  if(TRADES_CLOSED)return "";
   if(!result)return "";
   const items=watchItems(),f1=x=>x.toFixed(1),sw=x=>x.wo-x.w,day=p=>esc(dayShort(p.day)),sh=p=>esc(p.short);
   const mates=items.filter(x=>x.kind==="mate").sort((a,b)=>sw(b)-sw(a));
