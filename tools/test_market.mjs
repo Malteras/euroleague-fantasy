@@ -17,14 +17,15 @@ test("Price and Proj. have the same hook in the header and the rows", () => {
 });
 
 // QA on #76: on a phone the next game, the credit change and the ownership are labelled facts that never break
-// inside, with the drawer's words (Exp. change before his game, Value after it), not one line joined by dots
-test("phone facts under the name are labelled, with no dot separators", () => {
-  const m = row.match(/<span class="mfacts mobile-only">([\s\S]*?)<\/span>`\)\(p\)\}/);
-  assert.ok(m, "a .mfacts block in the row");
+// inside, with the drawer's words (Exp. change before his game, Value after it), not one line joined by dots.
+// They are built with facts() (#82), not a hand-made copy of it.
+test("phone facts under the name are labelled facts(), with no dot separators", () => {
+  const m = row.match(/<span class="mfacts mobile-only">\$\{facts\(([\s\S]*?)\)\}<\/span>/);
+  assert.ok(m, "a facts() call in the .mfacts block of the row");
   const f = m[1];
-  for (const label of ["Next", "Owned"]) assert.ok(f.includes(`<i>${label}</i>`), label);
-  assert.match(f, /<i>\$\{[^}]*\?"Value":"Exp\. change"\}<\/i>/, "Value after his game, Exp. change before");
-  assert.doesNotMatch(f, / · /);
+  for (const label of ["Next", "Owned"]) assert.ok(f.includes(`["${label}",`), label);
+  assert.match(f, /\[shown\(p\)\.played&&shown\(p\)\.cr!=null\?"Value":"Exp\. change",/, "Value after his game, Exp. change before");
+  assert.doesNotMatch(f, /·/);
   assert.match(f, /crShown\(p\)/, "the credit change goes through crShown (CLAUDE.md rule 7)");
   assert.match(f, /nextG\(p\)/, "the next game goes through nextG (CLAUDE.md rule 7)");
 });
