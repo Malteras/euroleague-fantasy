@@ -134,6 +134,10 @@ section{padding-block:28px 8px}
 .game+.game{border-top:1px solid var(--line-soft)}
 .game.has-mine{background:linear-gradient(90deg,var(--accent-soft),transparent 70%)}
 .gt{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted)}
+/* a played game: final score in place of vs, his players' scores against the deadline projection */
+.game.done .gt{font-size:12px;letter-spacing:.04em;text-transform:uppercase}.game.done .vs{font-family:var(--display);font-weight:700;font-size:15px;color:var(--fg);white-space:nowrap}
+.game.done .gmine{white-space:normal;overflow:visible;text-overflow:clip}.game.done .gmine .gp{display:block}
+.gsc{font-weight:700;color:var(--fg)}.gsc .up{color:var(--good)}.gsc .dn{color:var(--bad)}.gsc small{font-weight:400;color:var(--muted)}
 .gside{display:flex;align-items:center;gap:7px;min-width:0}
 .gside.away{justify-content:flex-end}
 .tn{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1884,16 +1888,26 @@ function hero(){
   const mine=new Set(orig.players);
   const sq=R=>R?R.S:[];
   const prop=new Set(result?result.S:[]);
+  // played games: the final score from the home club's game log (home score first), and his players' real scores
+  // against the projection at the deadline (the history snapshot; the live one already includes the game)
+  const gameOf=(p,d)=>(p.log||[]).find(g=>g.d===d);
+  const final=(d,h)=>{for(const p of P)if(p.team===h){const g=gameOf(p,d);if(g&&g.res)return g.res.split(" ")[1].replace("-","–");}return null;};
+  if(!HIST&&P.some(p=>gameOf(p,D.deadline)))loadHistory();
+  const snap=HIST&&HIST.find(h=>h.round===D.round),px=snap?Object.fromEntries(project(snap).players.map(p=>[p.id,p.x])):{};
+  const scoreTxt=(p,d)=>{const g=gameOf(p,d);if(!g)return `${plink(p,p.short)} <span class="gsc">DNP</span>`;
+    const x=px[p.id],pc=x>0?Math.round(100*(g.fpt-x)/x):null;
+    return `${plink(p,p.short)} <span class="gsc">${g.fpt}${pc==null?"":` <span class="${pc>=0?"up":"dn"}">${pc>=0?"+":"−"}${Math.abs(pc)}%</span>`} <small>(PIR ${g.pir}${x!=null?`, proj ${x}`:""})</small></span>`;};
   const days=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).slice().sort((a,b)=>(a[3]||"").localeCompare(b[3]||""));
     const myCount=P.filter(p=>mine.has(p.id)&&p.day===d).length;
     const rows=games.map(([_,h,a,t])=>{
       const my=P.filter(p=>mine.has(p.id)&&(p.team===h||p.team===a));
-      const names=my.map(p=>plink(p,p.short)).join(", ");
-      return `<li class="game${my.length?" has-mine":""}">
-        <span class="gt">${t?esc(t):"–"}</span>
+      const sc=final(d,h);
+      const names=sc?my.map(p=>`<span class="gp">${scoreTxt(p,d)}</span>`).join(""):my.map(p=>plink(p,p.short)).join(", ");
+      return `<li class="game${my.length?" has-mine":""}${sc?" done":""}">
+        <span class="gt">${sc?"Final":t?esc(t):"–"}</span>
         <span class="gside">${badge(h)}<span class="tn">${esc(TEAMS[h][0])}</span></span>
-        <span class="vs">vs</span>
+        <span class="vs">${sc?esc(sc):"vs"}</span>
         <span class="gside away"><span class="tn">${esc(TEAMS[a][0])}</span>${badge(a)}</span>
         ${my.length?`<span class="gmine" title="Your players: ${esc(my.map(p=>p.short).join(", "))}">${names}</span>`:""}
       </li>`;}).join("");
@@ -1902,7 +1916,7 @@ function hero(){
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
   const open=!!state.calOpen;
   const span=dayKeys.length?`${esc(dayShort(dayKeys[0]))} – ${esc(dayLabel(dayKeys[dayKeys.length-1]))}`:"";
-  return `<div class="cal${open?" open":""}"><button type="button" class="cal-h" id="calToggle" aria-expanded="${open}" aria-controls="calDays"><span class="cal-t"><b>${esc(D.roundLabel)} schedule</b><small>${span} · ${D.fixtures.length} games · trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></span><span class="cal-more">${open?"Hide":"Show"} games<span class="chev" aria-hidden="true"></span></span></button><div class="days" id="calDays"${open?"":" hidden"}>${days}</div></div>`;
+  return `<div class="cal${open?" open":""}"><button type="button" class="cal-h" id="calToggle" aria-expanded="${open}" aria-controls="calDays"><span class="cal-t"><b>${esc(D.roundLabel)} schedule</b><small>${span} · ${D.fixtures.length} games · ${TRADES_CLOSED?"trades closed (round started)":`trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}`}</small></span><span class="cal-more">${open?"Hide":"Show"} games<span class="chev" aria-hidden="true"></span></span></button><div class="days" id="calDays"${open?"":" hidden"}>${days}</div></div>`;
 }
 function modeBar(){
   const m=state.pmode==="m";

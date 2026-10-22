@@ -19,6 +19,8 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 - **Bottom line**: no trade item. The captain call for the next turn, the lineup for the next turn (players who have not
   played; played ones listed as locked), checks only for players who have not played. The pill shows the next tip-off.
 - **Your players' matchups**: only games still to play.
+- **Round schedule**: a played game shows "Final" and the score; his players in it show their score, PIR and ± % against
+  the projection at the deadline (the snapshot; the live projection already includes the game). The header says trades are closed.
 - **Watch before the deadline**: hidden. All its checks are due before trades close. It comes back with the next round's data.
 
 ## Consequences
