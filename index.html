@@ -811,6 +811,31 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .mrow.head .h-be,.mrow.head .h-ch,.mrow.head .h-ow,.mrow.head .h-sp,.mrow.head .h-op{display:none}
   .mobile-only{display:block}
 }
+/* Player market on a phone (#48): filters in a tidy grid; in a row the name wraps, Must have sits above Leave out on
+   the right, and the tags get their own line under the player, across the Price and Proj. columns */
+@media (max-width:600px){
+  #market .tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #market .tools>*{width:100%;min-width:0}
+  #market .search{grid-column:1/-1}
+  #market #sort,#market #tagf{order:1}#market #only,#market #clear{order:2}
+  #market .tools .seg{flex-wrap:nowrap}
+  #market .tools .seg button{padding-inline:4px;min-width:0}
+  #market .tools .chip-toggle{padding-inline:8px}
+  .mrow{grid-template-columns:minmax(0,1fr) 44px 46px 32px;column-gap:8px;row-gap:6px;padding:10px 10px 10px 12px;align-items:start}
+  .mrow>.ico.pin,.mrow.head>:first-child{grid-column:4;grid-row:1}
+  .mrow>.ico.no{grid-column:4;grid-row:2}
+  .mrow.head>:last-child{display:none}
+  .mrow.head{align-items:center}
+  .mrow .c-pr{grid-column:2;grid-row:1}.mrow .c-pj{grid-column:3;grid-row:1}
+  .mrow:not(.head) .c-pr,.mrow:not(.head) .c-pj{padding-top:1px}
+  .mrow.head>:nth-child(2){grid-column:1;grid-row:1}
+  .who-c{display:contents}
+  .who-c>.who{grid-column:1;grid-row:1;align-items:flex-start}
+  .who-c>.ptags{grid-column:1/4;grid-row:2;padding-left:0;margin-top:0;align-self:center}
+  .mrow .who .jersey{width:28px;height:28px;font-size:9.5px}
+  .mrow .who b,.mrow .who small{white-space:normal;overflow:visible}
+  .mrow .who b{line-height:1.25}
+}
 @media (max-width:760px){
   .days{grid-template-columns:1fr}
   .ctrl{grid-template-columns:1fr 1fr}
