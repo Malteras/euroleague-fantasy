@@ -1397,7 +1397,7 @@ function teamPanel(){
   let attack="";
   if(I.opp&&I.weak&&I.weak.v>=12){
     const o=I.opp.opp,cands=P.filter(p=>p.team===o&&p.pos===I.weak.k&&!p.out).sort((a,b)=>b.x-a.x).slice(0,3);
-    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${projOf(p)} · ${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul></div>`;
+    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · <span class="gsc">${projHtml(shown(p))}</span> · ${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul></div>`;
   }
   let avoid="";
   if(I.opp&&I.strong&&I.strong.v<=-12){const o=I.opp.opp;const mine=P.filter(p=>p.team===o&&p.pos===I.strong.k&&orig.players.includes(p.id));
@@ -1405,7 +1405,7 @@ function teamPanel(){
   const top=I.players.filter(p=>!p.out).sort((a,b)=>b.x-a.x).slice(0,6);
   const risers=I.players.filter(p=>!p.out&&p.price<=9&&p.exp>=0.1).sort((a,b)=>b.exp-a.exp).slice(0,4);
   const outs=I.players.filter(p=>p.status);
-  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${projOf(p)} · ${p.exp>=0?"+":""}${r1(p.exp)} cr</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul>`;
+  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${shown(p).played?`<span class="gsc">${projHtml(shown(p))}</span>`:`${projOf(p)} · ${p.exp>=0?"+":""}${r1(p.exp)} cr`}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}</li>`).join("")}</ul>`;
   const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"}" title="${esc(g.d)}">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small></span>`).join("");
   const next=((D.teamNext||{})[tp]||[]).filter(x=>x.el).slice(0,3).map(x=>`<li><span>${esc(fmtShort(x.d))}</span><span>${x.ha==="H"?"vs":"@"} ${esc(x.opp)}</span></li>`).join("");
   const coach=coachByTeam[tp];
@@ -1914,7 +1914,9 @@ function render(){
   }else dr.innerHTML="";document.documentElement.classList.toggle("locked",!!state.open||!!pick||sug!=null||!!tp);
   document.getElementById("picker-root").innerHTML=picker()+suggestPanel();
   {const tr=document.getElementById("team-root"),ex2=tr.querySelector(".tpanel");const html=teamPanel();
-   if(tp&&ex2&&ex2.dataset.tpid===tp){/* keep open, no re-animation */}else tr.innerHTML=html;}
+   // keep it open with no re-animation, but swap in new content (the deadline snapshot can arrive after it opened)
+   if(tp&&ex2&&ex2.dataset.tpid===tp){const t=document.createElement("template");t.innerHTML=html;const nx=t.content.querySelector(".tpanel");
+     if(nx&&nx.innerHTML!==ex2.innerHTML){const sc=ex2.scrollTop;ex2.innerHTML=nx.innerHTML;ex2.scrollTop=sc;}}else tr.innerHTML=html;}
   document.querySelectorAll(".top nav a[data-page]").forEach(a=>{const on=a.dataset.page===page;a.classList.toggle("on",on);if(on){a.setAttribute("aria-current","page");const n=a.parentElement;if(n.scrollWidth>n.clientWidth)n.scrollLeft=a.offsetLeft-n.offsetLeft-12;}else a.removeAttribute("aria-current");});
   const body={
     team:()=>alertBox()+watchBox()+hero()+myteam()+proposalHead()+(result?withMode(state.pmode==="m"?"m":"q",proposal):`<section><div class="warnbox">Finish your team (4 guards, 4 forwards, 2 centres and a coach) to see the proposal.</div></section>`),
@@ -2944,12 +2946,17 @@ function watchItems(){
 // What a card may show for a player or coach this round (#57). Once his club's game this round is played, today's projection
 // already includes the game (it has moved toward his score), so it is never shown: his points, and the projection at the
 // deadline (history snapshot) if there is one. Before his game: today's projection. A coach is keyed "c:"+club in deadX.
-function projShown(p,{played,score,deadX}){
+// pct: how far his points are above or under the deadline projection; cr: his credit change from the game.
+function projShown(p,{played,score,deadX,cr}){
   if(!played(p))return {played:false,x:p.x};
-  return {played:true,pts:score(p),x:deadX[p.id??"c:"+p.team]??null};
+  const pts=score(p),x=deadX[p.id??"c:"+p.team]??null;
+  return {played:true,pts,x,pct:pts!=null&&x>0?Math.round(100*(pts-x)/x):null,cr:cr?cr(p):null};
 }
 // "proj 20.6" before his game; "36.3 pts (proj 21)" after it
 const projTxt=s=>s.played?`${s.pts!=null?`${s.pts} pts`:"played"}${s.x!=null?` (proj ${s.x})`:""}`:`proj ${s.x}`;
+// the same as HTML, like the round schedule: "36.3 pts +73% +0.9 cr (proj 21)", the change in green or red
+const projHtml=s=>{if(!s.played)return `proj ${s.x}`;const sg=v=>`<span class="${v>0?"up":v<0?"dn":"muted"}">${v>0?"+":v<0?"−":""}`;
+  return `${s.pts!=null?`${s.pts} pts`:"played"}${s.pct!=null?` ${sg(s.pct)}${Math.abs(s.pct)}%</span>`:""}${s.cr!=null?` ${sg(s.cr)}${Math.abs(s.cr).toFixed(1)} cr</span>`:""}${s.x!=null?` <small>(proj ${s.x})</small>`:""}`;};
 // A coach's points from the final score in a player log ("W 90-81", home score first): README, coach projection
 function coachPts(res){
   const m=/^([WL]) (\d+)-(\d+)/.exec(res||"");if(!m)return null;
@@ -2962,15 +2969,17 @@ function coachPts(res){
 let shownMemo=null;
 function shownCtx(){
   const M=shownMemo;if(M&&M.P===P&&M.C===C&&M.H===HIST&&M.k===roundKey)return M.c;
-  const done=new Map(),deadX={};
+  const done=new Map(),deadX={},deadPr={};
   if(roundKey==="live")P.forEach(p=>(p.log||[]).forEach(g=>{if(!done.has(p.team+"|"+g.d))done.set(p.team+"|"+g.d,g);}));
   const played=p=>done.has(p.team+"|"+p.day);
   const snap=roundKey==="live"&&HIST&&HIST.find(h=>h.round===D.round);
-  if(snap){const S=project(snap);S.players.forEach(p=>deadX[p.id]=p.x);S.coaches.forEach(c=>deadX["c:"+c.team]=c.x);}
+  if(snap){const S=project(snap);S.players.forEach(p=>{deadX[p.id]=p.x;deadPr[p.id]=p.price;});S.coaches.forEach(c=>deadX["c:"+c.team]=c.x);}
   else if(roundKey==="live"&&done.size&&P.some(played))loadHistory();
   const score=p=>{if(p.id==null){const g=done.get(p.team+"|"+p.day);return g?coachPts(g.res):null;}
     const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
-  const c={played,score,deadX};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
+  // the credit change from the game, the same number as the Value column of "Round N, turn by turn"
+  const cr=p=>p.id==null?null:creditChange((p.log||[]).find(g=>g.d===p.day),deadPr[p.id]??p.price);
+  const c={played,score,deadX,cr};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
 }
 const shown=p=>projShown(p,shownCtx());
 const projOf=p=>projTxt(shown(p));
