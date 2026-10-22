@@ -406,13 +406,13 @@ section{padding-block:28px 8px}
 .tp-pl li{display:flex;align-items:center;gap:10px}.tp-pl .jersey{width:32px;height:32px;font-size:10px;flex:none}.tp-pl .jersey::after{display:none}
 .tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}
 .tbc{position:relative;color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
-/* the site's tooltip on a TBC cell and on each Last 5 bar (an invisible hit area over the bar holds it) */
-.tbc .tip,.sp-hit .tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;white-space:normal;text-decoration:none}
-.tbc .tip b,.sp-hit .tip b{display:block}
+/* the site's tooltip: a .tip inside a .has-tip parent (a TBC cell, the hit area over each Last 5 bar, a tag...) */
+.has-tip>.tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;white-space:normal;text-decoration:none}
+.has-tip>.tip b{display:block}
 .tip .tg-up{color:var(--tip-good);font-style:normal}.tip .tg-dn{color:var(--tip-bad);font-style:normal}
 /* fade the grey text by colour, not opacity, so green and red inside it stay at full contrast */
-.sp-hit .tip.tip-pick small{opacity:1;color:color-mix(in srgb,var(--bg) 65%,var(--fg))}.sp-hit .tip.tip-pick i{opacity:1;color:color-mix(in srgb,var(--bg) 80%,var(--fg))}
-.tbc:hover .tip,.tbc:focus-visible .tip,.sp-hit:hover .tip,.sp-hit:focus-visible .tip{opacity:1}
+.has-tip>.tip.tip-pick small{opacity:1;color:color-mix(in srgb,var(--bg) 65%,var(--fg))}.has-tip>.tip.tip-pick i{opacity:1;color:color-mix(in srgb,var(--bg) 80%,var(--fg))}
+.has-tip:hover>.tip,.has-tip:focus-visible>.tip{opacity:1}
 .sp-w{position:relative;display:block;width:150px}.sp-hit{position:absolute;top:0;bottom:0;width:20%;cursor:help;border-radius:3px}
 .sp-hit:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .tp-sc{flex:none;display:flex;flex-direction:column;align-items:flex-end;text-align:right;line-height:1.25}.tp-sc .score{font-size:17px}.tp-sc .score small{font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted)}.tp-sc small .up{color:var(--good)}.tp-sc small .dn{color:var(--bad)}.tp-pl .plink{font-weight:700}.tp-pl small{color:var(--muted);font-size:12.5px}
@@ -615,10 +615,10 @@ html.locked,html.locked body{overflow:hidden}
 .ico .tip b,.ptag .tip b{display:block}
 .ico:hover .tip,.ico:focus-visible .tip,.ptag:hover .tip,.ptag:focus-visible .tip{opacity:1}
 /* Must have / Leave out and tag tooltips: who or what it is about, the name, what it means */
-.ico .tip-pick,.ptag .tip-pick,.tbc .tip-pick,.sp-hit .tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.ico .tip-pick small,.ptag .tip-pick small,.tbc .tip-pick small,.sp-hit .tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
-.ico .tip-pick b,.ptag .tip-pick b,.tbc .tip-pick b,.sp-hit .tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
-.ico .tip-pick i,.ptag .tip-pick i,.tbc .tip-pick i,.sp-hit .tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
+.ico .tip-pick,.has-tip>.tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.ico .tip-pick small,.has-tip>.tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
+.ico .tip-pick b,.has-tip>.tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
+.ico .tip-pick i,.has-tip>.tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
 /* Tag tooltips open from the tag's left edge; the script nudges them back inside the drawer */
 .ptag.has-tip{position:relative;cursor:help}
 .ptag .tip{left:0;transform:none;text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
