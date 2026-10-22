@@ -12,7 +12,7 @@
 /* Layout: arena scoreboard — sticky round bar, proposal board split by game day (turns), then a player market with per-game bars against break-even. */
 :root{
   --bg:#0a1120; --surface:#111a2c; --raise:#17233a; --line:#22314d; --line-soft:#1a2741;
-  --fg:#e9eef8; --muted:#8e9bb6; --faint:#5d6b88;
+  --fg:#e9eef8; --muted:#8e9bb6; --faint:#7f8cab; /* faint text still meets WCAG AA 4.5:1 on surface and raise */
   --accent:#27b7c4; --accent-soft:rgba(39,183,196,.14); --accent-ink:#04252a;
   --good:#3fcf8f; --good-ink:#04251a; --good-soft:rgba(63,207,143,.14); --bad:#f7889b; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15); --warn-ink:#1d1300;
   --be:#8e9bb6; --credit:#f3b64b;
@@ -24,13 +24,13 @@
 }
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
-  --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
+  --fg:#0f1a2d; --muted:#56637d; --faint:#5f6c85;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
-  --fg:#0f1a2d; --muted:#56637d; --faint:#8592aa;
+  --fg:#0f1a2d; --muted:#56637d; --faint:#5f6c85;
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}
@@ -702,7 +702,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
 .rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
-.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 3.6em 3.6em 4.2em;gap:8px;align-items:center}
+.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 3.6em 3.6em 3.6em;gap:8px;align-items:center}
 .rv-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .rv-h span:not(:first-child),.rv-row span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
 .rv-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
@@ -721,7 +721,7 @@ html.locked,html.locked body{overflow:hidden}
 .rr-row>span:nth-child(odd){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rr-row .rv-c{color:var(--accent);font-weight:700}.rr-row .muted{color:var(--muted)}
 @media (max-width:560px){.rv-cap{grid-template-columns:1fr}.rv-cs+.rv-cs{border-left:0;border-top:1px solid var(--line-soft)}.rv-cs+.rv-cs::before{display:none}}
-@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 3.2em 3.2em 3.8em;gap:6px}}
+@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 3.2em 3.2em 3.2em;gap:6px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
@@ -1059,8 +1059,11 @@ function turnReview(snap,logs,saved){
   for(const d of R.dayKeys){
     const rows=ps.filter(({p})=>p.day===d).map(({p,i})=>{
       const mult=i<6?(p.id===cap?2:1):.5,g=game(p),fpt=g?g.fpt:null;
+      // value: the credit change the game earns, FantaSheet's own number when it has one, else (FPT − 1.1 × price) ÷ 25;
+      // a game his club played without him is −0.1
+      const val=g?(g.cr!=null?g.cr:r1((fpt-1.1*p.price)/25)):-0.1;
       return {id:p.id,name:p.name,short:short(p),pos:p.pos,team:p.team,role:i<5?"court":i===5?"six":"bench",cap:p.id===cap,
-        mult,fpt,x:p.x,counted:r1((fpt||0)*mult),px:r1(p.x*mult)};});
+        mult,fpt,x:p.x,val,counted:r1((fpt||0)*mult),px:r1(p.x*mult)};});
     const px=rows.reduce((a,r)=>a+r.px,0);projRound+=px;
     if(!played.has(d))continue;
     got+=rows.reduce((a,r)=>a+r.counted,0);projSoFar+=px;turns.push({d,rows});
@@ -2452,11 +2455,12 @@ function reviewCard(){
   const f=v=>v.toFixed(1),day=d=>(D.turns&&D.turns[d])||fmtShort(d),pl=r=>byId[r.id]?plink(byId[r.id],r.short):esc(r.short);
   const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.moved?'<span class="rv-tag" title="Under the keep mark: the armband moves on, so his score counts once">C moved ×1</span>':r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
   const turns=V.turns.map(t=>{const got=t.rows.reduce((a,r)=>a+r.counted,0),px=t.rows.reduce((a,r)=>a+r.px,0);
-    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>`+
+    const vl=v=>`<span class="${v>0?"up":v<0?"dn":"muted"}" title="Credit change from this game">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)}</span>`;
+    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>${vl(r.val)}`+
       (r.fpt==null?`<span class="muted">DNP</span>`:`<span class="${r.fpt>=r.x+.05?"up":r.fpt<=r.x-.05?"dn":""}">${f(r.fpt)}</span>`)+
-      `<span class="muted">${f(r.x)}</span><span class="rv-c">${f(r.counted)}</span></div>`).join("");
+      `<span class="muted">${f(r.x)}</span></div>`).join("");
     return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
-      <div class="rv-h"><span>Player</span><span>Scored</span><span>Proj</span><span>Counts</span></div>${rows}`;}).join("");
+      <div class="rv-h"><span>Player</span><span>Value</span><span>Scored</span><span>Proj</span></div>${rows}`;}).join("");
   const C=V.cap;let cap="";
   if(C){const nm=c=>byId[c.id]?plink(byId[c.id],c.short):esc(c.short),step=(k,v,x)=>`<div class="rv-cs"><small>${k}</small><b>${v}</b><span>${x}</span></div>`;
     const plan=step("Captain plan",nm(C.first),C.keepAt==null?"The last turn to use the armband":`Keep at <b>${Math.ceil(C.keepAt)}+</b>, else ${nm(C.next)}`);
@@ -2469,7 +2473,7 @@ function reviewCard(){
     cap=`<div class="rv-cap${st?" "+st:""}">${plan}${res}${now}</div>`;}
   const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
   return `<div class="card rv" id="rvCard"><h3>Round ${V.round}, turn by turn</h3>${tot}${cap}${turns}
-    <p class="note sc-foot">Players only: coach points come after the round. Court and 6th man count 100%, bench 50%, captain ×2.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
+    <p class="note sc-foot">Players only: coach points come after the round. Scored is his own score; the turn totals count court and 6th man 100%, bench ½, captain ×2 (the tags). Value is the credit change from the game.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sc-span],[data-sc-band]");if(!b)return;
   if(b.dataset.scSpan)scView.span=b.dataset.scSpan;else scView.band=b.dataset.scBand;redrawScore();});
