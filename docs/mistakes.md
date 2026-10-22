@@ -46,7 +46,8 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   gave a generic "swap in X, Y, Z for anyone who scored below his projection" instead of a real lineup change.
 - **Why:** the checklist was built for the deadline (one set of to-dos per round) and only patched for a round in progress.
 - **Guard:** ADR 0002 (Bottom line per turn, lineup changes, Apply to My team); `blLiveItems()` / `turnSwaps()`;
-  tools/test_capstrip.mjs (lineup changes wait for earlier games, same position only, captain first).
+  tools/test_capstrip.mjs (lineup changes wait for earlier games, captain first). The tests also check "same position
+  only", which is wrong: see the entry below.
 
 ## 22 Oct 2026 · the round schedule showed PIR next to the points
 - **What:** "Bryant 14.3 −36% (PIR 13, proj 22.4)". PIR is not the score; points are PIR +10% on a win (GLOSSARY: Points).
@@ -115,3 +116,13 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - Group numbers with what they describe; reuse the layout the site already has for the same data.
 - Tooltips use the site's design (`tipPick()`), never a browser `title` tooltip. A container with `overflow:hidden` cuts
   them off: round its first and last rows instead (`.mkt`).
+
+## 22 Oct 2026 · a game rule nobody checked: "lineup changes between turns are same position only"
+- **What:** CLAUDE.md rule 1, GLOSSARY ("Lineup change"), ADR 0002, this file and `turnSwaps()` in index.html (with its tests)
+  said a swap between turns must be same position, so the formation stays. It reached the daily routine prompt. The official
+  rules say the opposite: any court ↔ bench swap and any of the five formations, as long as the player coming in has not played.
+  The same day the routine wrote "no 2026-27 source found" for the free-trade windows, which the rules book lists, so
+  Round 7 (deadline 21 Oct) was a free-trade window and nothing told him.
+- **Why:** the rule was written from memory and copied from file to file. Nobody opened the official rules book.
+- **Guard:** docs/rules.md is the one place for game rules, with quotes and links to the rules book. CLAUDE.md Part A: never
+  write a game rule from memory. The site fix is GitHub issue #70.

@@ -6,7 +6,7 @@ A planner for one EuroLeague Fantasy team: who to trade, who to start and who to
 
 > ## ⚠️ NO TRADES BETWEEN TURNS. EVERY TRADE (THE 10 PLAYERS AND THE COACH) IS MADE BEFORE THE ROUND'S DEADLINE.
 >
-> **Once the first game of the round tips off, the squad is fixed until the next round.** Between turns you can only move players between bench and court and move the captain.
+> **Once the first game of the round tips off, the squad is fixed until the next round.** Between turns you can only move players between bench and court, change the formation and move the captain (docs/rules.md).
 >
 > So anything that decides a trade (an injury, a teammate who might be out, a doubtful player) must be checked **before the deadline**, never on the player's own game day. A check that says "before Fri" for a trade decision is wrong.
 
@@ -20,9 +20,11 @@ A turn starts at its first tip-off (the first game of that day, whoever plays in
 _Avoid_: Day, session
 
 **Lineup change**:
-Between turns: a bench player who has not played comes onto the court (or in as 6th man) for a player in the same position.
-The player going out may already have played: his score then counts half, as a bench score. A player who has played never comes in.
+Between turns: a bench player who has not played comes onto the court (or in as 6th man) for any player, as long as the new
+five is one of the five formations (docs/rules.md: there is no same-position rule). The player going out may already have
+played: his score then counts half, as a bench score. A player who has played never comes in.
 The site suggests one when it gains at least 1 point, and waits while a court player in that position still has a game before it.
+Until GitHub issue #70 is fixed, the site only suggests same-position swaps.
 _Avoid_: Swap, sub, transfer
 
 **Points**:
