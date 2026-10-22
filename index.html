@@ -2149,18 +2149,57 @@ function capSteps(capPath,name,turn){
   return capPath.slice(0,-1).map(({p,keepAt},k)=>{const n=capPath[k+1].p;
     return {day:p.day,txt:`${k?`If the armband is on ${name(p)} now: keep it if he scores`:`If ${name(p)} scores`} <b>${Math.round(keepAt)}+</b>${k?"":", keep the armband"}. Otherwise move it to ${name(n)} (${esc(turn(n.day))}, proj ${n.x}). Bring him into the starting five first if needed.`};});
 }
+// After the round has started: walk the turns with his real captain and the real scores of the turns played.
+// A played turn is history: its captain and scores stay as they were. Each step goes under the turn it must be done before.
+// ps: his players (projected, with .day); cap: his captain; score(p): his points if his turn was played, else null.
+function liveCapPlan(ps,cap,days,score,name,turn){
+  const steps=[],held=[cap];let c=cap;
+  for(let k=0;k<days.length-1&&c;k++){
+    const d=days[k],nd=days[k+1];
+    if(c.day!==d)continue;
+    const rest=ps.filter(p=>days.indexOf(p.day)>k&&score(p)==null);
+    const {v,path}=capPath(rest.map(p=>({...p,sd:spreadOf(p)})),days.slice(k+1));
+    if(!path.length)break;
+    const own=q=>ps.find(p=>p.id===q.id); // capPath works on copies
+    const keepAt=Math.round(v),nx=own(path[0].p),s=score(c);
+    const moveTo=`move the armband to ${name(nx)} (${esc(turn(nx.day))}, proj ${nx.x}). Bring him into the starting five first if needed.`;
+    if(s==null){
+      steps.push({day:nd,txt:`If ${name(c)} scored <b>${keepAt}+</b>, keep the armband on him. Otherwise ${moveTo}`});
+      path.slice(0,-1).forEach((st,j)=>{const n2=path[j+1].p;
+        steps.push({day:days[days.indexOf(st.p.day)+1],txt:`If the armband is on ${name(st.p)} now: keep it if he scored <b>${Math.round(st.keepAt)}+</b>. Otherwise move it to ${name(n2)} (${esc(turn(n2.day))}, proj ${n2.x}). Bring him into the starting five first if needed.`});});
+      break;
+    }
+    if(s>=keepAt){steps.push({day:nd,txt:`${name(c)} scored <b>${s}</b> (${keepAt}+ needed): keep the armband on him. His score counts double.`});break;}
+    steps.push({day:nd,txt:`${name(c)} scored <b>${s}</b>, below ${keepAt}: ${moveTo}`});
+    c=nx;held.push(nx);
+  }
+  return {cur:c,steps,held};
+}
 function planView(R,L,{tr,noTrades,pairs,coachChanged}){
-  const {ps,finalDay,init,cap0,capPath,reserves}=initPlan(R,L);
+  let {ps,finalDay,init,cap0,capPath,reserves}=initPlan(R,L);
+  // after the first tip-off: his own lineup and captain, real scores for the turns played (nothing is re-picked for them)
+  const playedDay=d=>P.some(p=>(p.log||[]).some(g=>g.d===d));
+  const score=p=>{if(!playedDay(p.day))return null;const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
+  const live=TRADES_CLOSED&&team&&team.slots.filter(i=>i&&byId[i]).length===10;
+  let liveCap=null;
+  if(live){
+    const sl=team.slots.map(i=>byId[i]);
+    init={st:sl.slice(0,5),six:sl[5]};reserves=sl.slice(6);
+    cap0=team.cap&&byId[team.cap]||init.st.slice().sort((a,b)=>b.x-a.x)[0];
+  }
   const isNew=p=>!orig.players.includes(p.id);
   const T=d=>turnOf2(d).replace("Turn ","T");
   const name=p=>`<b>${plink(p,p.short)}</b>`;
   const st=init.st,six=init.six;
   const cnt={G:0,F:0,C:0};st.forEach(p=>cnt[p.pos]++);const form=`${cnt.G}-${cnt.F}-${cnt.C}`;
   // court
-  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===cap0?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${p.x} · ${esc(turnOf2(p.day))}</small></div>`;
+  if(live)liveCap=liveCapPlan(ps,cap0,dayKeys,score,name,turnOf2);
+  const capNow=live?liveCap.cur:cap0;
+  const val=p=>{const sc=live?score(p):null;return sc==null?`${p.x} · ${esc(turnOf2(p.day))}`:`${sc} pts · played`;};
+  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===capNow?'<span class="capb" title="Captain">C</span>':""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${val(p)}</small></div>`;
   const rows=["C","F","G"].map(k=>`<div class="crow">${st.filter(p=>p.pos===k).map(p=>ps1(p,isNew(p)?'<span class="b-new">New</span>':"")).join("")}</div>`).join("");
-  const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${p.x} · ${esc(T(p.day))}</small></div>`;}).join("");
-  const court=`<div class="card pcourt"><div class="pc-h"><h3>Proposed lineup</h3><span class="muted">${form} · day-one start</span></div>
+  const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";const sc=live?score(p):null;return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${sc==null?`${p.x} · ${esc(T(p.day))}`:`${sc} pts · played`}</small></div>`;}).join("");
+  const court=`<div class="card pcourt"><div class="pc-h"><h3>${live?"Your lineup":"Proposed lineup"}</h3><span class="muted">${form} · ${live?"captain now":"day-one start"}</span></div>
     <div class="court"><svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>${rows}</div>
     <div class="lbl" style="margin-top:12px">6th man · bench</div><div class="pbench">${bench}</div></div>`;
   // timeline
@@ -2170,26 +2209,30 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
     +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">Set the lineup · ${form}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
-  const capActs=capSteps(capPath,name,turnOf2);
+  const nextDay=d=>dayKeys[dayKeys.indexOf(d)+1];
+  const capActs=live?liveCap.steps:capSteps(capPath,name,turnOf2).map(a=>({...a,day:nextDay(a.day)}));
   const lateRes=reserves.filter(p=>p.day===finalDay);
   const secondLast=dayKeys[dayKeys.length-2];
   const coach=coachByTeam[R.coach];
   const risky=ps.filter(p=>p.log&&p.log[0]&&p.log[0].min<12);
   const turns=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).length;
-    const mine=ps.filter(p=>p.day===d).sort((a,b)=>b.x-a.x);
-    const role=p=>p===cap0?"cap":st.includes(p)?"start":p===six?"six":"bench";
-    const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${p.x}${role(p)==="cap"?" · C":role(p)==="bench"?" · bench":role(p)==="six"?" · 6th":""}</small></span>`).join("");
+    const done=live&&playedDay(d);
+    const mine=ps.filter(p=>p.day===d).sort((a,b)=>done?score(b)-score(a):b.x-a.x);
+    // a played turn keeps the captain it had; a coming one shows where the armband is now
+    const capOf=done?liveCap.held.find(h=>h&&h.day===d):capNow;
+    const role=p=>p===capOf?"cap":st.includes(p)?"start":p===six?"six":"bench";
+    const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${done?`${score(p)} pts`:p.x}${role(p)==="cap"?" · C":role(p)==="bench"?" · bench":role(p)==="six"?" · 6th":""}</small></span>`).join("");
     const acts=[];
     capActs.filter(a=>a.day===d).forEach(a=>acts.push(a.txt));
-    if(d===secondLast&&lateRes.length)acts.push(`Swap in ${lateRes.map(p=>`${name(p)} ${p.x}`).join(", ")} for anyone who scored below his projection. Match positions or change the formation.`);
+    if(d===finalDay&&secondLast&&lateRes.length)acts.push(`Swap in ${lateRes.map(p=>`${name(p)} ${p.x}`).join(", ")} for anyone who scored below his projection. Match positions or change the formation.`);
     if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (proj ${coach.x}).</span>`);
     const rk=risky.filter(p=>p.day===d);
     const warn=rk.length?`<div class="tl-warn">Minutes watch: ${rk.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.</div>`:"";
-    const lbl=k===dayKeys.length-1?(acts.filter(a=>!a.startsWith('<span class="muted">')).length?"After these games":"Last turn"):`After ${esc(dayShort(d))}'s games`;
+    const lbl=done?`${esc(dayShort(d))}: played`:`Before ${esc(dayShort(d))}'s games`;
     return `<li><div class="tl-h"><b>${esc(turnOf2(d))}</b><small>${esc(dayLabel(d))} · ${games} game${games===1?"":"s"}</small></div>
       ${who?`<div class="tl-who">${who}</div>`:'<p class="note" style="margin:4px 0 0">None of your players.</p>'}
-      ${acts.length?`<p class="tl-lbl">${lbl}</p>${acts.map(a=>`<p class="tl-txt">${a}</p>`).join("")}`:`<p class="tl-txt muted" style="margin-top:6px">${k===dayKeys.length-1?"Nothing to do. The round ends after these games.":"Nothing to change."}</p>`}${warn}</li>`;
+      ${acts.length?`<p class="tl-lbl">${lbl}</p>${acts.map(a=>`<p class="tl-txt">${a}</p>`).join("")}`:`<p class="tl-txt muted" style="margin-top:6px">${done?"Played.":k===0?"Set the lineup above before the first game.":"Nothing to change."}</p>`}${warn}</li>`;
   }).join("");
   const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl">${TRADES_CLOSED?`<li class="now"><div class="tl-h"><b>Trades closed</b><small>the round started ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div><p class="note" style="margin:0">No trades until next round's deadline. Follow the turns below: move the captain and bring in only players who have not played yet.</p></li>`:`<li class="now"><div class="tl-h"><b>Now</b><small>before ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""} · trades close</small></div>${nowBody}</li>`}${turns}</ol></div>`;
   return `<div class="plan">${court}${timeline}</div>`;

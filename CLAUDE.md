@@ -19,8 +19,10 @@ Rules:
   before the deadline, between turns, the last game day, and after the round.
   Ask yourself "what day is it, and which games are already played?" before giving any advice.
 - The planner now shows "Trades closed" after the first tip-off (`roundStarted()` / `TRADES_CLOSED` in index.html).
-  Still open: its captain plan and lineup steps use projections, not the real scores of the turns already played.
-  Until that is fixed, the daily report must give the captain and lineup calls from the real scores.
+  After the first tip-off the plan uses HIS saved lineup and captain (My team) and the real scores of the turns played
+  (`liveCapPlan` in index.html). A played turn is history: never re-pick its captain or lineup from new projections.
+- A decision taken between turns ("if Bryant scored 24+, keep him, otherwise move the armband to Maledon") is shown under
+  the turn it must be done BEFORE (turn 2), not under the turn that was played (turn 1).
 - Before publishing, open the site with today's data and read what it tells him. If the site's advice is
   impossible or wrong for today, fix it or say so at the top of the report. Do not only check that the numbers loaded.
 
