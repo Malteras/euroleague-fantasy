@@ -229,7 +229,8 @@ class WriteHistoryTest(unittest.TestCase):
 
     def test_actuals_after_the_last_game_day(self):
         actual = self.after_round('2026-10-26', [game('2026-10-22', 'BJK', 17.5, 28.3), game('2026-10-16', 'ZAL', 9.0, 20.0)], 7)
-        self.assertEqual(actual['players'], {'654': {'fpt': 17.5, 'min': 28.3}, '655': None})
+        # cr: his credit change from the game, kept for the Value column of past rounds (#58)
+        self.assertEqual(actual['players'], {'654': {'fpt': 17.5, 'min': 28.3, 'cr': 0.1}, '655': None})
         self.assertEqual(actual['coaches'], {'EFS': 20})
 
     def test_no_actuals_on_the_last_game_day(self):
@@ -247,7 +248,7 @@ class WriteHistoryTest(unittest.TestCase):
         elbuild.write_history(data_for('2026-10-27', [player(654, 'EFS', [game('2026-10-22', 'BJK', 99.0, 40.0)])],
                                        coaches, 7), self.dir)
         actual = self.read()['actual']
-        self.assertEqual(actual['players']['654'], {'fpt': 17.5, 'min': 28.3})
+        self.assertEqual(actual['players']['654'], {'fpt': 17.5, 'min': 28.3, 'cr': 0.1})
         self.assertEqual(actual['coaches'], {'EFS': 20})
 
 
