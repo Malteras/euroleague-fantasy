@@ -702,7 +702,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
 .rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
-.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 3.6em 3.6em 3.6em;gap:8px;align-items:center}
+.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 52px 52px;gap:8px;align-items:center} /* px, not em: the header's smaller font must not narrow its columns */
 .rv-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .rv-h span:not(:first-child),.rv-row span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
 .rv-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
@@ -714,14 +714,14 @@ html.locked,html.locked body{overflow:hidden}
 .rr-say{margin:0 0 8px;font-size:14px}.rr-say b{color:var(--accent)}
 .rr-sub{margin:12px 0 4px;font-weight:700}
 .rr-none{margin:0 0 8px}
-.rr-h,.rr-row{display:grid;grid-template-columns:minmax(0,1fr) 3.4em minmax(0,1fr) 3.4em;gap:8px;align-items:center}
+.rr-h,.rr-row{display:grid;grid-template-columns:minmax(0,1fr) 50px minmax(0,1fr) 50px;gap:8px;align-items:center}
 .rr-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .rr-h span:nth-child(even),.rr-row span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums}
 .rr-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
 .rr-row>span:nth-child(odd){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rr-row .rv-c{color:var(--accent);font-weight:700}.rr-row .muted{color:var(--muted)}
 @media (max-width:560px){.rv-cap{grid-template-columns:1fr}.rv-cs+.rv-cs{border-left:0;border-top:1px solid var(--line-soft)}.rv-cs+.rv-cs::before{display:none}}
-@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 3.2em 3.2em 3.2em;gap:6px}}
+@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 46px 46px 46px;gap:6px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
