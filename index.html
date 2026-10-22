@@ -402,7 +402,7 @@ section{padding-block:28px 8px}
 .tp-bar{display:grid;grid-template-columns:78px minmax(80px,1fr) 40px minmax(0,150px);gap:8px;align-items:center;padding:4px 0;font-size:13.5px}
 .tp-k{font-weight:700}.tp-track{position:relative;height:10px;border-radius:999px;background:var(--raise);overflow:hidden}
 .tp-mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:var(--line)}
-.tp-fill{position:absolute;top:0;bottom:0}.tp-fill.plus{background:var(--good)}.tp-fill.minus{background:var(--bad)}
+.tp-fill{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--raise) 78%,var(--fg))}.tp-fill.good{background:var(--good)}.tp-fill.bad{background:var(--bad)}
 .tp-v{font-family:var(--display);font-weight:800;font-size:17px;text-align:right}.tp-v.good{color:var(--good)}.tp-v.bad{color:var(--bad)}
 .tp-vt{font-size:12.5px;color:var(--muted)}.tp-vt.good{color:var(--good);font-weight:600}.tp-vt.bad{color:var(--bad);font-weight:600}
 .tp-line{margin:8px 0 0;font-size:14px}
@@ -1471,7 +1471,7 @@ function teamPanel(){
   if(!tp||!TEAMS[tp])return "";
   const I=teamInfo(tp),n=TEAMS[tp][0],col=TEAMS[tp][1];
   const bars=I.pos.map(({k,v})=>{const V=verdict(v,k);const w=v==null?0:Math.min(50,Math.abs(v));
-    return `<div class="tp-bar"><span class="tp-k">${POSW[k][0].toUpperCase()+POSW[k].slice(1)}</span><span class="tp-track"><span class="tp-mid"></span><span class="tp-fill ${v>=0?"plus":"minus"}" style="${v>=0?"left:50%":"right:50%"};width:${w}%"></span></span><span class="tp-v ${V.cls}">${v==null?"–":(v>0?"+":"")+v}</span><span class="tp-vt ${V.cls}">${esc(V.txt)}</span></div>`;}).join("");
+    return `<div class="tp-bar"><span class="tp-k">${POSW[k][0].toUpperCase()+POSW[k].slice(1)}</span><span class="tp-track"><span class="tp-mid"></span><span class="tp-fill ${V.cls}" style="${v>=0?"left:50%":"right:50%"};width:${w}%"></span></span><span class="tp-v ${V.cls}">${v==null?"–":(v>0?"+":"")+v}</span><span class="tp-vt ${V.cls}">${esc(V.txt)}</span></div>`;}).join("");
   // attack them: this round's opponent players at their weak position
   let attack="";
   if(I.opp&&I.weak&&I.weak.v>=12){
