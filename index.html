@@ -331,6 +331,8 @@ section{padding-block:28px 8px}
 .who .jersey{width:34px;height:34px;font-size:11px;border-radius:8px 8px 11px 11px;flex:none}
 .who .jersey::after{width:15px;height:15px;font-size:9.5px;bottom:-4px;right:-4px}
 .who .t{min-width:0}
+/* a market row: the tags sit under the name but outside the button, so a tap on a tag shows its tooltip, not the drawer */
+.who-c{min-width:0}.who-c>.who{width:100%}.who-c>.ptags{padding-left:44px}
 .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cell-num{font-weight:600;text-align:right}
@@ -345,6 +347,7 @@ section{padding-block:28px 8px}
 .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
 .ico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ico.pin.on svg{fill:currentColor}
+.ico.has-tip{cursor:pointer}
 .spark{display:block;width:150px;height:36px}
 .spark .bar{fill:var(--accent)}
 .spark .bar.lo{fill:var(--faint)}
@@ -615,9 +618,10 @@ html.locked,html.locked body{overflow:hidden}
 .dr-icos .ico:hover,.dr-icos .ico:focus-visible{color:var(--fg);border-color:var(--faint)}
 .dr-icos .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .dr-icos .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
-.ico .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
+/* the "i" in the trade table keeps its own tooltip; Must have / Leave out use the site's (.has-tip, placeTip()) */
+.ico:not(.has-tip) .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
 .ico .tip b{display:block}
-.ico:hover .tip,.ico:focus-visible .tip{opacity:1}
+.ico:not(.has-tip):hover .tip,.ico:not(.has-tip):focus-visible .tip{opacity:1}
 /* Must have / Leave out and tag tooltips: who or what it is about, the name, what it means */
 .ico .tip-pick,.has-tip>.tip-pick{max-width:260px;padding:9px 12px 10px;border-radius:10px;font-size:13px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28)}
 .ico .tip-pick small,.has-tip>.tip-pick small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;opacity:.65}
@@ -625,8 +629,6 @@ html.locked,html.locked body{overflow:hidden}
 .ico .tip-pick i,.has-tip>.tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
 .ptag.has-tip{position:relative;cursor:help}
 .ptag .tip{text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
-.mrow .ico{position:relative}
-.mrow .ico.pin .tip{left:0;transform:none}.mrow .ico.no .tip{left:auto;right:0;transform:none}
 /* next game strip under the tags */
 .ng{display:grid;gap:5px}
 .ng-h{display:flex;justify-content:space-between;gap:10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -890,7 +892,7 @@ const PICKS={
   no:{name:"Leave out",ico:ICO_BAN,mine:"Remove him from your team this round. The planner picks the best replacement it can afford.",other:"Don't include him in this round's trades."}};
 function pickBtn(k,p,on){
   const P_=PICKS[k],mine=orig.players.includes(p.id),txt=mine?P_.mine:P_.other;
-  return `<button type="button" class="ico ${k}${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On · tap again to undo</i>":""}</span></button>`;
+  return `<button type="button" class="ico ${k} has-tip${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On · tap again to undo</i>":""}</span></button>`;
 }
 let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
@@ -1534,8 +1536,8 @@ function tagTip(p,t){
     "Minutes risk":["Form","He played under 12 minutes in his last game.",p.log[0]?`Last game: ${p.log[0].min} min`:null]
   })[t]||null;
 }
-// Header tags with their tooltip, in the style of the Must have / Leave out tooltips
-const tagTipHtml=p=>p.tags.map(([t,c])=>{const x=tagTip(p,t);return x?`<span class="ptag ${c} has-tip" tabindex="0">${esc(t)}<span class="tip tip-pick" role="tooltip"><small>${esc(x[0])}</small><b>${esc(t)}</b><span>${esc(x[1])}</span>${x[2]?`<i>${esc(x[2])}</i>`:""}</span></span>`:`<span class="ptag ${c}">${esc(t)}</span>`;}).join("");
+// Tags with their tooltip (drawer header, Player market rows), in the style of the Must have / Leave out tooltips; n = how many
+const tagTipHtml=(p,n)=>p.tags.slice(0,n).map(([t,c])=>{const x=tagTip(p,t);return x?`<span class="ptag ${c} has-tip" tabindex="0">${esc(t)}<span class="tip tip-pick" role="tooltip"><small>${esc(x[0])}</small><b>${esc(t)}</b><span>${esc(x[1])}</span>${x[2]?`<i>${esc(x[2])}</i>`:""}</span></span>`:`<span class="ptag ${c}">${esc(t)}</span>`;}).join("");
 // Keep a tag tooltip inside the drawer: shift it left when it would run past the right edge
 // The site's tooltip is fixed to the screen (CSS .has-tip>.tip): put it under its parent, centred, inside the screen,
 // above the parent when there is no room below. Where left:0;top:0 lands is measured first, because inside a
@@ -2530,7 +2532,7 @@ function market(){
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
-    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${n.round!=null?`R${n.round} `:""}${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
+    <div class="who-c"><button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${n.round!=null?`R${n.round} `:""}${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small></span></button><span class="ptags">${tagTipHtml(p,3)}</span></div>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
     <span class="cell-num big">${projCell(p)}</span>

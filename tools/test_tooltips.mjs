@@ -20,3 +20,20 @@ test("no title set from script", () => {
 test("no <title> but the page's own", () => {
   assert.deepEqual(hits(/<title>/).filter(s => !s.includes("<title>Fazani Round Planner</title>")), []);
 });
+
+// #46: Must have / Leave out use the site's tooltip, so placeTip() opens it above the button when there is no room below
+test("Must have / Leave out buttons use the site tooltip", () => {
+  const src = html.slice(html.indexOf("function pickBtn("), html.indexOf("let state="));
+  assert.match(src, /class="ico \$\{k\} has-tip/);
+  assert.match(src, /"ico[^"]*has-tip[^"]*"[^>]*>\$\{P_\.ico\}<span class="tip tip-pick"/);
+});
+
+// #47: Player market tags carry the drawer's tooltip, and sit outside the row's button, so a tap on a tag
+// does not open the player drawer
+test("Player market tags have their tooltip, outside the row's open button", () => {
+  const row = html.slice(html.indexOf('const body=rows.map(p=>`<div class="mrow'), html.indexOf('<section id="market">'));
+  const btn = row.slice(row.indexOf('<button type="button" class="who"'), row.indexOf("</button>", row.indexOf('class="who"')));
+  assert.ok(btn.length > 0, "the market row's .who button");
+  assert.doesNotMatch(btn, /ptags|tagHtml|tagTipHtml/);
+  assert.match(row, /<span class="ptags">\$\{tagTipHtml\(p,3\)\}<\/span>/);
+});
