@@ -74,6 +74,48 @@ class ParsePlayerTest(unittest.TestCase):
         self.assertEqual((p['pop'], p['popChg']), (None, None))
 
 
+class ParseTeamTest(unittest.TestCase):
+    """The FantaSheet team table (/teams/N), rows as they were on 22 Oct 2026."""
+    HEAD = ('Price gap | Player | Pos | Price | Δ Price | Rise % | xPTS | Value | FPT | PIR | GP | MIN | PTS | 2P | 2P% | 3P | 3P% | '
+            'FT | FT% | REB | OREB | DREB | PF | FD | STL | TOV | AST | BLK | BLKA | PIR 25-26 | Floor | Ceiling | Price gap | ')
+    # he has played this round: FantaSheet adds an "est." cell after the price change (#66)
+    PLAYED = ('☆ | ⇄ | E. Bryant | Elijah Bryant | G | G | 17.4 | −0.2 | est. | 53% | 21.1 | 1.39 | 24.2 | 22.4 | 7 | 29.5 | 14.9 | '
+              '3.6/7.3 | 49.0% | 1.0/3.3 | 30.4% | 4.7/5.4 | 86.8% | 6.6 | 1.0 | 5.6 | 2.1 | 6.7 | 1.0 | 1.6 | 3.6 | 0.1 | 0.0 | '
+              '19.6 | 14.8 | 28.6 | −1.1 | ')
+    NOT_PLAYED = ('☆ | ⇄ | C. Edwards | Carsen Edwards | G | G | 11.5 | −0.3 | 49% | 13.6 | 1.14 | 13.1 | 12.7 | 6 | 23.9 | 17.2 | '
+                  '3.0/7.5 | 40.0% | 2.8/7.2 | 39.5% | 2.7/2.7 | 100.0% | 1.2 | 0.2 | 1.0 | 1.3 | 3.8 | 1.2 | 2.2 | 2.7 | 0.0 | 1.0 | '
+                  '11.0 | 7.2 | 21.2 | −0.2 | ')
+
+    def parse(self, *rows):
+        with tempfile.TemporaryDirectory() as d:
+            f = os.path.join(d, 'team.html')
+            cells = (self.HEAD + ''.join(rows) + '☆ | ⇄ | end').split(' | ')
+            open(f, 'w', encoding='utf-8').write(''.join(f'<td>{c}</td>' for c in cells))
+            return elbuild.parse_team(f)[1]
+
+    def test_a_player_who_has_not_played(self):
+        self.assertEqual(self.parse(self.NOT_PLAYED)['Carsen Edwards'], {'rise': 49.0, 'xpts': 13.6})
+
+    def test_a_player_who_has_played_reads_xpts_not_the_rise_chance(self):
+        self.assertEqual(self.parse(self.PLAYED, self.NOT_PLAYED),
+                         {'Elijah Bryant': {'rise': 53.0, 'xpts': 21.1}, 'Carsen Edwards': {'rise': 49.0, 'xpts': 13.6}})
+
+
+class XptsJumpTest(unittest.TestCase):
+    """The builder warns when a player's xPTS moved more than x2 from the deadline snapshot (#66)."""
+    def test_flags_a_jump_or_a_drop_of_more_than_double(self):
+        snap = {'players': [{'id': 1, 'name': 'Elijah Bryant', 'xpts': 21.9}, {'id': 2, 'name': 'Zach LeDay', 'xpts': 16.0},
+                            {'id': 3, 'name': 'Low One', 'xpts': 10.0}]}
+        now = [{'id': 1, 'name': 'Elijah Bryant', 'xpts': 53.0}, {'id': 2, 'name': 'Zach LeDay', 'xpts': 17.4},
+               {'id': 3, 'name': 'Low One', 'xpts': 4.0}]
+        self.assertEqual(elbuild.xpts_jumps(now, snap), ['Elijah Bryant 21.9 → 53.0', 'Low One 10.0 → 4.0'])
+
+    def test_tiny_values_and_missing_ones_are_left_alone(self):
+        snap = {'players': [{'id': 1, 'name': 'A', 'xpts': 1.0}, {'id': 2, 'name': 'B', 'xpts': None}, {'id': 3, 'name': 'C', 'xpts': 9.0}]}
+        now = [{'id': 1, 'name': 'A', 'xpts': 3.0}, {'id': 2, 'name': 'B', 'xpts': 20.0}, {'id': 4, 'name': 'D', 'xpts': 20.0}]
+        self.assertEqual(elbuild.xpts_jumps(now, snap), [])
+
+
 class CarriedTest(unittest.TestCase):
     def test_report_fields_pass_through_unchanged(self):
         old = {'results': [{'h': 'RMB'}], 'news': ['n'], 'report': {'bottom': 'x'},

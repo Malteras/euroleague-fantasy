@@ -126,3 +126,14 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Guard:** docs/rules.md is the one place for game rules, with quotes and links to the rules book. CLAUDE.md Part A: never
   write a game rule from memory. `turnSwaps()` now takes any swap that leaves a formation after each turn (#70);
   tools/test_capstrip.mjs has a cross-position swap, a swap that would leave no centre, and a five checked turn by turn.
+
+## 22 Oct 2026 · xPTS ×3.7 for every player who had played: Blakeney's projection rose to 22.4 after he scored −3.6 (#66)
+- **What:** once a player had played this round, the builder read his FantaSheet Rise % as his xPTS (Bryant 53 instead of
+  21.1). His projection jumped (Bryant 22.4 → 36.7, Carr 13.9 → 27.6), and with it the tags, the optimiser and the
+  next-round look-ahead.
+- **Why:** after his game FantaSheet marks the price change "est." in a cell of its own, and the `parse_team()` regex counted
+  cells by position. The same kind of shifted-cell bug as the "*" in the game log above. No error, no warning.
+- **Guard:** the regex allows the "est." cell; tools/test_elbuild.py `ParseTeamTest` holds a real row of a player who has
+  played and one who has not. `xpts_jumps()`: the builder prints a WARNING when any xPTS moved more than ×2 from the deadline
+  snapshot (history/round-N.json). FantaSheet's Rise % is for his next game, so the "Rise N%" tag is not shown for a player who
+  has played this round.
