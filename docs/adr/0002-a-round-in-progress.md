@@ -16,6 +16,9 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   Later marks come from today's projections.
 - **Where a decision goes**: under the turn it must be done BEFORE. "If Bryant scored 25+, keep him, otherwise move the
   armband to Maledon" goes under turn 2, not under turn 1. The same for turn 3.
+- **When a decision is due**: before the first tip-off of the turn it belongs to, not before the player's own game.
+  Turn 3 of Round 7 starts with ZAL–ASV at Fri 19:00, so moving the armband to Etienne (who plays at 20:45) is due before Fri 19:00.
+  Decided with Ognjen, 22 Oct 2026: the earlier time is never wrong, a later one could be.
 - **Bottom line**: no trade item. The captain call for the next turn, the lineup for the next turn (players who have not
   played; played ones listed as locked), checks only for players who have not played. The pill shows the next tip-off.
 - **Your players' matchups**: only games still to play.

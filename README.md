@@ -53,7 +53,7 @@ Edit `squad` (FantaSheet player ids + coach team code) and `budget` when the tea
 
 - Squad: 4 guards, 4 forwards, 2 centres + 1 coach, 100 credits, max 6 players from one club.
 - Starting five + 6th man score 100%, bench 50%, captain ×2. FPT = PIR, +10% on a win.
-- A round is played in turns (game days). **Trades are only possible before the round deadline (first tip-off). There are no trades between the turns of the same round** — between turns you can only change the lineup (bench ↔ court) and move the captain to a player who has not played yet.
+- A round is played in turns (game days). **Trades are only possible before the round deadline (first tip-off). There are no trades between the turns of the same round** — between turns you can only change the lineup (bench ↔ court) and move the captain to a player who has not played yet. **Every change for a turn is done before that turn's first tip-off** (the first game of the day, e.g. Fri 19:00 even when your captain plays at 20:45). The site always gives that time.
 - Moving the captain works even after he has played: the first captain's score then counts once, and the new captain (anyone in the squad who has not played, moved into the five if needed) gets ×2. So an early captain is a free shot. The optimiser values the captain this way (`capPlan`): worked back from the last turn, each turn's captain is worth E[max(his score, what the later turns are still worth)], with his score spread taken from his own recent games.
 - Up to 4 trades per round, or unlimited in the 6 free-trade windows.
 

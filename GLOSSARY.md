@@ -16,6 +16,7 @@ _Avoid_: Week, gameweek, matchday
 
 **Turn**:
 One game day inside a round. You can change the lineup and the captain between turns, but not trade.
+A turn starts at its first tip-off (the first game of that day, whoever plays in it): every lineup and captain change for the turn is done before then, never "before my player's game".
 _Avoid_: Day, session
 
 **Double week**:
