@@ -147,3 +147,12 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   (`facts()` in index.html: most important first, `[label, value]` for a labelled fact). `tools/test_nodots.mjs` fails on
   any dot in rendered text that is not on its list of dots still to remove, and the list only shrinks. Tag names, tooltips
   and the daily report text follow the same rule.
+
+## 22 Oct 2026 · "Captain option" on a player who had played: LeDay in Round 7 after Hapoel–Virtus
+- **What:** the Players tags still called LeDay a "Captain option" on Thursday, with the tooltip "a strong captain pick for
+  that turn". He had played on Wednesday, and a player who has played never becomes captain. "Must have" and "Consider for
+  next round" could also show for him, from today's projection, which already includes his game.
+- **Why:** `capOpt` took the two best `p.x` of each day without asking whether that day was played; the Rise tag was fixed
+  for played players (#66) but the tags beside it were not.
+- **Guard:** `capOptions()` in index.html leaves out players who have played; `tagsFor()` shows none of Captain option,
+  Must have, Consider for next round or Rise for him. tools/test_tags.mjs has a played and an unplayed player.
