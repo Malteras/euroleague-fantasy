@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
 const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
-const { projShown, projTxt, projBox, projCellHtml, projKey, gameInfo, tipPick, upcoming, coachPts } = new Function(line("const esc=") + "\n" + cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameInfo,tipPick,upcoming,coachPts};")();
+const { projShown, projTxt, projBox, projCellHtml, projKey, gameInfo, tipPick, upcoming, roundOf, coachPts } = new Function(line("const esc=") + "\n" + cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameInfo,tipPick,upcoming,roundOf,coachPts};")();
 
 // Round 7 after Wednesday: LeDay scored 36.3 (deadline projection 21.0, today's 39.9); Maledon plays Thursday.
 const W = "2026-10-21", T = "2026-10-22";
@@ -79,18 +79,32 @@ test("tipPick: the site's tooltip (context, title, text, footer), escaped, never
 
 test("a Last 5 bar: date, opponent, result from his side, points vs projection when on record, credit change", () => {
   const away = { d: "2026-10-16", opp: "PAO", ha: "A", res: "W 81-91", fpt: 23.1, cr: 0.3 };
-  assert.deepEqual(gameInfo(away, null), { when: "Fri 16 Oct · @ PAO · W 91–81", pts: "23.1 points", vs: "No projection on record", cr: "+0.3 cr value" });
+  assert.deepEqual(gameInfo(away, null, 6), { when: "R6 · Fri 16 Oct · @ PAO · W 91–81", pts: "23.1 points", vs: "No projection on record", cr: "+0.3 cr value" });
   const home = { d: "2026-10-21", opp: "VIR", ha: "H", res: "W 90-81", fpt: 14.3, cr: -0.2 };
-  assert.deepEqual(gameInfo(home, 22.4), { when: "Wed 21 Oct · vs VIR · W 90–81", pts: "14.3 points", vs: "22.4 projected · −36%", cr: "−0.2 cr value" });
+  assert.deepEqual(gameInfo(home, 22.4, 7), { when: "R7 · Wed 21 Oct · vs VIR · W 90–81", pts: "14.3 points", vs: "22.4 projected · −36%", cr: "−0.2 cr value" });
   assert.equal(gameInfo({ ...home, cr: 0, fpt: 22.4 }, 22.4).vs, "22.4 projected · 0%");
   assert.equal(gameInfo({ ...home, cr: 0 }, 22.4).cr, "0.0 cr value");
+  assert.equal(gameInfo(home, 22.4, null).when, "Wed 21 Oct · vs VIR · W 90–81"); // round unknown: left out, never guessed
 });
 
 test("next game: this round's before he plays, next round's once he has played", () => {
   const p = { ...leday, opp: { opp: "VIR", ha: "H" }, next: { opp: "EFS", ha: "H", date: "2026-10-28", round: 8 } };
-  assert.deepEqual(upcoming(p, true), { opp: "EFS", ha: "H", day: "2026-10-28" });
-  assert.deepEqual(upcoming(p, false), { opp: "VIR", ha: "H", day: W });
-  assert.equal(upcoming({ ...p, next: null }, true), null);
+  assert.deepEqual(upcoming(p, true, 7), { opp: "EFS", ha: "H", day: "2026-10-28", round: 8 });
+  assert.deepEqual(upcoming(p, false, 7), { opp: "VIR", ha: "H", day: W, round: 7 });
+  assert.equal(upcoming({ ...p, next: null }, true, 7), null);
+});
+
+test("the round of a game in the log: a club plays once a round, so its games count back from this round", () => {
+  // Hapoel: played R7 on Wed 21 Oct; checked against the "EuroLeague R6" labels in data.json results (20 of 20)
+  const hta = ["2026-10-21", "2026-10-16", "2026-10-14", "2026-10-08", "2026-10-01"];
+  assert.equal(roundOf(hta, "2026-10-21", 7, true), 7);
+  assert.equal(roundOf(hta, "2026-10-16", 7, true), 6);
+  assert.equal(roundOf(hta, "2026-10-01", 7, true), 3);
+  // Real Madrid has not played R7 yet: its latest game is R6
+  const rmb = ["2026-10-15", "2026-10-13", "2026-10-08", "2026-10-01", "2026-09-29"];
+  assert.equal(roundOf(rmb, "2026-10-15", 7, false), 6);
+  assert.equal(roundOf(rmb, "2026-09-29", 7, false), 2);
+  assert.equal(roundOf(rmb, "2026-10-20", 7, false), null);
 });
 
 

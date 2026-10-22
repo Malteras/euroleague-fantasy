@@ -2451,7 +2451,7 @@ function spark(p){
   const dx=shownCtx().deadX[p.id]??null;
   // each bar's tooltip: the game, points against the projection (on record for this round's game only), credit change
   const bars=g.map((x,i)=>{const h=Math.max(2,Math.max(0,x.fpt)/max*(H-2));return `<rect class="bar${x.fpt<p.be?" lo":""}" x="${i*(W/5)+3}" y="${H-h}" width="${bw}" height="${h}" rx="2"></rect>`}).join("");
-  const hits=g.map((x,i)=>{const t=gameInfo(x,x.d===p.day?dx:null);
+  const hits=g.map((x,i)=>{const t=gameInfo(x,x.d===p.day?dx:null,shownCtx().rnd(p,x.d));
     return `<span class="sp-hit has-tip" tabindex="0" style="left:${i*20}%" aria-label="${esc(`${t.when}: ${t.pts}, ${t.vs}${t.cr?", "+t.cr:""}`)}">${tipPick(t.when,t.pts,t.vs,t.cr)}</span>`;}).join("");
   const y=H-p.be/max*(H-2);
   return `<span class="sp-w"><svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${g.length} games: ${g.map(x=>x.fpt).join(", ")} fantasy points; break-even ${p.be}">${bars}<line class="be" x1="0" x2="${W}" y1="${y}" y2="${y}"></line></svg>${hits}</span>`;
@@ -2477,14 +2477,14 @@ function market(){
   const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
-    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
+    <button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${POSN[p.pos]}${mine.has(p.id)?" · your squad":""}${sq.has(p.id)&&!mine.has(p.id)?" · in proposal":""}</small><small class="mobile-only">${(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} · ${n.round!=null?`R${n.round} `:""}${esc(nextShort(n))}`:"")(nextG(p))} · ${fmt(crShown(p))} cr${p.pop!=null?` · ${p.pop}% owned`:""}</small><span class="ptags">${tagHtml(p)}</span></span></button>
     <span class="cell-num">${p.price.toFixed(1)}</span>
     <span class="cell-num h-be muted">${p.be}</span>
     <span class="cell-num big">${projCell(p)}</span>
     <span class="cell-num h-ch ${crShown(p)>=0?"pos":"neg"}">${fmt(crShown(p))}</span>
     <span class="cell-num h-ow">${p.pop!=null?`${p.pop}%<small class="own-chg ${p.popChg>0?"pos":p.popChg<0?"neg":""}">${p.popChg?(p.popChg>0?"▲":"▼")+Math.abs(p.popChg):""}</small>`:'<span class="muted">–</span>'}</span>
     <span class="h-sp">${spark(p)}</span>
-    ${(n=>`<span class="opp h-op"><b>${n?(n.ha==="H"?"vs ":"@ ")+(TEAMS[n.opp]||[n.opp])[0]:"—"}</b><small>${n?esc(nextWhen(n)):""}</small></span>`)(nextG(p))}
+    ${(n=>`<span class="opp h-op"><b>${n?(n.ha==="H"?"vs ":"@ ")+(TEAMS[n.opp]||[n.opp])[0]:"—"}</b><small>${n?`${n.round!=null?`R${n.round} · `:""}${esc(nextWhen(n))}`:""}</small></span>`)(nextG(p))}
     ${pickBtn("no",p,av.has(p.id))}
   </div>`).join("");
   return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">♥ brings a player in and the other trades are rebuilt around him; on one of yours it keeps him. ⊘ does the opposite. Tap a name for his last five games against break-even.</p></div>
@@ -2985,15 +2985,20 @@ const projKey=s=>s.played?-999:s.x??-999; // finite, so two TBC players compare 
 const dayFmt=d=>{const t=new Date(d+"T12:00:00");return isNaN(t)?d:`${"Sun Mon Tue Wed Thu Fri Sat".split(" ")[t.getDay()]} ${t.getDate()} ${"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")[t.getMonth()]}`;};
 // A game in his log, for a Last 5 bar's tooltip: date, opponent, result from his side; points; against the projection when
 // one is on record (x: the deadline projection for this round's game, null for older rounds); credit change
-function gameInfo(g,x){
+// rnd: the round of the game (roundOf), left out when unknown
+function gameInfo(g,x,rnd){
   const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||""),res=m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"";
   const pct=x>0?Math.round(100*(g.fpt-x)/x):null,sg=v=>v>0?"+":v<0?"−":"";
-  return {when:`${dayFmt(g.d)} · ${g.ha==="A"?"@":"vs"} ${g.opp}${res?" · "+res:""}`,pts:`${g.fpt} points`,
+  return {when:`${rnd!=null?`R${rnd} · `:""}${dayFmt(g.d)} · ${g.ha==="A"?"@":"vs"} ${g.opp}${res?" · "+res:""}`,pts:`${g.fpt} points`,
     vs:x!=null?`${x} projected${pct!=null?` · ${sg(pct)}${Math.abs(pct)}%`:""}`:"No projection on record",
     cr:g.cr!=null?`${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr value`:null};
 }
 // His next game: this round's until he has played it, then next round's (p.next from the builder; null if not known)
-const upcoming=(p,played)=>played?(p.next?{opp:p.next.opp,ha:p.next.ha,day:p.next.date}:null):(p.opp?{opp:p.opp.opp,ha:p.opp.ha,day:p.day}:null); // finite, so two players without a snapshot compare equal
+const upcoming=(p,played,round)=>played?(p.next?{opp:p.next.opp,ha:p.next.ha,day:p.next.date,round:p.next.round??round+1}:null)
+  :(p.opp?{opp:p.opp.opp,ha:p.opp.ha,day:p.day,round}:null);
+// The round of a game in the log. A club plays once a round, so its game dates (all its players' logs, newest first)
+// count back from this round, or from the last one if it has not played this round yet. null for a date not in the list.
+const roundOf=(dates,d,round,played)=>{const L=[...dates].sort().reverse(),i=L.indexOf(d);return i<0?null:(played?round:round-1)-i;}; // finite, so two players without a snapshot compare equal
 // A coach's points from the final score in a player log ("W 90-81", home score first): README, coach projection
 function coachPts(res){
   const m=/^([WL]) (\d+)-(\d+)/.exec(res||"");if(!m)return null;
@@ -3008,7 +3013,10 @@ function shownCtx(){
   const M=shownMemo;if(M&&M.P===P&&M.C===C&&M.H===HIST&&M.k===roundKey)return M.c;
   const done=new Map(),deadX={},deadPr={};
   if(roundKey==="live")P.forEach(p=>(p.log||[]).forEach(g=>{if(!done.has(p.team+"|"+g.d))done.set(p.team+"|"+g.d,g);}));
-  const played=p=>done.has(p.team+"|"+p.day);
+  const played=p=>done.has(p.team+"|"+p.day),clubDates={};
+  P.forEach(p=>(p.log||[]).forEach(g=>(clubDates[p.team]=clubDates[p.team]||new Set()).add(g.d)));
+  // the round of a game in his log; only the live round's data counts back from D.round
+  const rnd=(p,d)=>roundKey==="live"&&clubDates[p.team]?roundOf(clubDates[p.team],d,D.round,played(p)):null;
   const snap=roundKey==="live"&&HIST&&HIST.find(h=>h.round===D.round);
   if(snap){const S=project(snap);S.players.forEach(p=>{deadX[p.id]=p.x;deadPr[p.id]=p.price;});S.coaches.forEach(c=>deadX["c:"+c.team]=c.x);}
   else if(roundKey==="live"&&done.size&&P.some(played))loadHistory();
@@ -3016,14 +3024,14 @@ function shownCtx(){
     const g=(p.log||[]).find(g=>g.d===p.day);return g?g.fpt:0;};
   // the credit change from the game, the same number as the Value column of "Round N, turn by turn"
   const cr=p=>p.id==null?null:creditChange((p.log||[]).find(g=>g.d===p.day),deadPr[p.id]??p.price);
-  const c={played,score,deadX,cr};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
+  const c={played,score,deadX,cr,rnd};shownMemo={P,C,H:HIST,k:roundKey,c};return c;
 }
 const shown=p=>projShown(p,shownCtx());
 const projOf=p=>projTxt(shown(p));
 // a number cell: today's projection, or his points once he has played (deadline projection in the tooltip)
 const projCell=p=>projCellHtml(shown(p));
 const projSort=(a,b)=>projKey(shown(b))-projKey(shown(a));
-const nextG=p=>upcoming(p,shown(p).played);
+const nextG=p=>upcoming(p,shown(p).played,D.round);
 const nextWhen=n=>dayKeys.includes(n.day)?dayLabel(n.day):dayFmt(n.day);
 const nextShort=n=>dayKeys.includes(n.day)?dayShort(n.day):dayFmt(n.day); // "Wed" this round; "Wed 28 Oct" for next round
 // the ± cr column: the expected change before his game, the real change from it after (the same as Value in "turn by turn")
