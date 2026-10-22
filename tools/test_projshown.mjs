@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
-const { projShown, projTxt, projHtml, coachPts } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projHtml,coachPts};")();
+const { projShown, projTxt, projBox, coachPts } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,coachPts};")();
 
 // Round 7 after Wednesday: LeDay scored 36.3 (deadline projection 21.0, today's 39.9); Maledon plays Thursday.
 const W = "2026-10-21", T = "2026-10-22";
@@ -48,13 +48,14 @@ test("coach points from the final score, home score first (README: coach project
   assert.equal(coachPts(undefined), null);
 });
 
-test("played, as HTML: points, % above or under the deadline projection and the credit change, in green or red", () => {
-  const h = projHtml(projShown(leday, ctx));
-  assert.match(h, /36\.3 pts <span class="up">\+73%<\/span> <span class="up">\+0\.9 cr<\/span> <small>\(proj 21\)<\/small>/);
+test("played: a score block with the points, % vs the deadline projection, then the value, in green or red", () => {
+  const h = projBox(projShown(leday, ctx));
+  assert.match(h, /<div class="score">36\.3<small> points<\/small><\/div><small><span class="up">\+73%<\/span> vs 21 proj<\/small><small><span class="up">\+0\.9 value<\/span><\/small>/);
   const bryant = { id: 1, team: "HTA", day: W, x: 36.7 };
-  const b = projHtml(projShown(bryant, { ...ctx, score: () => 14.3, deadX: { 1: 22.4 }, cr: () => -0.2 }));
-  assert.match(b, /14\.3 pts <span class="dn">−36%<\/span> <span class="dn">−0\.2 cr<\/span>/);
-  assert.equal(projHtml(projShown(maledon, ctx)), "proj 20.6");
-  // no change: grey, no sign, like the round schedule
-  assert.match(projHtml(projShown(leday, { ...ctx, score: () => 21, cr: () => 0 })), /21 pts <span class="muted">0%<\/span> <span class="muted">0\.0 cr<\/span>/);
+  const b = projBox(projShown(bryant, { ...ctx, score: () => 14.3, deadX: { 1: 22.4 }, cr: () => -0.2 }));
+  assert.match(b, /<span class="dn">−36%<\/span> vs 22\.4 proj.*<span class="dn">−0\.2 value<\/span>/);
+  // no change: grey, no sign; whole points still show one decimal, like the report lists
+  assert.match(projBox(projShown(leday, { ...ctx, score: () => 21, cr: () => 0 })), /21\.0<small> points.*<span class="muted">0%<\/span>.*<span class="muted">0\.0 value/);
+  // not played: no block, the card keeps today's projection
+  assert.equal(projBox(projShown(maledon, ctx)), "");
 });
