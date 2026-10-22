@@ -5,7 +5,7 @@
  "budget": 99.6,
  "maxT": 4,
  "lam": 20,
- "pos": "G",
+ "pos": "ALL",
  "day": "ALL",
  "sort": "price",
  "only": false,
@@ -32,5 +32,5 @@
   "k": "2026-10-21|HTA|VIR|",
   "t": "VIR"
  },
- "savedAt": "2026-10-22T14:24:01.512Z"
+ "savedAt": "2026-10-22T14:24:06.111Z"
 }
