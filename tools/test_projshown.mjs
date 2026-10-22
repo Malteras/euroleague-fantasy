@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
-const { projShown, projTxt, projBox, coachPts } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,coachPts};")();
+const { projShown, projTxt, projBox, projCellHtml, projKey, coachPts } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,coachPts};")();
 
 // Round 7 after Wednesday: LeDay scored 36.3 (deadline projection 21.0, today's 39.9); Maledon plays Thursday.
 const W = "2026-10-21", T = "2026-10-22";
@@ -58,4 +58,21 @@ test("played: a score block with the points, % vs the deadline projection, then 
   assert.match(projBox(projShown(leday, { ...ctx, score: () => 21, cr: () => 0 })), /21\.0<small> points.*<span class="muted">0%<\/span>.*<span class="muted">0\.0 value/);
   // not played: no block, the card keeps today's projection
   assert.equal(projBox(projShown(maledon, ctx)), "");
+});
+
+test("a Proj. cell holds a projection, never a score: the deadline projection once he has played, his score only as a note", () => {
+  const h = projCellHtml(projShown(leday, ctx));
+  assert.match(h, /^21<small class="pj-sc">scored 36\.3<\/small>$/);
+  assert.ok(!h.includes("39.9"));
+  // no deadline snapshot: no projection to show, never today's and never the score in its place
+  assert.match(projCellHtml(projShown(leday, { ...ctx, deadX: {} })), /^–<small class="pj-sc">scored 36\.3<\/small>$/);
+  assert.equal(projCellHtml(projShown(maledon, ctx)), "20.6");
+});
+
+test("sorting by projection uses the number in the Proj. column: deadline for a played player, last when there is none", () => {
+  assert.equal(projKey(projShown(leday, ctx)), 21);
+  assert.equal(projKey(projShown(maledon, ctx)), 20.6);
+  assert.equal(projKey(projShown(leday, { ...ctx, deadX: {} })), -999);
+  const none = projShown(leday, { ...ctx, deadX: {} });
+  assert.equal(projKey(none) - projKey(none), 0); // a sort comparator never gets NaN
 });

@@ -53,7 +53,8 @@ _Avoid_: Ban, block, exclude
 ## Projections
 
 **Projection**:
-The points a player or coach is expected to score in one round.
+The points a player or coach is expected to score in one round. Made before his game. Once he has played, his projection for the round
+is the one at the deadline and never changes; his result is his **score**, never shown as a projection.
 _Avoid_: xPTS (that is FantaSheet's input to it), prediction
 
 **Matchup**:
