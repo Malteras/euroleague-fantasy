@@ -1517,7 +1517,7 @@ function teamsPage(){
   const gameOf=(t,d)=>teamInfo(t).games.find(g=>g.d===d&&g.res)||null;
   const rows=teamOrder(Object.keys(TEAMS).filter(t=>(D.defence||{})[t]||P.some(p=>p.team===t)),D.fixtures||[],gameOf);
   const card=({t,f,g})=>{const I=teamInfo(t);
-    const chips=I.pos.map(({k,v})=>{const V=verdict(v,k);return V.cls?`<span class="ptag ${V.cls==="bad"?"good":"warn"}">${V.cls==="bad"?"Easy":"Hard"} for ${POSW[k]} ${v>0?"+":""}${v}</span>`:"";}).join("");
+    const chips=I.pos.map(({k,v})=>{const V=verdict(v,k);return V.cls?`<span class="ptag ${V.cls==="bad"?"good":"bad"}">${V.cls==="bad"?"Easy":"Hard"} for ${POSW[k]} ${v>0?"+":""}${v}</span>`:"";}).join("");
     // this round: the result once played (from the club's side), else when and where it plays; no projection either way
     const R=g?gameInfo(g,null):null,vs=f?`${f.ha==="H"?"vs":"@"} ${esc((TEAMS[f.opp]||[f.opp])[0])}`:"";
     const now=!f?"":R&&R.res?`<span class="tc-res ${R.win?"w":"l"}">${R.res[0]}</span> ${esc(R.res.slice(2))} ${vs}`:g?`Played ${vs}`:`${esc(dayShort(f.d))}${f.time?" "+esc(f.time):""} ${vs}`;
