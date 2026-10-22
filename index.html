@@ -755,7 +755,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
 .rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
-.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 52px 52px 64px;gap:8px;align-items:center} /* px, not em: the header's smaller font must not narrow its columns */
+.rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 52px 52px 52px 64px;gap:8px;align-items:center} /* px, not em: the header's smaller font must not narrow its columns */
 .rv-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .rv-h span:not(:first-child),.rv-row span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
 .rv-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
@@ -773,7 +773,7 @@ html.locked,html.locked body{overflow:hidden}
 .rr-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
 .rr-row>span:nth-child(odd){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rr-row .rv-c{color:var(--accent);font-weight:700}.rr-row .muted{color:var(--muted)}
-@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 44px 44px 46px 58px;gap:6px}}
+@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 38px 36px 36px 40px 56px;gap:4px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
@@ -2727,21 +2727,22 @@ function reviewCard(){
   const f=v=>v.toFixed(1),day=d=>(D.turns&&D.turns[d])||fmtShort(d),pl=r=>byId[r.id]?plink(byId[r.id],r.short):esc(r.short);
   const tag=r=>r.cap?'<span class="rv-tag c">C ×2</span>':r.moved?`<span class="rv-tag has-tip" tabindex="0">C moved ×1${tipPick("Captain","C moved ×1","Under the keep mark: the armband moves on, so his score counts once.")}</span>`:r.role==="six"?'<span class="rv-tag">6th</span>':r.role==="bench"?'<span class="rv-tag">Bench ½</span>':"";
   const turns=V.turns.map(t=>{const got=t.rows.reduce((a,r)=>a+r.counted,0),px=t.rows.reduce((a,r)=>a+r.px,0);
+    const vl=(v,who)=>{const t=`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)}`;return `<span class="${v>0?"up":v<0?"dn":"muted"} has-tip" tabindex="0">${t}${tipPick(who,t+" cr","His credit change from this game.")}</span>`;};
     // ± %: his points against his deadline projection, green over it, red under it
     const pc=r=>{if(r.fpt==null||!(r.x>0))return '<span class="muted">–</span>';const v=Math.round(100*(r.fpt-r.x)/r.x);
       return `<span class="${v>0?"up":v<0?"dn":"muted"}">${v>0?"+":v<0?"−":""}${Math.abs(v)}%</span>`;};
     // his matchup at the deadline, coloured like the team cards: +12 or more is easy for his position, −12 or less is hard
     const mu=r=>{if(r.mu==null)return '<span class="muted">–</span>';const t=`${r.mu>0?"+":r.mu<0?"−":""}${Math.abs(r.mu)}%`,on=(TEAMS[r.opp]||[r.opp])[0],k=POSW[r.pos];
       return `<span class="${r.mu>=12?"up":r.mu<=-12?"hard":"muted"} has-tip" tabindex="0">${t}${tipPick(`${r.short}, matchup at the deadline`,`${t} vs ${k}`,`${on} let ${k} score ${Math.abs(r.mu)}% ${r.mu>=0?"more":"less"} PIR than an average team, before this game.`)}</span>`;};
-    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>`+
+    const rows=t.rows.slice().sort((a,b)=>b.counted-a.counted||b.px-a.px).map(r=>`<div class="rv-row${r.role==="bench"?" bench":""}"><span>${pl(r)}${tag(r)}</span>${vl(r.val,r.short)}`+
       (r.fpt==null?`<span class="muted">DNP</span>`:`<span>${f(r.fpt)}</span>`)+
       `<span class="muted">${f(r.x)}</span>${pc(r)}${mu(r)}</div>`).join("");
     return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
-      <div class="rv-h"><span>Player</span><span>Pts</span><span>Proj</span><span>± %</span><span>Matchup</span></div>${rows}`;}).join("");
+      <div class="rv-h"><span>Player</span><span>Value</span><span>Pts</span><span>Proj</span><span>± %</span><span>Matchup</span></div>${rows}`;}).join("");
   const cap=capStripHtml(V);
   const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
   return `<div class="card rv" id="rvCard"><h3>Round ${V.round}, turn by turn</h3>${tot}${cap}${turns}
-    <p class="note sc-foot">Players only: coach points come after the round. Pts is his own score and ± % is how far it landed from his projection at the deadline; the turn totals count court and 6th man 100%, bench ½, captain ×2 (the tags). Matchup is how much more (+) or less (−) his opponent let his position score than an average team, at the deadline.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
+    <p class="note sc-foot">Players only: coach points come after the round. Pts is his own score and ± % is how far it landed from his projection at the deadline; the turn totals count court and 6th man 100%, bench ½, captain ×2 (the tags). Value is the credit change from the game. Matchup is how much more (+) or less (−) his opponent let his position score than an average team, at the deadline.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-sc-span],[data-sc-band]");if(!b)return;
   if(b.dataset.scSpan)scView.span=b.dataset.scSpan;else scView.band=b.dataset.scBand;redrawScore();});
