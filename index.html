@@ -1474,7 +1474,7 @@ function teamPanel(){
   let attack="";
   if(I.opp&&I.weak&&I.weak.v>=12){
     const o=I.opp.opp,cands=P.filter(p=>p.team===o&&p.pos===I.weak.k&&!p.out).sort(projSort).slice(0,3);
-    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr · ${shown(p).played?"":`${projOf(p)} · `}${esc(turnOf2(p.day))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul></div>`;
+    if(cands.length)attack=`<div class="tp-card"><h4>This round: attack ${esc(n)} with ${esc(TEAMS[o][0])} ${POSW[I.weak.k]}</h4><ul class="tp-pl">${cands.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${facts(`${p.price.toFixed(1)} cr`,!shown(p).played&&projOf(p),esc(turnOf2(p.day)))}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul></div>`;
   }
   let avoid="";
   if(I.opp&&I.strong&&I.strong.v<=-12){const o=I.opp.opp;const mine=P.filter(p=>p.team===o&&p.pos===I.strong.k&&orig.players.includes(p.id));
@@ -1482,7 +1482,7 @@ function teamPanel(){
   const top=I.players.filter(p=>!p.out).sort(projSort).slice(0,6);
   const risers=I.players.filter(p=>!p.out&&p.price<=9&&p.exp>=0.1).sort((a,b)=>b.exp-a.exp).slice(0,4);
   const outs=I.players.filter(p=>p.status);
-  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${p.price.toFixed(1)} cr${shown(p).played?"":` · ${projOf(p)} · ${p.exp>=0?"+":""}${r1(p.exp)} cr`}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul>`;
+  const pl=ps=>`<ul class="tp-pl">${ps.map(p=>`<li>${jersey(p.team,p.pos)}<span>${plink(p)}<small>${facts(`${p.price.toFixed(1)} cr`,...shown(p).played?[]:[projOf(p),["Exp. change",`${fmt(r1(p.exp))} cr`]])}</small></span>${orig.players.includes(p.id)?'<span class="rg-you">yours</span>':""}${projBox(shown(p))}</li>`).join("")}</ul>`;
   // the final score from this club's side (res has the home score first)
   const fin=g=>{const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||"");return m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"No result";};
   const form=I.games.slice(0,5).map(g=>`<span class="tp-g ${g.res&&g.res[0]==="W"?"w":"l"} has-tip" tabindex="0">${g.res?g.res[0]:"?"} <small>${g.ha==="H"?"vs":"@"} ${esc(g.opp)}</small>${tipPick(dayFmt(g.d),fin(g),`${g.ha==="H"?"At home to":"Away at"} ${(TEAMS[g.opp]||[g.opp])[0]}.`)}</span>`).join("");
@@ -1490,7 +1490,7 @@ function teamPanel(){
   const coach=coachByTeam[tp];
   return `<div class="scrim" data-tp-close></div><aside class="drawer tpanel" data-tpid="${tp}" role="dialog" aria-modal="true" aria-label="${esc(n)} team analysis">
    <div class="dr-top" style="--tc:${col}"><button type="button" class="dr-x" data-tp-close aria-label="Close">✕</button>
-    <div class="dr-id"><span class="tb big" style="--tc:${col}">${tp}</span><div><div class="eyebrow" style="margin:0">Team analysis</div><h3>${esc(n)}</h3><div class="muted">${I.games.length?`${I.w}–${I.l} in EuroLeague`:""}${coach?` · coach ${esc(coach.name)}`:""}${I.opp?` · this round ${I.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[I.opp.opp][0])} (${esc(turnOf2(turnOf[tp]))})`:""}</div></div></div></div>
+    <div class="dr-id"><span class="tb big" style="--tc:${col}">${tp}</span><div><div class="eyebrow" style="margin:0">Team analysis</div><h3>${esc(n)}</h3><div class="muted">${facts(I.games.length>0&&`${I.w}–${I.l} in EuroLeague`,["Coach",coach&&esc(coach.name)],["This round",I.opp&&`${I.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[I.opp.opp][0])} (${esc(turnOf2(turnOf[tp]))})`])}</div></div></div></div>
    <div class="dr-body tp-body">
     <div class="tp-card"><h4>What they allow, by position</h4><p class="note" style="margin:0 0 8px">PIR opponents score against them compared with an average team. Plus = easy for that position, minus = hard.</p>${bars}
       ${teamSummary(I).map(x=>`<p class="tp-line">${x}</p>`).join("")}</div>
@@ -1521,10 +1521,10 @@ function teamsPage(){
     // this round: the result once played (from the club's side), else when and where it plays; no projection either way
     const R=g?gameInfo(g,null):null,vs=f?`${f.ha==="H"?"vs":"@"} ${esc((TEAMS[f.opp]||[f.opp])[0])}`:"";
     const now=!f?"":R&&R.res?`<span class="tc-res ${R.win?"w":"l"}">${R.res[0]}</span> ${esc(R.res.slice(2))} ${vs}`:g?`Played ${vs}`:`${esc(dayShort(f.d))}${f.time?" "+esc(f.time):""} ${vs}`;
-    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${[I.games.length?`${I.w}–${I.l}`:"",now].filter(Boolean).join(" · ")}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;};
+    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${facts(I.games.length>0&&`${I.w}–${I.l}`,now)}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;};
   const played=rows.filter(r=>r.g),rest=rows.filter(r=>!r.g);
   const grid=played.length?`<h3 class="tg-h">Played in Round ${D.round}</h3>${played.map(card).join("")}<h3 class="tg-h">${rest.some(r=>r.f)?"Still to play":"No game this round"}</h3>${rest.map(card).join("")}`:rows.map(card).join("");
-  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">Defence by position · from the player's point of view</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${grid}</div></section>`;
+  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">${facts("Defence by position","from the player's point of view")}</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${grid}</div></section>`;
 }
 function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
 
