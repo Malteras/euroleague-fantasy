@@ -26,8 +26,6 @@ function dotsByPlace() {
 // The dots still to remove, place by place (#61 parts 2–6). This list only shrinks: when you remove dots, lower or
 // delete the entry; a dot in a new place, or one more in an old place, fails here. Use facts() instead.
 const LEFT = {
-  // part 4: player drawer, cards, Player market rows, tag tooltips
-  pickBtn: 1, tagTip: 6, drawer: 10, pcard: 2, detail: 8, market: 4,
   // part 5: page header, proposal, plan for the round, captain turns
   html: 1, hero: 3, modeBar: 3, proposalHead: 3, wmmText: 1, proposalParts: 10, planView: 12, capStripHtml: 10,
   // part 6: Round report, Bottom line, watch list, injury news, game tooltips, coaches

@@ -23,6 +23,11 @@ Rules that must never be broken:
 
 Never write a game rule from memory: find it in docs/rules.md or the official rules book first.
 
+Never say a PR, branch or commit is merged, not merged, live, deployed or waiting, before you check it right then:
+`git fetch origin main`, then `git log origin/main..<branch>` (empty means all of it is in main), or the PR's state on
+GitHub. What you saw earlier in the session is out of date: he merges PRs while you work. A preview address
+(`…-git-<branch>-….vercel.app`) is the branch, not main. If you did not check, do not say it.
+
 Every round's results are kept, so rounds can be compared later (is the matchup important?). The first run after a round's
 last game day fills `actual` in history/round-N.json (`elbuild.py --history`: each player's points, minutes and credit
 change; each coach's points) and commits it. "Round N, turn by turn" shows past rounds from these files and the matchup

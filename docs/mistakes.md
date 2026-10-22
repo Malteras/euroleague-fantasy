@@ -147,3 +147,12 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   (`facts()` in index.html: most important first, `[label, value]` for a labelled fact). `tools/test_nodots.mjs` fails on
   any dot in rendered text that is not on its list of dots still to remove, and the list only shrinks. Tag names, tooltips
   and the daily report text follow the same rule.
+
+## 22 Oct 2026 · "not merged" said without checking, twice (#86, #87)
+- **What:** I told him PR #87 was not merged and asked him to merge it before the next ticket. It had been merged 18
+  minutes before. Earlier the same day I said the orange tags were "on main" and called a branch preview "the live site",
+  without checking either. He went looking for changes that were not where I said they were.
+- **Why:** I spoke from what I remembered of the session, not from the repository. He merges PRs while I work.
+- **Guard:** CLAUDE.md Part A: never say merged / not merged / live / deployed before checking right then
+  (`git fetch origin main` and `git log origin/main..<branch>`, or the PR's state on GitHub). A
+  `…-git-<branch>-….vercel.app` address is the branch preview, not main.
