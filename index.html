@@ -2980,7 +2980,7 @@ const projBox=s=>{if(!s.played)return "";const sg=v=>`<span class="${v>0?"up":v<
   return `<div class="tp-sc"><div class="score">${s.pts!=null?(+s.pts).toFixed(1):"–"}<small> points</small></div>`
     +(s.pct!=null?`<small>${sg(s.pct)}${Math.abs(s.pct)}%</span> vs ${s.x} proj</small>`:"")
     +(s.cr!=null?`<small>${sg(s.cr)}${Math.abs(s.cr).toFixed(1)} value</span></small>`:"")+`</div>`;};
-// A Proj. cell or column holds a projection, never a score (CLAUDE.md rule 6): today's before his game, the deadline one after it
+// A Proj. cell or column holds a projection, never a score (CLAUDE.md rule 7): today's before his game, the deadline one after it
 // (with his score as a small note), "–" when there is no snapshot. projKey is the same number for sorting.
 // The site's tooltip (never a title attribute): context line, title, text, optional footer. Its parent needs .has-tip.
 const tipPick=(ctx,title,text,foot)=>`<span class="tip tip-pick" role="tooltip"><small>${esc(ctx)}</small><b>${esc(title)}</b><span>${esc(text)}</span>${foot?`<i>${esc(foot)}</i>`:""}</span>`;

@@ -63,8 +63,9 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Why:** the card used today's projection (`p.x`). After a game it is rebuilt with that game in his form, so it moves
   toward the score. The same was true of the market, the player cards and drawer, the coaches page and the replace drawer.
 - **Guard:** `projShown()` / `projOf()` / `projCell()` in index.html (CLAUDE.md rule 4: a played turn is history). Once his
-  club has played this round, a card shows his points and the projection at the deadline from history/round-N.json, never
-  today's projection. Before his game, today's projection. Tests: tools/test_projshown.mjs. Any new place that shows a
+  club has played this round, a card about this round shows his points and the projection at the deadline from
+  history/round-N.json, never today's projection; a Proj. column shows TBC (see the next entry). Before his game, today's
+  projection. Tests: tools/test_projshown.mjs. Any new place that shows a
   projection next to a player this round goes through `projOf(p)` or `projCell(p)`, never `p.x`.
 
 ## 22 Oct 2026 · the fix for the line above put the score in the "Proj." column
@@ -73,14 +74,33 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   the top of "Proj.". The ± cr column and the drawer's "Exp. change" still showed an estimate after the real change was known.
 - **Why:** the fix asked "what number is safe to show?" and not "what does this column's name promise?". A score is not a
   projection. The sort key was left on `p.x` because the sort shows no number.
-- **Guard:** CLAUDE.md rule 6 (a label is a promise). `projCellHtml()` / `projKey()` in the projShown block: once he has
+- **Guard:** CLAUDE.md rule 7 (a label is a promise). `projCellHtml()` / `projKey()` in the projShown block: once he has
   played, Proj. is **TBC** (next round's projection comes after the round) and sorts last. `crShown()`: ± cr is the real change
   from his game. `upcoming()` / `nextG()`: Next game is next round's game once this round's is played (QA on #67: "Virtus was
-  his last game, it was already played"). Each Last 5 bar has a tooltip (`gameTip()`): opponent, result, points against the
-  projection when one is on record, credit change. Tests: tools/test_projshown.mjs, which also parses every inline script of
+  his last game, it was already played"). Each Last 5 bar has a tooltip (`gameInfo()` / `gameTipHtml()`): round, opponent,
+  result, points against the projection when one is on record, credit change. Tests: tools/test_projshown.mjs, which also parses every inline script of
   the page (a name declared twice broke the whole page once and the cut-out tests could not see it).
   Before shipping a change to what a cell shows, read its header and ask: is this number what the header says, on every day
   of the round? Do the same for the sort that header drives.
+
+## 22 Oct 2026 · QA on #65 and #67: layout and checking mistakes on the same screens
+- **Crammed line (#65):** "13.5 cr · 36.3 pts +130% +0.9 cr (proj 15.8) · Turn 1" on one line. The % sat away from the
+  projection it compares to, and price and value looked alike. **Guard:** group each number with what it describes, and copy
+  a layout the site already has for the same data (the report's Top performers: points, then % vs proj, then value under it).
+- **Checked only with the data already loaded (#65):** the team panel opened before history/round-N.json arrived and never
+  redrew, so on a fresh load it had no deadline projection. My check had opened the report first, which loads it. **Guard:**
+  open the page fresh, straight to the screen being changed (`#teams`, `#players`), and open the panel at once. Anything
+  that loads later must redraw what is already open.
+- **Fixed only the cells I touched (#67):** Proj. and ± cr were fixed, but Next game, the line under the name and the drawer
+  still showed the played game as upcoming. **Guard:** when a player's state changes (he has played), read his whole row,
+  card and drawer, every column, and ask rule 6 of each one.
+- **Colour faded by its container (#67):** the tooltip faded its context line and footer with `opacity`, which also faded the
+  green and red inside them. The tooltip's background is the theme's text colour, so the page's own green and red are wrong
+  on it. **Guard:** fade grey text by colour (`color-mix`), not opacity, when colour goes inside it; tooltip colours are
+  `--tip-good` / `--tip-bad`; check contrast in both themes (4.5:1 or more). A new CSS rule placed earlier in the file loses to
+  an older rule of the same weight: check the computed style, not just the screenshot.
+- **Dates from the browser (#67):** Chromium wrote "Wed, 28 Oct" and "29 Sept"; Node wrote "Wed 28 Oct", so tests passed
+  and the page differed. **Guard:** `dayFmt()` in index.html for every date shown; check dates in the browser, not in Node.
 
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
@@ -89,6 +109,9 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - Say "I did not check" instead of giving an unchecked number as a fact.
 - For every change during a round, run the later days too (tools/test_capstrip.mjs, or fake scores on the page): the turn after next, the last turn, after the round.
 - A label that counts or totals ("All done", "Round over") must be true for the whole thing it names.
-- A column or field shows what its header says, and its sort uses the same number (CLAUDE.md rule 6).
+- A column or field shows what its header says, and its sort uses the same number (CLAUDE.md rule 7).
+- Before saying "checked": open the screen fresh, at the width and theme he uses, with today's data, on a player who has
+  played and one who has not. Hover what has a tooltip.
+- Group numbers with what they describe; reuse the layout the site already has for the same data.
 - Tooltips use the site's design (`tipPick()`), never a browser `title` tooltip. A container with `overflow:hidden` cuts
   them off: round its first and last rows instead (`.mkt`).
