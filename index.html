@@ -1073,6 +1073,9 @@ function scoreRounds(snaps){
 // from the live player logs. Counted like the game: court and 6th man 100%, bench 50%, captain ×2.
 // logs: player id → his live log. saved: the squad he saved; it counts while it is from this round (saved by its last
 // turn), else the snapshot's squad at the deadline does. null until the round's first turn is played.
+// The credit change one game earns: FantaSheet's own number when it has one, else (points − 1.1 × price) ÷ 25;
+// a game his club played without him (g null) is −0.1. price: his price at the deadline (the snapshot).
+function creditChange(g,price){return g?(g.cr!=null?g.cr:r1((g.fpt-1.1*price)/25)):-0.1;}
 function turnReview(snap,logs,saved){
   const R=project(snap),by=Object.fromEntries(R.players.map(p=>[p.id,p])),last=R.dayKeys[R.dayKeys.length-1]||"";
   const from=saved&&(saved.updated||"")<=last?"saved":"snapshot",sq=from==="saved"?saved:(snap.squad||{});
@@ -1088,7 +1091,7 @@ function turnReview(snap,logs,saved){
       const mult=i<6?(p.id===cap?2:1):.5,g=game(p),fpt=g?g.fpt:null;
       // value: the credit change the game earns, FantaSheet's own number when it has one, else (FPT − 1.1 × price) ÷ 25;
       // a game his club played without him is −0.1
-      const val=g?(g.cr!=null?g.cr:r1((fpt-1.1*p.price)/25)):-0.1;
+      const val=creditChange(g,p.price);
       return {id:p.id,name:p.name,short:short(p),pos:p.pos,team:p.team,role:i<5?"court":i===5?"six":"bench",cap:p.id===cap,
         mult,fpt,x:p.x,val,counted:r1((fpt||0)*mult),px:r1(p.x*mult)};});
     const px=rows.reduce((a,r)=>a+r.px,0);projRound+=px;
@@ -1926,10 +1929,13 @@ function hero(){
   const gameOf=(p,d)=>(p.log||[]).find(g=>g.d===d);
   const final=(d,h)=>{for(const p of P)if(p.team===h){const g=gameOf(p,d);if(g&&g.res)return g.res.split(" ")[1].replace("-","–");}return null;};
   if(!HIST&&P.some(p=>gameOf(p,D.deadline)))loadHistory();
-  const snap=HIST&&HIST.find(h=>h.round===D.round),px=snap?Object.fromEntries(project(snap).players.map(p=>[p.id,p.x])):{};
-  const scoreTxt=(p,d)=>{const g=gameOf(p,d);if(!g)return `${plink(p,p.short)} <span class="gsc">DNP</span>`;
+  const snap=HIST&&HIST.find(h=>h.round===D.round),sp=snap?project(snap).players:[];
+  const px=Object.fromEntries(sp.map(p=>[p.id,p.x])),pr=Object.fromEntries(sp.map(p=>[p.id,p.price]));
+  // his credit change from the game, the same number as the Value column of "Round N, turn by turn"
+  const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"}" title="Credit change from this game">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr</span>`;};
+  const scoreTxt=(p,d)=>{const g=gameOf(p,d);if(!g)return `${plink(p,p.short)} <span class="gsc">DNP${crTxt(null,p)}</span>`;
     const x=px[p.id],pc=x>0?Math.round(100*(g.fpt-x)/x):null;
-    return `${plink(p,p.short)} <span class="gsc">${(+g.fpt).toFixed(1)}${pc==null?"":` <span class="${pc>=0?"up":"dn"}">${pc>=0?"+":"−"}${Math.abs(pc)}%</span>`} ${x!=null?`<small>(proj ${x})</small>`:""}</span>`;};
+    return `${plink(p,p.short)} <span class="gsc">${(+g.fpt).toFixed(1)}${pc==null?"":` <span class="${pc>=0?"up":"dn"}">${pc>=0?"+":"−"}${Math.abs(pc)}%</span>`}${crTxt(g,p)} ${x!=null?`<small>(proj ${x})</small>`:""}</span>`;};
   const days=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).slice().sort((a,b)=>(a[3]||"").localeCompare(b[3]||""));
     const myCount=P.filter(p=>mine.has(p.id)&&p.day===d).length;
