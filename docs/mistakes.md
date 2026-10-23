@@ -102,6 +102,16 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Dates from the browser (#67):** Chromium wrote "Wed, 28 Oct" and "29 Sept"; Node wrote "Wed 28 Oct", so tests passed
   and the page differed. **Guard:** `dayFmt()` in index.html for every date shown; check dates in the browser, not in Node.
 
+## 23 Oct 2026 · the builder moved the deadline to the last game day: "Trades close Today" and 4 trades on Friday
+- **What:** the Friday build of Round 7 wrote `deadline: "2026-10-23"`, only Friday's 3 games in `fixtures` and only Friday
+  in `turns`. The site said "Trades close Today" and proposed 4 trades in a round that had started on Wednesday. The daily
+  run put the three fields back by hand.
+- **Why:** the builder made the round's fixtures from each player's next game. Once a club has played, its next game is
+  next round's, so every played game of the round dropped out, and the deadline became the first day still to play.
+- **Guard:** `round_schedule()` in tools/elbuild.py keeps the round's games from the previous data.json and the history
+  snapshot (history/round-N.json) when the round is the same; the deadline is the round's first game day. A game of today
+  that comes without its tip-off time keeps the time it had. Tests: tools/test_elbuild.py `RoundScheduleTest`.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
