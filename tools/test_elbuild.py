@@ -101,6 +101,44 @@ class ParseTeamTest(unittest.TestCase):
                          {'Elijah Bryant': {'rise': 53.0, 'xpts': 21.1}, 'Carsen Edwards': {'rise': 49.0, 'xpts': 13.6}})
 
 
+class RoundScheduleTest(unittest.TestCase):
+    """Fri 23 Oct 2026, last game day of Round 7: players' next games gave only Friday's 3 games, so the build wrote
+    deadline 2026-10-23 and the site said "Trades close Today" and proposed 4 trades."""
+    ROUND7 = [['2026-10-21', 'HTA', 'VIR', '18:00'], ['2026-10-22', 'BAY', 'DUB', '20:00'], ['2026-10-22', 'EFS', 'BJK', '19:30'],
+              ['2026-10-22', 'MIL', 'BAR', '20:30'], ['2026-10-22', 'MTA', 'RMB', '20:05'], ['2026-10-22', 'PAO', 'KBA', '20:15'],
+              ['2026-10-22', 'PAR', 'CZV', '20:45'], ['2026-10-23', 'OLY', 'FBT', '20:15'], ['2026-10-23', 'PBB', 'VAL', '20:45'],
+              ['2026-10-23', 'ZAL', 'ASV', '19:00']]
+    FRIDAY = [['2026-10-23', 'OLY', 'FBT'], ['2026-10-23', 'PBB', 'VAL'], ['2026-10-23', 'ZAL', 'ASV']]
+    TURNS = {'2026-10-21': 'Wed 21 Oct', '2026-10-22': 'Thu 22 Oct', '2026-10-23': 'Fri 23 Oct'}
+
+    def test_mid_round_keeps_the_played_games_and_the_first_tip_off(self):
+        old = {'round': 7, 'deadline': '2026-10-21', 'fixtures': self.ROUND7}
+        fixtures, deadline, turns = elbuild.round_schedule([list(f) for f in self.FRIDAY], 7, old, {})
+        self.assertEqual(deadline, '2026-10-21')
+        self.assertEqual(turns, self.TURNS)
+        # Friday's games came without tip-off times (the game is today): they keep the ones they had
+        self.assertEqual(fixtures, sorted(self.ROUND7))
+
+    def test_the_history_snapshot_fills_in_when_the_old_data_lost_them(self):
+        broken = {'round': 7, 'deadline': '2026-10-23', 'fixtures': self.FRIDAY}
+        snap = {'round': 7, 'deadline': '2026-10-21', 'fixtures': self.ROUND7}
+        fixtures, deadline, turns = elbuild.round_schedule([list(f) for f in self.FRIDAY], 7, broken, snap)
+        self.assertEqual((len(fixtures), deadline, turns), (10, '2026-10-21', self.TURNS))
+
+    def test_before_the_round_only_the_new_fixtures(self):
+        old = {'round': 6, 'deadline': '2026-10-14', 'fixtures': [['2026-10-14', 'HTA', 'OLY', '18:00']]}
+        new = [list(f[:3]) for f in self.ROUND7]
+        fixtures, deadline, turns = elbuild.round_schedule(new, 7, old, {})
+        self.assertEqual((fixtures, deadline, turns), (sorted(new), '2026-10-21', self.TURNS))
+
+    def test_a_moved_game_takes_its_new_date(self):
+        old = {'round': 7, 'fixtures': self.ROUND7}
+        fixtures, _, turns = elbuild.round_schedule([['2026-10-24', 'OLY', 'FBT']], 7, old, {})
+        self.assertEqual([f for f in fixtures if 'OLY' in f], [['2026-10-24', 'OLY', 'FBT']])
+        self.assertEqual(len(fixtures), 10)
+        self.assertIn('2026-10-24', turns)
+
+
 class XptsJumpTest(unittest.TestCase):
     """The builder warns when a player's xPTS moved more than x2 from the deadline snapshot (#66)."""
     def test_flags_a_jump_or_a_drop_of_more_than_double(self):

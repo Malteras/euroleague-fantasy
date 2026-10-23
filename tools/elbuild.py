@@ -357,6 +357,24 @@ def fill_actual(snap, data):
         added = True
     return added
 
+def round_schedule(fixtures, rnd, *before):
+    """The round's fixtures, deadline and turns. `fixtures` come from each player's next game, so once a club has played this
+    round its game is gone (its next game is next round's). Games of the same round in an earlier data.json or the history
+    snapshot are kept, unless the club has a game in `fixtures` (moved); a game on the day it is played may come without its
+    tip-off time, which is then taken from them too. Deadline = the round's first game day."""
+    clubs = {c for f in fixtures for c in f[1:3]}
+    keep, times = {}, {}
+    for src in before:
+        if not src or src.get('round') != rnd: continue
+        for f in src.get('fixtures') or []:
+            if len(f) > 3: times.setdefault(tuple(f[:3]), f[3])
+            if f[1] not in clubs and f[2] not in clubs: keep.setdefault(tuple(f[:3]), list(f))
+    fixtures = [f + [times[tuple(f)]] if len(f) == 3 and tuple(f) in times else f for f in fixtures]
+    fixtures = sorted(fixtures + list(keep.values()))
+    days = sorted({f[0] for f in fixtures})
+    return fixtures, (days[0] if days else None), {d: datetime.date.fromisoformat(d).strftime('%a %-d %b') for d in days}
+
+
 def xpts_jumps(players, snap, factor=2.0):
     """Players whose xPTS moved more than x2 from the round's deadline snapshot: a sign the team table was misread (#66).
     Values both under 5 are left out: a bench player going from 1 to 3 is noise."""
@@ -469,8 +487,8 @@ def main():
     rounds = sorted({r for r in fx.values() if r})
     nxt_round = rounds[0] if rounds else old.get('round')
     fixtures = sorted([[d, h, a] for (d, h, a), r in fx.items() if r == nxt_round])
-    days = sorted({f[0] for f in fixtures})
-    turns = {d: datetime.date.fromisoformat(d).strftime('%a %-d %b') for d in days}
+    hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
+    snap = json.load(open(hp, encoding='utf-8')) if os.path.exists(hp) else {}
     # tip-off times for the next round + each club's upcoming fixtures (Europe/Sarajevo)
     times = {}; teamNext = {}
     try:
@@ -497,6 +515,7 @@ def main():
     for f_ in fixtures:
         t_ = times.get(f_[0] + '|' + f_[1]) or times.get(f_[0] + '|' + f_[2])
         if t_ and len(f_) == 3: f_.append(t_)
+    fixtures, deadline, turns = round_schedule(fixtures, nxt_round, old, snap)
     # his team: squad.json next to data.json (written from the site's My team editor)
     squad, budget, lineup = old.get('squad'), old.get('budget', 99.6), old.get('lineup')
     sqp = os.path.join(os.path.dirname(os.path.abspath(oldp)) if oldp != '-' else '.', 'squad.json')
@@ -511,7 +530,7 @@ def main():
         print(f"squad.json from {sq.get('updated')}: value {budget}" + (f" missing ids {missing}" if missing else ''))
     data = {
         'updated': datetime.date.today().isoformat(), 'round': nxt_round, 'roundLabel': f'Round {nxt_round}',
-        'deadline': days[0] if days else old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
+        'deadline': deadline or old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
         'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
@@ -520,9 +539,8 @@ def main():
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
     print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)} ownership {sum(p.get("pop") is not None for p in players)}')
     for b in bad[:15]: print('  bad', b)
-    hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
-    if os.path.exists(hp):
-        jumps = xpts_jumps(players, json.load(open(hp, encoding='utf-8')))
+    if snap:
+        jumps = xpts_jumps(players, snap)
         if jumps: print(f'WARNING xPTS moved more than x2 since the deadline snapshot ({len(jumps)} players; FantaSheet table misread?):', '; '.join(jumps[:10]))
 
 if __name__ == '__main__':
