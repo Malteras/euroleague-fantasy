@@ -1,43 +1,43 @@
 {
- "updated": "2026-10-22",
+ "updated": "2026-10-23",
  "players": [
   73,
-  23,
+  91,
   38,
   165,
   118,
-  361,
-  91,
+  8,
+  23,
   185,
   236,
-  8
+  361
  ],
  "coach": "ZAL",
  "bank": 0.3,
  "slots": [
   73,
-  23,
+  91,
   38,
   165,
   118,
-  361,
-  91,
+  8,
+  23,
   185,
   236,
-  8
+  361
  ],
- "cap": 23,
+ "cap": 91,
  "names": [
   "Elijah Bryant",
-  "Théo Maledon",
+  "Tyson Etienne",
   "Andrés Feliz",
   "Semi Ojeleye",
   "Aliou Diarra",
-  "Dejan Davidovac",
-  "Tyson Etienne",
+  "Mbaye Ndiaye",
+  "Théo Maledon",
   "Edwin Jackson",
   "Mouhamed Faye",
-  "Mbaye Ndiaye"
+  "Dejan Davidovac"
  ],
  "coachName": "Tomas Masiulis"
 }
