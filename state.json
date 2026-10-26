@@ -1,5 +1,7 @@
 {
- "pins": [],
+ "pins": [
+  73
+ ],
  "avoids": [],
  "coachPin": null,
  "budget": 99.5,
@@ -37,5 +39,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-26T18:23:20.390Z"
+ "savedAt": "2026-10-26T18:24:22.127Z"
 }
