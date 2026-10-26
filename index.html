@@ -2748,7 +2748,7 @@ function capStripHtml(V){
       <span class="nm">${nm(p)}</span><div class="num${sc==null||s.gone?"":s.res==="moved"?" lo":s.res==="kept"?" hi":" sc"}">${f(sc!=null?sc:x)}</div>
       <div class="rv-bar" tabindex="0" role="img" aria-label="${tipAria}"><i class="${kind}" style="width:${Math.max(0,Math.min(100,(sc!=null?sc:x)/MAX*100))}%"></i>${s.keep!=null?`<u style="left:${s.keep/MAX*100}%"></u>`:""}${sc!=null?`<span class="pk" style="left:${Math.min(100,x/MAX*100)}%"></span>`:""}<span class="tip">${tip}</span></div>
       <small>${facts(`T${days.indexOf(p.day)+1}`,`${wd(p.day)} ${gameOf(p)}`)}</small><small>${tag}</small></div>`;}).join("");
-  return `<div class="rv-arm"><div class="rv-al${T.k==="todo"?" bad":""}"><span class="lab">${lab}</span><b>${main}</b>${rest?`<span class="muted">${rest}</span>`:""}<span class="rv-bonus">Armband bonus <b>+${f(S.bonus)}</b></span></div>
+  return `<div class="rv-arm"><div class="rv-al${T.k==="todo"?" bad":""}"><span class="lab">${lab}</span><b>${main}</b>${rest?`<span class="muted">${rest}</span>`:""}<span class="rv-bonus">Armband bonus <b>${S.bonus>0?"+":S.bonus<0?"−":""}${f(Math.abs(S.bonus))}</b></span></div>
     <div class="rv-tk" style="--n:${n}">${lines}${stops}</div></div>`;
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".rv-bar");
