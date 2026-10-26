@@ -131,7 +131,7 @@ section{padding-block:28px 8px}
 .day-h{display:flex;justify-content:space-between;align-items:end;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--line-soft);background:var(--raise)}
 .day-h b{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;display:block;line-height:1.05}
 .turn{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
-.day-n{font-size:12px;color:var(--muted);white-space:nowrap}
+.day-n{display:flex;align-items:center;font-size:12px;color:var(--muted);white-space:nowrap}
 .games{list-style:none;margin:0;padding:4px 0}
 .game{display:grid;grid-template-columns:42px minmax(0,1fr) 18px minmax(0,1fr);align-items:center;gap:6px;padding:8px 14px;position:relative}
 .game+.game{border-top:1px solid var(--line-soft)}
@@ -166,7 +166,7 @@ section{padding-block:28px 8px}
 .wmm-dest{flex:0 0 auto;font-size:13px;font-weight:700;line-height:1.2}
 .wmm-dest.r{text-align:right}
 .wmm-split{flex:1;min-width:0;text-align:center;font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase;line-height:1}
-.wmm-split .sep{color:var(--muted)}
+.wmm-split{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px}
 .wmm-bar{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:6px 0 0;background:transparent;cursor:pointer;--f:.5}
 .wmm-bar::-webkit-slider-runnable-track{height:14px;border-radius:7px;background:linear-gradient(to right,var(--accent) calc(9px + (100% - 18px)*var(--f)),var(--credit) 0)}
 .wmm-bar::-moz-range-track{height:14px;border-radius:7px;background:linear-gradient(to right,var(--accent) calc(9px + (100% - 18px)*var(--f)),var(--credit) 0)}
@@ -251,14 +251,14 @@ section{padding-block:28px 8px}
 .tx-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px}.tx-act .note{font-size:12.5px;max-width:46ch;margin:0}
 .tx-picks{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:12px;font-size:12.5px}
 .tx-cap td:first-child b{display:block} .tx-cap small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
-.tx .was{display:block;font-size:11.5px;font-weight:500;color:var(--faint);white-space:nowrap}
+.tx .was{display:block;font-size:11.5px;font-weight:500;color:var(--faint);white-space:nowrap}.tx .was .facts{justify-content:flex-end}
 .tx .tp{color:var(--accent)} .tx .tc{color:var(--credit)} .tx .neg{color:var(--bad)} .tx .z{color:var(--faint)}
 .tx tfoot td{border-top:2px solid var(--line);font-weight:800}
 .tx tfoot td:first-child{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.02em}
 /* look-ahead: "R7 / R8" game lines under the player and two-round bars in the points column */
 .tx th small{display:block;text-transform:none;letter-spacing:0;font-weight:600;color:var(--faint)}
 .tx-p small em{font-style:normal;font-weight:800;font-size:10.5px;letter-spacing:.04em;color:var(--faint);margin-right:4px}
-.tx .tx-p b .tx-role{font-weight:600;font-size:12px;color:var(--muted)}
+.tx .tx-p b .tx-role{margin-left:4px;font-weight:600;font-size:12px;color:var(--muted)}
 .rbars{display:grid;grid-template-columns:auto auto 110px 38px;align-items:center;gap:2px 6px;width:max-content;margin-left:auto}
 .rb-l{font-size:10.5px;font-weight:700;color:var(--faint);text-align:left}
 .rb-t{position:relative;height:9px;background:var(--line-soft);border-radius:2px}
@@ -296,7 +296,7 @@ section{padding-block:28px 8px}
 /* "Just missed": trades under the bar at this setting */
 .near{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
 .near-h{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
-.near-h span{text-transform:none;letter-spacing:0;font-weight:600}
+.near-h span{display:block;margin-top:2px;text-transform:none;letter-spacing:0;font-weight:600}
 .near-r{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:13.5px}
 .near-r .nm{flex:1 1 220px;min-width:0}
 .near-r b.o{color:var(--bad)} .near-r b.i{color:var(--good)} .near-r .ar{color:var(--good);font-weight:800}
@@ -496,13 +496,14 @@ section{padding-block:28px 8px}
 .pmodes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:720px;margin-top:8px}
 .pm{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer}
 .pm b{font-family:var(--display);font-size:19px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+.pm .pm-n{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .pm small{color:var(--muted);font-size:13px}.pm .pm-k{margin-top:4px;font-weight:700;font-size:13px;color:var(--fg)}
 .pm.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--accent-soft)}.pm.on b{color:var(--accent)}
 .pm:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pm-note{margin:6px 0 0;max-width:72ch}
 @media (max-width:520px){.pmodes{grid-template-columns:1fr}}
 .plan{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
-.pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px}.pc-h .muted{font-size:13px}
+.pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;gap:8px}.pc-h .muted{font-size:13px}.pc-h h3{white-space:nowrap}.pc-h .facts{justify-content:flex-end}
 .pcourt .court{min-height:300px}
 .slot.static{cursor:default}.slot.static:hover{transform:none}
 .slot.static .plink{font-weight:700;font-size:13.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -527,7 +528,7 @@ section{padding-block:28px 8px}
 .tl-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}.tl-act .note{font-size:12.5px;max-width:46ch;margin:0}
 .tl-who{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .tl-p{font-size:13px;padding:3px 9px;border-radius:999px;background:var(--raise);border:1px solid var(--line-soft)}
-.tl-p small{color:var(--muted)}.tl-p.r-cap{background:var(--warn-soft);border-color:var(--warn)}.tl-p.r-start{background:var(--accent-soft)}.tl-p.r-bench{opacity:.75}
+.tl-p small{color:var(--muted)}.tl-p .facts,.day-n .facts{display:inline-flex;gap:0 8px}.tl-p.r-cap{background:var(--warn-soft);border-color:var(--warn)}.tl-p.r-start{background:var(--accent-soft)}.tl-p.r-bench{opacity:.75}
 .tl-warn{margin-top:8px;padding:7px 11px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:13.5px}
 @media (max-width:900px){.plan{grid-template-columns:1fr}}
 @media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -738,11 +739,12 @@ html.locked,html.locked body{overflow:hidden}
 .rv-st .num{font-family:var(--display);font-size:22px;line-height:1.15;color:var(--muted)}
 .rv-st .num.sc{color:var(--fg)}.rv-st .num.lo,.rv-st .lo{color:var(--bad)}.rv-st .num.hi{color:var(--good)}
 .rv-st small{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+.rv-st .facts{justify-content:center;gap:0 8px}.rv-bar .tip .facts{flex-wrap:nowrap}.rv-bar .tip .facts i{color:inherit;opacity:.65}
 .rv-st.gone{opacity:.65}
 .rv-bar{position:relative;width:min(140px,90%);height:4px;margin:10px auto 6px;border-radius:2px;background:color-mix(in srgb,var(--line) 70%,transparent);cursor:help}
 .rv-bar::before{content:"";position:absolute;inset:-8px 0}
-.rv-bar i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:color-mix(in srgb,var(--accent) 45%,transparent)}
-.rv-bar i.lo{background:color-mix(in srgb,var(--bad) 42%,transparent)}.rv-bar i.pj{background:color-mix(in srgb,var(--faint) 55%,transparent)}
+.rv-bar>i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:color-mix(in srgb,var(--accent) 45%,transparent)}
+.rv-bar>i.lo{background:color-mix(in srgb,var(--bad) 42%,transparent)}.rv-bar>i.pj{background:color-mix(in srgb,var(--faint) 55%,transparent)}
 .rv-bar u{position:absolute;top:-3px;width:2px;height:10px;border-radius:1px;background:var(--muted)}
 .rv-bar .pk{position:absolute;top:-2px;width:2px;height:8px;border-radius:1px;background:var(--faint);opacity:0}
 .rv-bar .tip{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);z-index:5;padding:5px 8px;border-radius:6px;background:var(--fg);color:var(--surface);font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none;opacity:0}
@@ -750,7 +752,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-bar:hover .tip,.rv-bar:focus-visible .tip,.rv-bar.open .tip,.rv-bar:hover .pk,.rv-bar:focus-visible .pk,.rv-bar.open .pk{opacity:1}
 @media (max-width:560px){.rv-tk{grid-template-columns:1fr;gap:14px}.rv-ln{display:none}
   .rv-st{display:grid;grid-template-columns:52px minmax(0,1fr);gap:0 10px;align-items:center;text-align:left}
-  .rv-st .bdg{grid-row:1/span 6;margin:0}.rv-bar{margin:8px 0 6px}.rv-bar .tip{left:0;transform:none}.rv-bar .tip::after{left:12px}}
+  .rv-st .bdg{grid-row:1/span 6;margin:0}.rv-bar{margin:8px 0 6px}.rv-bar .tip{left:0;transform:none;white-space:normal;width:max-content;max-width:calc(100vw - 120px)}.rv-bar .tip .facts{flex-wrap:wrap}.rv-bar .tip::after{left:12px}.rv-st .facts{justify-content:flex-start}}
 .rv-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--line-soft);color:var(--muted)}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
@@ -879,7 +881,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
     <div class="mark" aria-hidden="true">BF</div>
     <div class="brand">
       <h1 id="teamName">Boškovi Fazani</h1>
-      <div class="eyebrow">EuroLeague Fantasy · round planner</div>
+      <div class="eyebrow">Round planner for EuroLeague Fantasy</div>
     </div>
     <button type="button" class="theme-b" id="themeB"></button>
     <nav aria-label="Sections">
@@ -2069,24 +2071,24 @@ function hero(){
         ${my.length?`<span class="gmine">${names}</span>`:""}
       </li>`;}).join("");
     const shut=state.collapsed.includes(d);
-    return `<div class="day${shut?" shut":""}"><button type="button" class="day-h" data-day="${d}" aria-expanded="${!shut}"><div><span class="turn">Turn ${k+1}</span><b>${esc(dayLabel(d))}</b></div><span class="day-n">${games.length} game${games.length===1?"":"s"} · ${myCount} of yours<span class="chev" aria-hidden="true"></span></span></button><ul class="games"${shut?" hidden":""}>${rows}</ul></div>`;}).join("");
+    return `<div class="day${shut?" shut":""}"><button type="button" class="day-h" data-day="${d}" aria-expanded="${!shut}"><div><span class="turn">Turn ${k+1}</span><b>${esc(dayLabel(d))}</b></div><span class="day-n">${facts(`${games.length} game${games.length===1?"":"s"}`,`${myCount} of yours`)}<span class="chev" aria-hidden="true"></span></span></button><ul class="games"${shut?" hidden":""}>${rows}</ul></div>`;}).join("");
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
   const open=!!state.calOpen;
   const span=dayKeys.length?`${esc(dayShort(dayKeys[0]))} – ${esc(dayLabel(dayKeys[dayKeys.length-1]))}`:"";
-  return `<div class="cal${open?" open":""}"><button type="button" class="cal-h" id="calToggle" aria-expanded="${open}" aria-controls="calDays"><span class="cal-t"><b>${esc(D.roundLabel)} schedule</b><small>${span} · ${D.fixtures.length} games · ${TRADES_CLOSED?"trades closed (round started)":`trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}`}</small></span><span class="cal-more">${open?"Hide":"Show"} games<span class="chev" aria-hidden="true"></span></span></button><div class="days" id="calDays"${open?"":" hidden"}>${days}</div></div>`;
+  return `<div class="cal${open?" open":""}"><button type="button" class="cal-h" id="calToggle" aria-expanded="${open}" aria-controls="calDays"><span class="cal-t"><b>${esc(D.roundLabel)} schedule</b><small>${facts(span,`${D.fixtures.length} games`,TRADES_CLOSED?"trades closed (round started)":`trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}`)}</small></span><span class="cal-more">${open?"Hide":"Show"} games<span class="chev" aria-hidden="true"></span></span></button><div class="days" id="calDays"${open?"":" hidden"}>${days}</div></div>`;
 }
 function modeBar(){
   const m=state.pmode==="m";
   const cur=result,alt=resultAlt;
-  const sum=(R)=>R?`${R.ev.pts.toFixed(0)} pts · ${R.trades} trade${R.trades===1?"":"s"}`:"";
+  const sum=(R)=>R?facts(`${R.ev.pts.toFixed(0)} pts`,`${R.trades} trade${R.trades===1?"":"s"}`):"";
   const q=m?alt:cur,mm=m?cur:alt;
-  const btn=(v,t,sub,R)=>`<button type="button" class="pm${(v==="m")===m?" on":""}" data-pmode="${v}" aria-pressed="${(v==="m")===m}"><b>${t}</b><small>${sub}</small>${R?`<span class="pm-k">${sum(R)}</span>`:""}</button>`;
-  return `<div class="pmodes" role="group" aria-label="Proposal type">${btn("q","Proposal 1 · Quality","Best players by projection and price growth",q)}${btn("m","Proposal 2 · Matchups","Attacks this round's weak defences by position",mm)}</div>
+  const btn=(v,n,t,sub,R)=>`<button type="button" class="pm${(v==="m")===m?" on":""}" data-pmode="${v}" aria-pressed="${(v==="m")===m}"><span class="pm-n">Proposal ${n}</span><b>${t}</b><small>${sub}</small>${R?`<span class="pm-k">${sum(R)}</span>`:""}</button>`;
+  return `<div class="pmodes" role="group" aria-label="Proposal type">${btn("q",1,"Quality","Best players by projection and price growth",q)}${btn("m",2,"Matchups","Attacks this round's weak defences by position",mm)}</div>
   <p class="note pm-note">${m?`Proposal 2 adds a matchup bonus to each projection: if his opponent lets his position score 20% more than an average team (see the Teams tab), his projection goes up 10%. Half the percentage, because it comes from only a few games.${LOOK_ON?" A trade stays after this round, so it also counts half of his projected points next round. Captain, lineup and price rise use this round only.":""}`:`Proposal 1 uses the normal projection: half FantaSheet's expected score, half his recent form. Matchups are not added on top.${LOOK_ON?" Coaches also count half of next round's game.":""}`}</p>`;
 }
 function proposalHead(){
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
-  return `<div class="round" id="proposal"><div class="round-title"><div class="datechip">Report of ${esc(fmtDate((D.report&&D.report.date)||D.updated))} · data updated ${esc(fmtDate(D.updated))}</div><div class="eyebrow">Trades close at the first tip-off · ${esc(dayLabel(D.deadline))}${tip?` · ${tip}`:""}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2>${modeBar()}<p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things. Times are Banja Luka time.</p></div></div>`;
+  return `<div class="round" id="proposal"><div class="round-title"><div class="datechip">${facts(`Report of ${esc(fmtDate((D.report&&D.report.date)||D.updated))}`,`data updated ${esc(fmtDate(D.updated))}`)}</div><div class="eyebrow">${facts("Trades close at the first tip-off",`${esc(dayLabel(D.deadline))}${tip?` ${tip}`:""}`)}</div><h2>${esc(D.roundLabel)} <span>proposal</span></h2>${modeBar()}<p class="muted" style="margin:0;max-width:60ch">Pin the players you want and mark the ones you don't. The squad, trades and the day-by-day lineup plan rebuild as you change things. Times are Banja Luka time.</p></div></div>`;
 }
 function bars(items,{be=null,h=170,unit=""}={}){
   // items: [{v,label,sub,cls,tip}] (tip: tipPick's arguments) — one SVG bar chart with a zero line and optional break-even line
@@ -2186,7 +2188,7 @@ function applyTrades(){
 }
 function wmmText(i){
   const g=i*25;
-  return {split:`<span class="a">${100-g}% points</span> <span class="sep">·</span> <span class="b">${g}% growth</span>`,ex:`<b>${esc(STOP_NAMES[i])}.</b> ${esc(STOP_DESC[i])}`,vt:`${STOP_NAMES[i]}: points ${100-g}%, growth ${g}%`};
+  return {split:`<span class="a">${100-g}% points</span><span class="b">${g}% growth</span>`,ex:`<b>${esc(STOP_NAMES[i])}.</b> ${esc(STOP_DESC[i])}`,vt:`${STOP_NAMES[i]}: points ${100-g}%, growth ${g}%`};
 }
 // The teal part of the bar is as long as the points share, so the points end is on the right: bar position = 4 - stop index.
 const wmmPos=i=>4-i;
@@ -2245,14 +2247,14 @@ function proposalParts(R){
   lastIns=ins;
   // this round's game in words, plus how easy that defence is for the player's position, e.g. "vs Virtus (−21% G)".
   // Brackets stay grey; the number is coloured only from ±15%, the same cut-off as the Soft/Tough matchup tags
-  const mTag=(p,o,m)=>` <i class="has-tip" tabindex="0">${tipPick(`Matchup · ${POSN[p.pos]}s`,`${m>0?"+":m<0?"−":""}${Math.abs(m)}% vs ${TEAMS[o.opp]?.[0]||o.opp}`,`${TEAMS[o.opp]?.[0]||o.opp} allow ${m?`${Math.abs(m)}% ${m>0?"more":"less"} PIR`:"the average PIR"} to ${POSN[p.pos].toLowerCase()}s compared with the league average.`)}(<span class="${m>=15?"up":m<=-15?"dn":""}">${m>0?"+":m<0?"−":""}${Math.abs(m)}%</span><span class="gl-pos"> ${p.pos}</span>)</i>`;
+  const mTag=(p,o,m)=>` <i class="has-tip" tabindex="0">${tipPick(`Matchup for ${POSN[p.pos].toLowerCase()}s`,`${m>0?"+":m<0?"−":""}${Math.abs(m)}% vs ${TEAMS[o.opp]?.[0]||o.opp}`,`${TEAMS[o.opp]?.[0]||o.opp} allow ${m?`${Math.abs(m)}% ${m>0?"more":"less"} PIR`:"the average PIR"} to ${POSN[p.pos].toLowerCase()}s compared with the league average.`)}(<span class="${m>=15?"up":m<=-15?"dn":""}">${m>0?"+":m<0?"−":""}${Math.abs(m)}%</span><span class="gl-pos"> ${p.pos}</span>)</i>`;
   const game=p=>{if(!p.opp)return "";const m=p.pos?matchup(p):null;
     return `${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}${m!=null?mTag(p,p.opp,m):""}`;};
   // With the look-ahead: one short line per round, "R7 at MIL (+30% C)" then "R8 at BAY (+49% C)"; coaches show their win chance
   const LA=lookOn(),rN="R"+D.round,rN2="R"+(D.round+1);
   const gLine=(p,o,lab)=>{if(!o)return `<small><em>${lab}</em>no game found</small>`;
     const m=p.pos?matchup(p,o):null,pw=p.pos?null:(o===p.opp?p.pw:p.pw2);
-    return `<small class="gl"><em>${lab}</em><span class="gl-ha">${o.ha==="H"?"vs":"at"} </span>${esc(o.opp)}${m!=null?mTag(p,o,m):pw!=null?` <i class="has-tip" tabindex="0">${tipPick(`Coach · ${p.name}`,`${Math.round(pw*100)}% win chance`,"From both teams' records and home court.")}(<span class="${pw>=.6?"up":pw<=.4?"dn":""}">${Math.round(pw*100)}%</span> win)</i>`:""}</small>`;};
+    return `<small class="gl"><em>${lab}</em><span class="gl-ha">${o.ha==="H"?"vs":"at"} </span>${esc(o.opp)}${m!=null?mTag(p,o,m):pw!=null?` <i class="has-tip" tabindex="0">${tipPick(`Coach ${p.name}`,`${Math.round(pw*100)}% win chance`,"From both teams' records and home court.")}(<span class="${pw>=.6?"up":pw<=.4?"dn":""}">${Math.round(pw*100)}%</span> win)</i>`:""}</small>`;};
   const two=p=>p.pos?LA:LOOK_ON&&!!p.opp2; // coaches look ahead in both proposals
   // One table, one row per trade: Out → In, then what the trade does to the bank, projected points and price rise.
   // The small grey line under each change is the out → in value it comes from.
@@ -2263,11 +2265,11 @@ function proposalParts(R){
     // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
-    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">· ${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${[role,game(p)].filter(Boolean).join(" · ")}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}</span></span>`:`<span class="tx-p ${side}">—</span>`;
+    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
     // grey out → in beside the bars: this round's projections, then next round's (the striped bar is half the difference)
     const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>(p.x2||0).toFixed(1),a)} → ${ow(p=>(p.x2||0).toFixed(1),b)}`;
-    const pts=LA?rBars(dp,dn,rN,rN2,w1,w2):r1(dn)?`${num(dp+dn,"tp")}<span class="was">${fmt(r1(dp),1)} now · ${fmt(r1(dn),1)} next</span>`:`${num(dp,"tp")}${was(a,b,p=>p.x.toFixed(1))}`;
+    const pts=LA?rBars(dp,dn,rN,rN2,w1,w2):r1(dn)?`${num(dp+dn,"tp")}<span class="was">${facts(["Now",fmt(r1(dp),1)],["Next",fmt(r1(dn),1)])}</span>`:`${num(dp,"tp")}${was(a,b,p=>p.x.toFixed(1))}`;
     return `<tr class="tx-r${fresh(key)}"><td><div class="tx-pair">${who(a,"o")}<span class="tx-ar" aria-label="traded for">→</span>${who(b,"i")}</div></td>
       <td>${num(fr,"")}${was(a,b,p=>p.price.toFixed(1))}</td>
       <td>${pts}</td>
@@ -2288,7 +2290,7 @@ function proposalParts(R){
   let capRow="";
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
     capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td><td></td></tr>`;}
-  const foot=nTr>1||capRow?`<tfoot><tr><td>Total · ${nTr} trade${nTr===1?"":"s"}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
+  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} trade${nTr===1?"":"s"}`)}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
   const laNote=LA?`<div class="rb-legend"><span><i></i>${rN}, this round</span><span><i class="h"></i>${rN2}, counts half</span><span class="rb-legend-w">Grey numbers, out → in: projected points in ${rN} and in ${rN2}</span></div>`
     :state.pmode==="m"&&!LOOK_ON?`<p class="note" style="margin:10px 0 0">Round ${D.round+1} is a free-trade window, so these trades are judged on this round only.</p>`:"";
   const noTrades=!pairs.length&&!coachChanged;
@@ -2303,11 +2305,11 @@ function proposalParts(R){
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
-    <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">Left in the bank · squad ${R.cost.toFixed(1)}</div></div>
-    ${TRADES_CLOSED?`<div class="tile"><div class="v">Closed</div><div class="k">Trades · round started</div></div>`:`<div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`}`;
+    <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">${facts("Left in the bank",["Squad",R.cost.toFixed(1)])}</div></div>
+    ${TRADES_CLOSED?`<div class="tile"><div class="v">Closed</div><div class="k">Trades (round started)</div></div>`:`<div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`}`;
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
-  const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>· a trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
-    return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?`${fmt(r1(b.x-a.x),1)} now · ${fmt(r1(b.nx-a.nx),1)} next`:`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
+  const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>A trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
+    return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?facts(["Now",fmt(r1(b.x-a.x),1)],["Next",fmt(r1(b.nx-a.nx),1)]):`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
   const trades=TRADES_CLOSED?`<div class="card ptrades"><h3>Trades</h3><div class="warnbox">${esc(D.roundLabel)} has started (first tip-off ${esc(dayShort(D.deadline))}). Trades are closed until the next round's deadline. You can only swap court and bench players, change the formation and move the captain. Only players who have not played yet come in or take the armband.</div></div>`
     :`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
@@ -2475,19 +2477,20 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   if(live)liveCap=LR.walk(name,turnOf2);
   const LIVE=live?blLiveItems(LR):[];
   const capNow=live?liveCap.cur:cap0;
-  const val=p=>{const sc=live?score(p):null;return sc==null?`${p.x} · ${esc(turnOf2(p.day))}`:`${sc} pts · played`;};
-  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===capNow?`<span class="capb has-tip" tabindex="0">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${val(p)}</small></div>`;
+  // two lines under the name: his projection and turn, or his score once he has played
+  const val=(p,turn)=>{const sc=live?score(p):null;return sc==null?`<small>${p.x}</small><small>${esc(turn(p.day))}</small>`:`<small>${sc} pts</small><small>played</small>`;};
+  const ps1=(p,extra="")=>`<div class="slot static${isNew(p)?" newp":""}">${extra}${p===capNow?`<span class="capb has-tip" tabindex="0">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}${plink(p,p.short)}${val(p,turnOf2)}</div>`;
   const rows=["C","F","G"].map(k=>`<div class="crow">${st.filter(p=>p.pos===k).map(p=>ps1(p,isNew(p)?'<span class="b-new">New</span>':"")).join("")}</div>`).join("");
-  const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";const sc=live?score(p):null;return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}<small>${sc==null?`${p.x} · ${esc(T(p.day))}`:`${sc} pts · played`}</small></div>`;}).join("");
-  const court=`<div class="card pcourt"><div class="pc-h"><h3>${live?"Your lineup":"Proposed lineup"}</h3><span class="muted">${form} · ${live?"captain now":"day-one start"}</span></div>
+  const bench=[six,...reserves].filter(Boolean).map(p=>{const tag=p===six?'<span class="b-six">6th</span>':isNew(p)?'<span class="b-new">New</span>':"";return `<div class="slot static${isNew(p)?" newp":""}">${tag}${jersey(p.team,p.pos)}${plink(p,p.short)}${val(p,T)}</div>`;}).join("");
+  const court=`<div class="card pcourt"><div class="pc-h"><h3>${live?"Your lineup":"Proposed lineup"}</h3><span class="muted">${facts(["Formation",form],live?"captain now":"day-one start")}</span></div>
     <div class="court"><svg class="court-lines" viewBox="0 0 400 330" preserveAspectRatio="none" aria-hidden="true"><rect x="8" y="8" width="384" height="314" rx="6"></rect><rect x="140" y="8" width="120" height="120"></rect><path d="M140 128 A60 60 0 0 0 260 128"></path><path d="M40 8 L40 70 A160 160 0 0 0 360 70 L360 8"></path><path d="M150 322 A50 50 0 0 1 250 322"></path></svg>${rows}</div>
-    <div class="lbl" style="margin-top:12px">6th man · bench</div><div class="pbench">${bench}</div></div>`;
+    <div class="lbl" style="margin-top:12px">6th man and bench</div><div class="pbench">${bench}</div></div>`;
   // timeline
   const tip=D.fixtures.filter(f=>f[0]===D.deadline).map(f=>f[3]).filter(Boolean).sort()[0];
   const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
   const applyBtn=`<button type="button" class="btn-primary" data-apply>${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
-    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">Set the lineup · ${form}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
+    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
   const nextDay=d=>dayKeys[dayKeys.indexOf(d)+1];
   const capActs=live?liveCap.steps:capSteps(capPath,name,turnOf2).map(a=>({...a,day:nextDay(a.day)}));
@@ -2502,7 +2505,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     // a played turn keeps the captain it had; a coming one shows where the armband is now
     const capOf=done?liveCap.held.find(h=>h&&h.day===d):capNow;
     const role=p=>p===capOf?"cap":st.includes(p)?"start":p===six?"six":"bench";
-    const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${done?`${score(p)} pts`:p.x}${role(p)==="cap"?" · C":role(p)==="bench"?" · bench":role(p)==="six"?" · 6th":""}</small></span>`).join("");
+    const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${facts(done?`${score(p)} pts`:p.x,{cap:"C",bench:"bench",six:"6th"}[role(p)])}</small></span>`).join("");
     const acts=[];
     capActs.filter(a=>a.day===d).forEach(a=>acts.push(a.txt));
     if(!live&&d===finalDay&&secondLast&&lateRes.length)acts.push(`Swap in ${lateRes.map(p=>`${name(p)} ${p.x}`).join(", ")} for anyone who scored below his projection. Match positions or change the formation.`);
@@ -2519,11 +2522,11 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     const rk=risky.filter(p=>p.day===d);
     const warn=rk.length?`<div class="tl-warn">Minutes watch: ${rk.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.</div>`:"";
     const lbl=done?`${esc(dayShort(d))}: played`:`Before ${esc(dayShort(d))}'s games`;
-    return `<li><div class="tl-h"><b>${esc(turnOf2(d))}</b><small>${esc(dayLabel(d))} · ${games} game${games===1?"":"s"}</small></div>
+    return `<li><div class="tl-h"><b>${esc(turnOf2(d))}</b><small>${facts(esc(dayLabel(d)),`${games} game${games===1?"":"s"}`)}</small></div>
       ${who?`<div class="tl-who">${who}</div>`:'<p class="note" style="margin:4px 0 0">None of your players.</p>'}
       ${acts.length?`<p class="tl-lbl">${lbl}</p>${acts.map(a=>`<p class="tl-txt">${a}</p>`).join("")}`:`<p class="tl-txt muted" style="margin-top:6px">${done?"Played.":k===0?"Set the lineup above before the first game.":"Nothing to change."}</p>`}${warn}</li>`;
   }).join("");
-  const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl">${TRADES_CLOSED?`<li class="now"><div class="tl-h"><b>Trades closed</b><small>the round started ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div><p class="note" style="margin:0">No trades until next round's deadline. Follow the turns below: move the captain and bring in only players who have not played yet.</p></li>`:`<li class="now"><div class="tl-h"><b>Now</b><small>before ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""} · trades close</small></div>${nowBody}</li>`}${turns}</ol></div>`;
+  const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl">${TRADES_CLOSED?`<li class="now"><div class="tl-h"><b>Trades closed</b><small>the round started ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div><p class="note" style="margin:0">No trades until next round's deadline. Follow the turns below: move the captain and bring in only players who have not played yet.</p></li>`:`<li class="now"><div class="tl-h"><b>Now</b><small>trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div>${nowBody}</li>`}${turns}</ol></div>`;
   return `<div class="plan">${court}${timeline}</div>`;
 }
 function initPlan(R,L){
@@ -2734,15 +2737,17 @@ function capStripHtml(V){
     return `<div class="rv-ln ${cls}" style="left:${(i+.5)*100/n}%;width:${100/n}%"></div>`;}).join("");
   const lum=h=>{const v=parseInt(h.slice(1),16);return(.299*(v>>16)+.587*(v>>8&255)+.114*(v&255))/255;};
   const stops=S.stops.map(s=>{const p=s.p,col=(TEAMS[p.team]||["","#56637d"])[1],x=proj(s),sc=s.score;
-    const tip=(sc!=null?`Scored ${f(sc)} · `:"")+`Projected ${f(x)}`+(s.gone?" · no armband":s.keep!=null?` · keep mark ${s.keep}`:" · last turn");
+    // the bar's tooltip: what he scored, his projection, and the mark that keeps the armband (raw score, never doubled)
+    const tipF=[sc!=null&&["Scored",f(sc)],["Projected",f(x)],s.gone?"no armband":s.keep!=null?["Keep mark",s.keep]:"last turn"];
+    const tip=facts(...tipF),tipAria=tipF.filter(Boolean).map(t=>Array.isArray(t)?t.join(" "):t).join(", ");
     const kind=sc==null?"pj":s.res==="moved"?"lo":"";
-    const tag=s.gone?`no armband${sc==null?` · projected ${f(x)}`:""}`:sc!=null?(s.res==="moved"?`<span class="lo">under ${s.keep}</span> · ${T.k==="todo"&&C.now&&C.now.id===p.id?"move the armband on":"armband moved on"}`
-        :s.res==="kept"?(s.keep!=null?`${s.keep}+ · armband stayed (×2)`:"last turn · counts ×2"):"scored")
-      :`projected · ${s.keep!=null?`keep at ${s.keep}+`:"last turn"}`;
+    const tag=s.gone?facts("no armband",sc==null&&`projected ${f(x)}`):sc!=null?(s.res==="moved"?facts(`<span class="lo">under ${s.keep}</span>`,T.k==="todo"&&C.now&&C.now.id===p.id?"move the armband on":"armband moved on")
+        :s.res==="kept"?(s.keep!=null?facts(`${s.keep}+`,"armband stayed (×2)"):facts("last turn","counts ×2")):"scored")
+      :facts("projected",s.keep!=null?`keep at ${s.keep}+`:"last turn");
     return `<div class="rv-st${p.id===S.holdId?" hold":""}${s.gone?" gone":""}"><div class="bdg" style="--tc:${col};--ti:${lum(col)>.6?"#0f1a2d":"#fff"}">${esc(p.team)}${p.id===S.holdId?'<span class="cb" aria-label="Captain">C</span>':""}</div>
       <span class="nm">${nm(p)}</span><div class="num${sc==null||s.gone?"":s.res==="moved"?" lo":s.res==="kept"?" hi":" sc"}">${f(sc!=null?sc:x)}</div>
-      <div class="rv-bar" tabindex="0" role="img" aria-label="${tip}"><i class="${kind}" style="width:${Math.max(0,Math.min(100,(sc!=null?sc:x)/MAX*100))}%"></i>${s.keep!=null?`<u style="left:${s.keep/MAX*100}%"></u>`:""}${sc!=null?`<span class="pk" style="left:${Math.min(100,x/MAX*100)}%"></span>`:""}<span class="tip">${tip}</span></div>
-      <small>T${days.indexOf(p.day)+1} · ${wd(p.day)} ${gameOf(p)}</small><small>${tag}</small></div>`;}).join("");
+      <div class="rv-bar" tabindex="0" role="img" aria-label="${tipAria}"><i class="${kind}" style="width:${Math.max(0,Math.min(100,(sc!=null?sc:x)/MAX*100))}%"></i>${s.keep!=null?`<u style="left:${s.keep/MAX*100}%"></u>`:""}${sc!=null?`<span class="pk" style="left:${Math.min(100,x/MAX*100)}%"></span>`:""}<span class="tip">${tip}</span></div>
+      <small>${facts(`T${days.indexOf(p.day)+1}`,`${wd(p.day)} ${gameOf(p)}`)}</small><small>${tag}</small></div>`;}).join("");
   return `<div class="rv-arm"><div class="rv-al${T.k==="todo"?" bad":""}"><span class="lab">${lab}</span><b>${main}</b>${rest?`<span class="muted">${rest}</span>`:""}<span class="rv-bonus">Armband bonus <b>+${f(S.bonus)}</b></span></div>
     <div class="rv-tk" style="--n:${n}">${lines}${stops}</div></div>`;
 }
