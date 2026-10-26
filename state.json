@@ -23,7 +23,7 @@
  "calOpen": true,
  "rf": "el",
  "rg": "2026-10-21|HTA|VIR|",
- "pmode": "q",
+ "pmode": "m",
  "blTicks": [
   "7:captain:73",
   "7:lineup:73,23,165,361,118",
@@ -41,5 +41,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-26T19:03:55.647Z"
+ "savedAt": "2026-10-26T19:04:01.689Z"
 }
