@@ -300,6 +300,21 @@ def carried(old):
         'injuries': old.get('injuries'),
     }
 
+def trade_base(old, rnd):
+    """The squad when round rnd's market opened: the one that played the round before. The planner counts the round's 4 trades
+    from it, so trades already saved on My team count too. Taken from the last data.json of the round before, whose squad is
+    the one saved while that round was played (no trades then); kept as it is for the rest of the round. None when unknown."""
+    tb = old.get('tradeBase')
+    if tb and tb.get('round') == rnd: return tb
+    sq = old.get('squad') or {}
+    if old.get('round') == (rnd or 0) - 1 and sq.get('players') and sq.get('coach'):
+        if old.get('deadline') and old.get('updated', '') <= old['deadline']:
+            print(f"WARNING tradeBase for round {rnd} from data of {old.get('updated')}, before round {old['round']}'s deadline: "
+                  'trades saved after it are not in it')
+        return {'round': rnd, 'players': list(sq['players']), 'coach': sq['coach'], 'from': old.get('updated')}
+    return None
+
+
 def snapshot(data):
     """The inputs the planner projects a round from, as they stood before its deadline (history/round-N.json)."""
     keep = ('id', 'name', 'team', 'pos', 'price', 'status', 'xpts', 'rise', 'fpt', 'gp', 'next', 'pop')
@@ -533,6 +548,7 @@ def main():
         'deadline': deadline or old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
+        'tradeBase': trade_base(old, nxt_round),
         'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
         **carried(old),
     }

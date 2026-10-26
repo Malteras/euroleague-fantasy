@@ -82,3 +82,38 @@ test("a round's plan is cached apart from the live one", () => {
   const snap = m.withRound({ ...world(m, d2), lam: 20 }, () => m.withMode("q", m.optimise));
   assert.notDeepEqual(sig(snap), sig(live));
 });
+
+// 26 Oct 2026: he had saved his 4 Round 8 trades on My team and the planner proposed 3 more on top (#90).
+// Trades count from the squad when the round's market opened (data.json tradeBase), not from My team.
+function madeWorld(m, startPlayers, cur) {
+  const d = round();
+  d.players.push({ id: 15, name: "P15 Name15", team: "OLY", pos: "G", price: 6, xpts: 0, fpt: 2, log: log(2) });
+  // the round's budget: the start squad's value and bank (selling and buying moves credits, it does not change the total)
+  const value = budget({ ...d, squad: { ...d.squad, players: startPlayers || cur } });
+  d.squad = { ...d.squad, players: cur, slots: cur };
+  return { ...world(m, d), budget: value, start: startPlayers && { players: startPlayers, coach: "PAO" }, maxT: 1, lam: 0 };
+}
+const has = (r, id) => r.S.includes(id);
+
+test("a trade made this round uses up the limit: the best other trade is not proposed", () => {
+  const m = load();
+  // without a start the one trade goes on the better guard (4 → 11)
+  const free = m.withRound(madeWorld(m, null, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), () => m.withMode("q", m.optimise));
+  assert.ok(has(free, 11) && !has(free, 4));
+  // he already traded 15 → 1: re-trading 1 (15 → 11 in all) is still the one trade, 4 stays
+  const W = madeWorld(m, [15, 2, 3, 4, 5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const r = m.withRound(W, () => m.withMode("q", m.optimise));
+  assert.ok(has(r, 4), "4 stays: no second trade");
+  assert.equal(r.used, 1);
+  assert.deepEqual(m.withRound(W, () => m.tradePairs(r)), [[1, 11]]);
+});
+
+test("undoing a trade made this round frees it for a better one", () => {
+  const m = load();
+  // he traded 1 → 15 (a worse guard): bringing 1 back and trading 4 → 11 is still one trade
+  const W = madeWorld(m, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [15, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const r = m.withRound(W, () => m.withMode("q", m.optimise));
+  assert.ok(has(r, 1) && has(r, 11) && !has(r, 4) && !has(r, 15));
+  assert.equal(r.used, 1);
+  assert.equal(r.trades, 2);
+});

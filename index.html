@@ -915,7 +915,7 @@ const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","
 const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
-let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,tp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
+let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,start=null,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,tp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
 // "What matters more" stops: lam = how many points one credit of expected price rise is worth. Default (20) sits in the middle.
 const STOPS=[0,10,20,35,60];
 const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
@@ -1216,7 +1216,7 @@ function init(data){
   savedTeam=teamFrom(SQUAD||D.squad);
   const lt=state.team;
   team=(lt&&lt.base===(savedTeam.updated||"")&&Array.isArray(lt.slots))?teamFrom(lt):teamFrom(savedTeam);
-  orig={players:teamIds(),coach:team.coach};
+  orig={players:teamIds(),coach:team.coach};start=tradeStart(D);
   P.forEach(p=>{p.sd=spreadOf(p);});
   // captain options: two best projections per day
   dayKeys.forEach(d=>P.filter(p=>p.day===d).sort((a,b)=>b.x-a.x).slice(0,2).forEach(p=>capOpt.add(p.id)));
@@ -1669,7 +1669,17 @@ function evalSquad(ids,coach){
   return {pts,nxt,cred,obj:pts+nxt+state.lam*cred,L,cap};
 }
 const cost=(ids,coach)=>ids.reduce((a,i)=>a+byId[i].price,0)+(coachByTeam[coach]?coachByTeam[coach].price:0);
-const trades=(ids,coach)=>ids.filter(i=>!orig.players.includes(i)).length+(coach!==orig.coach?1:0);
+// Trades count from the squad he had when this round's market opened (start), not from My team: a trade he already
+// saved this round is one of the 4. Re-trading a player he brought in (Faye → Nebo, then Nebo → Hayes) is still one trade;
+// bringing a sold player back frees it. start is null when the data has no squad for this round: count from My team.
+const trades=(ids,coach,b=start||orig)=>ids.filter(i=>!b.players.includes(i)).length+(coach!==b.coach?1:0);
+// the moves to make now on the official site: from My team to the proposal
+const moves=(ids,coach)=>trades(ids,coach,orig);
+// once trades are made this round a move can replace or undo one of them, so it is a "change", not a new trade
+const txWord=n=>(start&&trades(orig.players,orig.coach)?"change":"trade")+(n===1?"":"s");
+// start from data.json tradeBase: the squad that played the round before, written by the builder for this round
+const tradeStart=d=>{const b=d&&d.tradeBase;
+  return b&&b.round===d.round&&Array.isArray(b.players)&&b.players.length===10&&b.coach?{players:b.players,coach:b.coach}:null;};
 function clubOk(ids){const n={};for(const i of ids){const t=byId[i].team;n[t]=(n[t]||0)+1;if(n[t]>6)return false;}return true;}
 
 /* ---------- captain plan ----------
@@ -1726,12 +1736,12 @@ function withMode(mode,fn){
    W: {key (part of the optimiser cache key), data, P, C, dayKeys, look, orig, budget, maxT, lam, bar (the trade bar; null = as live)} */
 let roundKey="live",roundBar=null;
 function withRound(W,fn){
-  const live={D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED},keep={};
+  const live={D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED},keep={};
   const KEYS=["pins","avoids","coachPin","budget","maxT","lam"];KEYS.forEach(k=>keep[k]=state[k]);
   D=W.data;P=W.P;byId=Object.fromEntries(P.map(p=>[p.id,p]));C=W.C;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
-  orig=W.orig;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;TRADES_CLOSED=false;
+  orig=W.orig;start=W.start||null;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;TRADES_CLOSED=false;
   Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam});
-  try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED}=live);Object.assign(state,keep);}
+  try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED}=live);Object.assign(state,keep);}
 }
 let resultAlt=null;
 // Search score: the same number as evalSquad(ids,coach).obj at this lam, without building the lineup (the search calls it tens of thousands of times).
@@ -1819,7 +1829,7 @@ function searchPlan(lam){
     if(!best)break;
     S=best.T;if(best.c)coach=best.c;
   }
-  const base=S.slice(),baseCoach=coach,mine=new Set(orig.players);
+  const base=S.slice(),baseCoach=coach,mine=new Set((start||orig).players);
   // Any gain counts while searching. The squad usually spends the whole budget, so the best plan can start with a
   // downgrade that only pays off through the upgrades it funds. MIN_GAIN is checked on the finished plan instead.
   const EPS=1e-6;
@@ -1909,7 +1919,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,TRADES_CLOSED]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,TRADES_CLOSED]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -1921,7 +1931,8 @@ function optimise(){
   const sig=p=>p.S.slice().sort().join()+"|"+p.coach;
   const flat=STOPS.every(l=>sig(pickAt(l))===sig(pick));
   const {S,coach}=pick,bar=tradeBar();
-  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
+  // trades: the moves to make from My team; used: the round's trades counted from start, the ones made included
+  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:moves(S,coach),used:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
 }
 // "Just missed": for each kept player, the best single swap that would add something at this setting but stays under the bar.
 // Shown under the trades so it's clear why a better-projected player isn't proposed.
@@ -1943,9 +1954,17 @@ function nearMisses(S,coach,lim,lam,bar){
   });
   return out.sort((a,b)=>b.g-a.g).slice(0,3);
 }
-function tradePairs(R){
-  const tradesIn=R.S.filter(i=>!orig.players.includes(i));
-  const outs=orig.players.filter(i=>!R.S.includes(i));
+// the trades already made this round: start → My team, as names for the Trades card
+function madeTrades(){
+  if(!start)return {n:0,rows:[]};
+  const nm=i=>byId[i]?plink(byId[i],byId[i].short):"?";
+  const rows=tradePairs({S:orig.players},start).filter(([o,i])=>o!=null||i!=null).map(([o,i])=>[nm(o),nm(i),""]);
+  if(start.coach!==orig.coach){const c=t=>esc(coachByTeam[t]?coachByTeam[t].name:t);rows.push([c(start.coach),c(orig.coach),"Coach"]);}
+  return {n:trades(orig.players,orig.coach),rows};
+}
+function tradePairs(R,from=orig){
+  const tradesIn=R.S.filter(i=>!from.players.includes(i));
+  const outs=from.players.filter(i=>!R.S.includes(i));
   const pairs=[];
   tradesIn.forEach(i=>{const k=outs.findIndex(o=>byId[o]&&byId[o].pos===byId[i].pos);pairs.push([k>=0?outs.splice(k,1)[0]:null,i]);});
   outs.forEach(o=>pairs.push([o,null]));
@@ -2080,7 +2099,7 @@ function hero(){
 function modeBar(){
   const m=state.pmode==="m";
   const cur=result,alt=resultAlt;
-  const sum=(R)=>R?facts(`${R.ev.pts.toFixed(0)} pts`,`${R.trades} trade${R.trades===1?"":"s"}`):"";
+  const sum=(R)=>R?facts(`${R.ev.pts.toFixed(0)} pts`,`${R.trades} ${txWord(R.trades)}`):"";
   const q=m?alt:cur,mm=m?cur:alt;
   const btn=(v,n,t,sub,R)=>`<button type="button" class="pm${(v==="m")===m?" on":""}" data-pmode="${v}" aria-pressed="${(v==="m")===m}"><span class="pm-n">Proposal ${n}</span><b>${t}</b><small>${sub}</small>${R?`<span class="pm-k">${sum(R)}</span>`:""}</button>`;
   return `<div class="pmodes" role="group" aria-label="Proposal type">${btn("q",1,"Quality","Best players by projection and price growth",q)}${btn("m",2,"Matchups","Attacks this round's weak defences by position",mm)}</div>
@@ -2261,11 +2280,15 @@ function proposalParts(R){
   const num=(v,c)=>{v=r1(v);return `<span class="${v===0?"z":v<0&&c?"neg":c}">${fmt(v,1)}</span>`;};
   const was=(a,b,f)=>`<span class="was">${a?f(a):"–"} → ${b?f(b):"–"}</span>`;
   const tot={dp:0,dn:0,dc:0,fr:0};
+  // a row that changes a trade already made this round: it does not add a trade, it replaces or undoes that one
+  const madeNote=(p,side)=>{if(!start||p.id==null)return "";
+    const was=start.players.includes(p.id);
+    return side==="o"&&!was?`<small class="tx-own">Bought this round</small>`:side==="i"&&was?`<small class="tx-own">Sold, back in</small>`:"";};
   const row=(a,b,key,name,role,x)=>{
     // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
-    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}</span></span>`:`<span class="tx-p ${side}">—</span>`;
+    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}${madeNote(p,side)}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
     // grey out → in beside the bars: this round's projections, then next round's (the striped bar is half the difference)
     const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>(p.x2||0).toFixed(1),a)} → ${ow(p=>(p.x2||0).toFixed(1),b)}`;
@@ -2290,7 +2313,7 @@ function proposalParts(R){
   let capRow="";
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
     capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td><td></td></tr>`;}
-  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} trade${nTr===1?"":"s"}`)}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
+  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} ${txWord(nTr)}`)}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
   const laNote=LA?`<div class="rb-legend"><span><i></i>${rN}, this round</span><span><i class="h"></i>${rN2}, counts half</span><span class="rb-legend-w">Grey numbers, out → in: projected points in ${rN} and in ${rN2}</span></div>`
     :state.pmode==="m"&&!LOOK_ON?`<p class="note" style="margin:10px 0 0">Round ${D.round+1} is a free-trade window, so these trades are judged on this round only.</p>`:"";
   const noTrades=!pairs.length&&!coachChanged;
@@ -2302,16 +2325,19 @@ function proposalParts(R){
   const picks=kept.length||pinned.length||cp?`<div class="tx-picks"><span class="muted">Your picks</span>${kept.map(i=>pickChip(i,"Keep")).join("")}${pinned.map(i=>pickChip(i,"In:")).join("")}${coachChip}</div>`:"";
   const tr=`<div class="tx"><table><thead><tr><th>Out → In</th><th>Bank</th><th>${LA?`<span class="rb-h">Points over 2 rounds${rbInfo(rN,rN2)}</span><small>${rN2} counts half</small>`:"Projected points"}</th><th>Price rise</th><th><span class="sr">Remove</span></th></tr></thead><tbody>${rows}${capRow}</tbody>${foot}</table></div>${laNote}
     <div class="tx-act"><button type="button" class="btn-primary" data-apply>Apply trades to My team</button><span class="note">Also sets the turn-1 lineup and captain. Nothing is saved until you press Save on My team.</span></div>`;
+  // the trades he already saved on My team this round (from start): they count toward the limit
+  const made=madeTrades();
+  const madeBox=made.n?`<div class="near"><div class="near-h">Made this round <span>${made.n} of your ${state.maxT>=99?"trades":state.maxT+" trades"}</span></div>${made.rows.map(([a,b,lbl])=>`<div class="near-r"><span class="nm">${lbl?`<span class="muted">${lbl} </span>`:""}<b class="o">${a}</b> <span class="ar" aria-label="for">→</span> <b class="i">${b}</b></span></div>`).join("")}<p class="note" style="margin:0">They count toward the limit. A proposed trade can replace one of them (selling a player you bought this round is still that one trade) or undo one, which frees it.</p></div>`:"";
   const tiles=`
     <div class="tile"><div class="v">${E.pts.toFixed(0)}</div><div class="k">Projected round points</div></div>
     <div class="tile"><div class="v ${E.cred>=0?"pos":"neg"}">${fmt(E.cred,1)}<small> cr</small></div><div class="k">Expected price change</div></div>
     <div class="tile"><div class="v ${bank<0?"neg":""}">${bank.toFixed(1)}<small> cr</small></div><div class="k">${facts("Left in the bank",["Squad",R.cost.toFixed(1)])}</div></div>
-    ${TRADES_CLOSED?`<div class="tile"><div class="v">Closed</div><div class="k">Trades (round started)</div></div>`:`<div class="tile"><div class="v">${R.trades}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used</div></div>`}`;
+    ${TRADES_CLOSED?`<div class="tile"><div class="v">Closed</div><div class="k">Trades (round started)</div></div>`:`<div class="tile"><div class="v">${R.used}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used${made.n?`<br>${made.n} already made`:""}</div></div>`}`;
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
   const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>A trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
     return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?facts(["Now",fmt(r1(b.x-a.x),1)],["Next",fmt(r1(b.nx-a.nx),1)]):`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
   const trades=TRADES_CLOSED?`<div class="card ptrades"><h3>Trades</h3><div class="warnbox">${esc(D.roundLabel)} has started (first tip-off ${esc(dayShort(D.deadline))}). Trades are closed until the next round's deadline. You can only swap court and bench players, change the formation and move the captain. Only players who have not played yet come in or take the armband.</div></div>`
-    :`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${near}</div>`;
+    :`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${madeBox}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
   return {tiles,warn,trades,body};
 }
