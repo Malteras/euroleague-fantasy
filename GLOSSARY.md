@@ -37,7 +37,9 @@ A calendar week holding two rounds, so every club plays twice in a few days. Eac
 _Avoid_: Double round, double-game week
 
 **Trade**:
-Swapping one squad player, or the coach, for another before a round's deadline. Up to 4 per round.
+Swapping one squad player, or the coach, for another before a round's deadline. Up to 4 per round, counted from the squad
+when the round's market opened (data.json `tradeBase`): trades already saved on My team are part of the 4. Selling a player
+bought this round is still that one trade (Faye → Nebo, then Nebo → Hayes, is Faye → Hayes); bringing a sold player back frees it.
 _Avoid_: Transfer, swap
 
 **Free-trade window**:

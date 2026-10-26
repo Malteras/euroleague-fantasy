@@ -112,6 +112,15 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   snapshot (history/round-N.json) when the round is the same; the deadline is the round's first game day. A game of today
   that comes without its tip-off time keeps the time it had. Tests: tools/test_elbuild.py `RoundScheduleTest`.
 
+## 26 Oct 2026 · 3 more trades proposed after he had made his 4
+- **What:** he saved 4 Round 8 trades on My team (Faye → Nebo, Etienne → Madar, Ndiaye → Ricci, coach Masiulis → Navarro).
+  The site still showed "3 / 4 trades used" and proposed Nebo → Hayes, Davidovac → da Silva and Ricci → Frisch on top: 7 trades.
+- **Why:** the planner counted trades from My team, so every save started the count again at 0.
+- **Guard:** the builder writes `tradeBase` (the squad that played the round before, `trade_base()` in tools/elbuild.py);
+  `trades()` in index.html counts from it, so a re-trade of a player bought this round is still one trade and undoing a trade
+  frees it. The Trades card lists the trades made and marks rows that change one. Tests: tools/test_optimiser.mjs (the two
+  "made this round" tests) and tools/test_elbuild.py `TradeBaseTest`.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.

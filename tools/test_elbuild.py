@@ -139,6 +139,26 @@ class RoundScheduleTest(unittest.TestCase):
         self.assertIn('2026-10-24', turns)
 
 
+class TradeBaseTest(unittest.TestCase):
+    """Mon 26 Oct 2026, before Round 8's deadline: he had saved 4 trades and the planner proposed 3 more on top."""
+    PLAYED_R7 = {'players': [73, 91, 38, 165, 118, 8, 23, 185, 236, 361], 'coach': 'ZAL'}
+
+    def test_first_build_of_a_round_takes_the_squad_that_played_the_round_before(self):
+        old = {'round': 7, 'deadline': '2026-10-21', 'updated': '2026-10-23', 'squad': self.PLAYED_R7}
+        self.assertEqual(elbuild.trade_base(old, 8), {'round': 8, **self.PLAYED_R7, 'from': '2026-10-23'})
+
+    def test_kept_for_the_rest_of_the_round_whatever_he_saves(self):
+        base = {'round': 8, **self.PLAYED_R7, 'from': '2026-10-23'}
+        old = {'round': 8, 'updated': '2026-10-26', 'tradeBase': base,
+               'squad': {'players': [23, 38, 245, 165, 285, 361, 73, 118, 358, 185], 'coach': 'CZV'}}
+        self.assertEqual(elbuild.trade_base(old, 8), base)
+
+    def test_unknown_when_the_old_data_is_not_the_round_before(self):
+        self.assertIsNone(elbuild.trade_base({'round': 8, 'squad': self.PLAYED_R7}, 8))
+        self.assertIsNone(elbuild.trade_base({'round': 6, 'squad': self.PLAYED_R7}, 8))
+        self.assertIsNone(elbuild.trade_base({}, 8))
+
+
 class XptsJumpTest(unittest.TestCase):
     """The builder warns when a player's xPTS moved more than x2 from the deadline snapshot (#66)."""
     def test_flags_a_jump_or_a_drop_of_more_than_double(self):
