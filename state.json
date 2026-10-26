@@ -6,7 +6,7 @@
  "coachPin": null,
  "budget": 99.5,
  "maxT": 4,
- "lam": 20,
+ "lam": 60,
  "pos": "ALL",
  "day": "ALL",
  "sort": "price",
@@ -39,5 +39,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-26T18:24:44.066Z"
+ "savedAt": "2026-10-26T18:24:46.124Z"
 }
