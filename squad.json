@@ -1,43 +1,43 @@
 {
  "updated": "2026-10-27",
  "players": [
+  73,
   23,
   38,
   165,
-  313,
-  236,
-  245,
-  73,
   118,
-  202,
-  185
+  245,
+  358,
+  185,
+  285,
+  361
  ],
  "coach": "CZV",
- "bank": 0.1,
+ "bank": 0.9,
  "slots": [
+  73,
   23,
   38,
   165,
-  313,
-  236,
-  245,
-  73,
   118,
-  202,
-  185
+  245,
+  358,
+  185,
+  285,
+  361
  ],
  "cap": 23,
  "names": [
+  "Elijah Bryant",
   "Théo Maledon",
   "Andrés Feliz",
   "Semi Ojeleye",
-  "Tyrese Martin",
-  "Mouhamed Faye",
-  "Yam Madar",
-  "Elijah Bryant",
   "Aliou Diarra",
-  "Nikos Rogkavopoulos",
-  "Edwin Jackson"
+  "Yam Madar",
+  "Giampaolo Ricci",
+  "Edwin Jackson",
+  "Josh Nebo",
+  "Dejan Davidovac"
  ],
  "coachName": "Ibon Navarro"
 }
