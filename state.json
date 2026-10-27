@@ -18,7 +18,24 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
- "team": null,
+ "team": {
+  "slots": [
+   73,
+   23,
+   38,
+   165,
+   118,
+   91,
+   8,
+   185,
+   236,
+   361
+  ],
+  "coach": "ZAL",
+  "bank": 0.3,
+  "cap": 23,
+  "base": "2026-10-27"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -41,5 +58,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-27T09:19:21.822Z"
+ "savedAt": "2026-10-27T09:19:27.939Z"
 }
