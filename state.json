@@ -15,7 +15,7 @@
  "only": false,
  "tag": null,
  "dtab": "overview",
- "allGames": false,
+ "allGames": true,
  "collapsed": [],
  "form": null,
  "team": null,
@@ -41,5 +41,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-27T09:19:00.350Z"
+ "savedAt": "2026-10-27T09:19:15.575Z"
 }
