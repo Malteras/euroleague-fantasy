@@ -532,6 +532,8 @@ section{padding-block:28px 8px}
 .tl-warn{margin-top:8px;padding:7px 11px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:13.5px}
 @media (max-width:900px){.plan{grid-template-columns:1fr}}
 @media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.opt-chk,.field .opt-chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--fg);cursor:pointer}
+.opt-chk input{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:none}
 .mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
 .mt-over{margin:2px 0 14px;padding:12px 14px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft);color:var(--fg);font-size:14px;line-height:1.45}
 .mt-over>b{color:var(--bad)}.mt-over ul{margin:6px 0 0;padding-left:20px}.mt-over li{margin:2px 0}
@@ -936,7 +938,7 @@ function pickBtn(k,p,on){
   const P_=PICKS[k],mine=orig.players.includes(p.id),txt=mine?P_.mine:P_.other;
   return `<button type="button" class="ico ${k} has-tip${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On. Tap again to undo.</i>":""}</span></button>`;
 }
-let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
+let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,noInj:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -1060,6 +1062,9 @@ function nextRound(data,dayKeys){
 // Chance to play by injury status. Doubtful = "unlikely to play, but there is still a chance" (BasketNews); Day to day = a
 // knock that usually still lets him play. Any other status (Return, none) counts as fit.
 const PLAY_CHANCE={Out:0,Doubtful:.3,"Day to day":.75};
+// "Leave out injured and day-to-day players": nobody listed Out, Doubtful or Day to day is brought in by the proposal or
+// suggested as a replacement. Your own players stay where they are.
+const skipIn=p=>!!state.noInj&&p.status in PLAY_CHANCE&&!orig.players.includes(p.id);
 // The projections for one round's data: the live data.json, or a history/round-N.json snapshot. Touches no globals.
 function project(data){
   const turnOf={},oppOf={};
@@ -1404,7 +1409,7 @@ function suggestFor(slot){
   const oid=team.slots[slot],o=byId[oid];if(!o)return {o:null,list:[]};
   const others=teamIds().filter(i=>i!==oid),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
   const val=p=>p.x+state.lam*p.exp;
-  const list=P.filter(c=>c.pos===o.pos&&c.id!==oid&&!others.includes(c.id)&&!c.out&&c.price<=r1(o.price+team.bank)+1e-9&&(club[c.team]||0)<6
+  const list=P.filter(c=>c.pos===o.pos&&c.id!==oid&&!others.includes(c.id)&&!c.out&&!skipIn(c)&&c.price<=r1(o.price+team.bank)+1e-9&&(club[c.team]||0)<6
       &&!overLimit(others.concat(c.id),team.coach))
     .map(c=>({c,score:r1(val(c)-val(o)),dt:start?swapTrades(teamIds(),team.coach,oid,c.id,start):0})).sort((a,b)=>b.score-a.score).slice(0,6)
     .map(x=>({...x,why:reasons(x.c,o)}));
@@ -1789,10 +1794,10 @@ function withMode(mode,fn){
 let roundKey="live",roundBar=null;
 function withRound(W,fn){
   const live={D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED},keep={};
-  const KEYS=["pins","avoids","coachPin","budget","maxT","lam"];KEYS.forEach(k=>keep[k]=state[k]);
+  const KEYS=["pins","avoids","coachPin","budget","maxT","lam","noInj"];KEYS.forEach(k=>keep[k]=state[k]);
   D=W.data;P=W.P;byId=Object.fromEntries(P.map(p=>[p.id,p]));C=W.C;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   orig=W.orig;start=W.start||null;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;TRADES_CLOSED=false;
-  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam});
+  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam,noInj:false});
   try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED}=live);Object.assign(state,keep);}
 }
 let resultAlt=null;
@@ -1827,7 +1832,7 @@ function searchPlan(lam){
   const B=state.budget,maxT=closed?0:state.maxT;
   let S=orig.players.filter(i=>byId[i]);let coach=orig.coach;
   const warnings=[];
-  const pool=P.filter(p=>!avoids.has(p.id));
+  const pool=P.filter(p=>!avoids.has(p.id)&&!skipIn(p));
   const obj=(ids,c)=>quickObj(ids,c,lam);
   // A new coach must win this round at least as often as yours: never lose this round's coach game for credits or for next round.
   // A coach you pin yourself is your call.
@@ -1971,7 +1976,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,TRADES_CLOSED]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,TRADES_CLOSED]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -1996,7 +2001,7 @@ function nearMisses(S,coach,lim,lam,bar){
     if(locked.has(o)||!mine.has(o))return;
     const po=byId[o];let best=null;
     for(const q of P){
-      if(q.pos!==po.pos||q.out||avoids.has(q.id)||S.includes(q.id))continue;
+      if(q.pos!==po.pos||q.out||avoids.has(q.id)||S.includes(q.id)||skipIn(q))continue;
       const T=S.slice();T[k]=q.id;
       if(cost(T,coach)>B+1e-9||!clubOk(T))continue;
       const g=quickObj(T,coach,lam)-cur;
@@ -2295,7 +2300,9 @@ function proposal(){
   const parts=proposalParts(result);
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
-    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}</div></div>
+    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}</div>
+      <label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured and day-to-day players</label>
+      <div class="note">Nobody listed Out, Doubtful or Day to day in the latest injury news comes in. Your own players stay.</div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
@@ -3451,6 +3458,7 @@ function bind(){
   }
   document.querySelectorAll("[data-stop]").forEach(b=>b.onclick=()=>{state.lam=STOPS[+b.dataset.stop];rerender();});
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
+  const ni=$("#noInj");if(ni)ni.onchange=()=>{state.noInj=ni.checked;rerender();};
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
   const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
