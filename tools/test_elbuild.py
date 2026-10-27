@@ -179,6 +179,12 @@ class TradeBaseTest(unittest.TestCase):
         old = {'round': 7, 'deadline': '2026-10-21', 'updated': '2026-10-23', 'squad': self.PLAYED_R7}
         self.assertEqual(elbuild.trade_base(old, 8), {'round': 8, **self.PLAYED_R7, 'from': '2026-10-23'})
 
+    def test_the_bank_when_the_market_opened_is_kept_too(self):
+        # 27 Oct: a bank 0.1 too high on My team let the proposal spend credits he did not have; with the bank of the
+        # squad that played Round 7, the team value during the market is known (prices do not move then)
+        old = {'round': 7, 'deadline': '2026-10-21', 'updated': '2026-10-23', 'squad': self.PLAYED_R7, 'lineup': {'bank': 0.3}}
+        self.assertEqual(elbuild.trade_base(old, 8), {'round': 8, **self.PLAYED_R7, 'bank': 0.3, 'from': '2026-10-23'})
+
     def test_kept_for_the_rest_of_the_round_whatever_he_saves(self):
         base = {'round': 8, **self.PLAYED_R7, 'from': '2026-10-23'}
         old = {'round': 8, 'updated': '2026-10-26', 'tradeBase': base,
