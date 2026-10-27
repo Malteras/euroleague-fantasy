@@ -27,7 +27,7 @@ function dotsByPlace() {
 // delete the entry; a dot in a new place, or one more in an old place, fails here. Use facts() instead.
 const LEFT = {
   // part 6: Round report, Bottom line, watch list, injury news, game tooltips, coaches
-  coaches: 6, bottomLine: 3, report: 13, results: 2, alertBox: 1, gameInfo: 4, gameTipHtml: 3, watchBox: 11,
+  coaches: 6, bottomLine: 3, report: 13, results: 2, alertBox: 1, gameInfo: 4, gameTipHtml: 2, watchBox: 11,
 };
 
 test("no new middle dots: every dot left is on the list, and the list is up to date", () => {

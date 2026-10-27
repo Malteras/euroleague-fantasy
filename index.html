@@ -3258,13 +3258,13 @@ function gameInfo(g,x,rnd){
   return {when:`${head}${res?" · "+res:""}`,pts:`${g.fpt} points`,
     vs:x!=null?`${x} projected${pct!=null?` · ${sg(pct)}${Math.abs(pct)}%`:""}`:"No projection on record",
     cr:g.cr!=null?`${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr value`:null,
-    head,res,win:m?m[1]==="W":null,pct,crN:g.cr??null};
+    head,res,win:m?m[1]==="W":null,proj:x??null,pct,pctTxt:pct!=null?`${sg(pct)}${Math.abs(pct)}%`:null,crN:g.cr??null};
 }
 // The same as the site's tooltip, in colour: green for a win, points above the projection, a gain; red for the opposite.
 // Points are judged only against a projection on record; zero is neither colour.
 function gameTipHtml(t){
   const c=v=>v>0?' class="tg-up"':v<0?' class="tg-dn"':"",em=(v,txt)=>v?`<em${c(v)}>${esc(txt)}</em>`:esc(txt);
-  const vs=t.pct!=null?esc(t.vs.slice(0,t.vs.lastIndexOf(" · ")+3))+em(t.pct,t.vs.slice(t.vs.lastIndexOf(" · ")+3)):esc(t.vs);
+  const vs=t.pct!=null?esc(`${t.proj} projected · `)+em(t.pct,t.pctTxt):esc(t.vs);
   return `<span class="tip tip-pick" role="tooltip"><small>${esc(t.head)}${t.res?` · ${em(t.win?1:-1,t.res)}`:""}</small>`
     +`<b${t.pct?c(t.pct):""}>${esc(t.pts)}</b><span>${vs}</span>${t.cr?`<i>${em(t.crN,t.cr)}</i>`:""}</span>`;
 }

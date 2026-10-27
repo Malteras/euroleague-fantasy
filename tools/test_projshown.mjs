@@ -80,10 +80,10 @@ test("tipPick: the site's tooltip (context, title, text, footer), escaped, never
 test("a Last 5 bar: date, opponent, result from his side, points vs projection when on record, credit change", () => {
   const away = { d: "2026-10-16", opp: "PAO", ha: "A", res: "W 81-91", fpt: 23.1, cr: 0.3 };
   assert.deepEqual(gameInfo(away, null, 6), { when: "R6 · Fri 16 Oct · @ PAO · W 91–81", pts: "23.1 points", vs: "No projection on record", cr: "+0.3 cr value",
-    head: "R6 · Fri 16 Oct · @ PAO", res: "W 91–81", win: true, pct: null, crN: 0.3 });
+    head: "R6 · Fri 16 Oct · @ PAO", res: "W 91–81", win: true, proj: null, pct: null, pctTxt: null, crN: 0.3 });
   const home = { d: "2026-10-21", opp: "VIR", ha: "H", res: "W 90-81", fpt: 14.3, cr: -0.2 };
   assert.deepEqual(gameInfo(home, 22.4, 7), { when: "R7 · Wed 21 Oct · vs VIR · W 90–81", pts: "14.3 points", vs: "22.4 projected · −36%", cr: "−0.2 cr value",
-    head: "R7 · Wed 21 Oct · vs VIR", res: "W 90–81", win: true, pct: -36, crN: -0.2 });
+    head: "R7 · Wed 21 Oct · vs VIR", res: "W 90–81", win: true, proj: 22.4, pct: -36, pctTxt: "−36%", crN: -0.2 });
   assert.equal(gameInfo({ ...home, cr: 0, fpt: 22.4 }, 22.4).vs, "22.4 projected · 0%");
   assert.equal(gameInfo({ ...home, cr: 0 }, 22.4).cr, "0.0 cr value");
   assert.equal(gameInfo(home, 22.4, null).when, "Wed 21 Oct · vs VIR · W 90–81"); // round unknown: left out, never guessed
