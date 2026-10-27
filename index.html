@@ -638,6 +638,7 @@ html.locked,html.locked body{overflow:hidden}
 .ico .tip-pick b,.has-tip>.tip-pick b{font-family:var(--display);font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:1px 0 3px}
 .ico .tip-pick i,.has-tip>.tip-pick i{display:block;margin-top:6px;padding-top:6px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent);font-size:12px;opacity:.8}
 .ptag.has-tip{position:relative;cursor:help}
+.dtd.has-tip{cursor:help}
 .ptag .tip{text-transform:none;letter-spacing:normal;white-space:normal;width:260px}
 /* next game strip under the tags */
 .ng{display:grid;gap:5px}
@@ -1062,6 +1063,12 @@ function nextRound(data,dayKeys){
 // Chance to play by injury status. Doubtful = "unlikely to play, but there is still a chance" (BasketNews); Day to day = a
 // knock that usually still lets him play. Any other status (Return, none) counts as fit.
 const PLAY_CHANCE={Out:0,Doubtful:.3,"Day to day":.75};
+// An injury status as the site shows it (#59): "Day to day" is DTD, with the site's tooltip saying what it means. The data
+// keeps "Day to day" (elbuild.py writes it, PLAY_CHANCE is keyed on it). cls: the classes of the box around it, if any.
+const stTxt=s=>s==="Day to day"?"DTD":s;
+const dtdWhat=()=>`Day to day: he may play; decided close to the game. The site counts ${Math.round(PLAY_CHANCE["Day to day"]*100)}% of his projection.`;
+const stHtml=(s,cls="")=>s==="Day to day"?`<span class="${cls?cls+" ":""}dtd has-tip" tabindex="0">DTD${tipPick("Injury news","DTD",dtdWhat())}</span>`
+  :cls?`<span class="${cls}">${esc(s)}</span>`:esc(s);
 // "Leave out injured and day-to-day players": nobody listed Out, Doubtful or Day to day is brought in by the proposal or
 // suggested as a replacement. Your own players stay where they are.
 const skipIn=p=>!!state.noInj&&p.status in PLAY_CHANCE&&!orig.players.includes(p.id);
@@ -1447,7 +1454,7 @@ function reasons(c,o){
   if(kc>ko&&ko>=0)R.push(`Plays later (${turnOf2(c.day)}), so you see more scores before you decide.`);
   else if(kc<ko&&kc>=0)R.push(`Plays earlier (${turnOf2(c.day)}): a possible early captain.`);
   if(c.log[0]&&c.log[0].min<15)R.push(`Risk: only ${c.log[0].min} min last game.`);
-  if(c.status)R.push(`Status: ${esc(c.status)}.`);
+  if(c.status)R.push(`Status: ${stHtml(c.status)}.`);
   return R;
 }
 function compareTable(o,c){
@@ -1568,7 +1575,7 @@ function teamPanel(){
     <div class="tp-card"><h4>Form</h4><div class="tp-form">${form||'<span class="note">No games yet.</span>'}</div>${next?`<h4 style="margin-top:12px">Next EuroLeague games</h4><ul class="tp-next">${next}</ul>`:""}</div>
     <div class="tp-card"><h4>Best fantasy players</h4>${pl(top)}</div>
     ${risers.length?`<div class="tp-card"><h4>Cheap risers (9 cr or less)</h4>${pl(risers)}</div>`:""}
-    ${outs.length?`<div class="tp-card"><h4>Injuries</h4><p class="tp-line">${outs.map(p=>`${plink(p,p.short)} <span class="tag ${esc(p.status)}">${esc(p.status)}</span>`).join(" ")}</p></div>`:""}
+    ${outs.length?`<div class="tp-card"><h4>Injuries</h4><p class="tp-line">${outs.map(p=>`${plink(p,p.short)} ${stHtml(p.status,`tag ${esc(p.status)}`)}`).join(" ")}</p></div>`:""}
    </div></aside>`;
 }
 // teamOrder:begin
@@ -1629,7 +1636,7 @@ function tagsFor(p){
   const T=[];const mine=orig.players.includes(p.id);
   const l2=avg(p.log.slice(0,2).map(g=>g.fpt));
   const dA=avg(domRecent(p).map(g=>g.pir));
-  if(p.out)T.push(["Out","bad"]);else if(p.status)T.push([p.status,"warn"]);
+  if(p.out)T.push(["Out","bad"]);else if(p.status)T.push([stTxt(p.status),"warn"]);
   if(alertOf(p))T.push(["Status changed","warn"]);
   if(mine){
     if(p.out||p.exp<=-0.25||(l2!=null&&l2<p.be-4&&p.exp<0))T.push(["Consider dropping","bad"]);
@@ -1651,13 +1658,13 @@ function tagsFor(p){
 // tagFilter:begin
 // The Player market tag filter. Rise tags carry their percentage, so they group as one. A filter saved before the
 // tags lost their dots (#61) is read under the new name.
-const TAG_RENAMED={"Keep \u00b7 gaining":"Keep: gaining","Keep \u00b7 price steady":"Keep: price steady","Buy low \u00b7 back":"Buy low: back"};
+const TAG_RENAMED={"Keep \u00b7 gaining":"Keep: gaining","Keep \u00b7 price steady":"Keep: price steady","Buy low \u00b7 back":"Buy low: back","Day to day":"DTD"};
 const tagKey=t=>/^Rise /.test(t)?"Rise %":TAG_RENAMED[t]||t;
 const hasTag=(p,k)=>!k||p.tags.some(t=>tagKey(t[0])===k);
 function tagCounts(P){const n={};P.forEach(p=>new Set(p.tags.map(t=>tagKey(t[0]))).forEach(k=>n[k]=(n[k]||0)+1));
   return Object.entries(n).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));}
 // tagFilter:end
-const tagHtml=(p,n=3)=>p.tags.slice(0,n).map(([t,c])=>`<span class="ptag ${c}">${esc(t)}</span>`).join("");
+const tagHtml=(p,n=3)=>p.tags.slice(0,n).map(([t,c])=>t==="DTD"?stHtml("Day to day",`ptag ${c}`):`<span class="ptag ${c}">${esc(t)}</span>`).join("");
 // What each tag means, for its tooltip in the player panel: [what it is about, the rule in plain words, this player's numbers]. Same thresholds as tagsFor.
 function tagTip(p,t){
   // once he has played this round, his real credit change from the game, never the estimate (CLAUDE.md rule 7)
@@ -1665,11 +1672,12 @@ function tagTip(p,t){
   const ex=done?`Value ${fmt(crShown(p))} cr from this game`:`Expected ${fmt(r1(p.exp))} cr after this round`,pb=[projOf(p).replace(/^proj/,"Projection"),`break-even ${p.be}`],mu=matchup(p);
   const opp=p.opp&&TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:"His opponent",pos=POSN[p.pos].toLowerCase()+"s";
   if(/^Rise /.test(t))return ["Price",`FantaSheet gives him a ${Math.round(p.rise)}% chance of a price rise after this round.`,ex];
-  if(t===p.status&&!p.out)return ["Injury news",`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
+  if(t===stTxt(p.status)&&!p.out)return ["Injury news",t==="DTD"?dtdWhat():`Listed as ${t.toLowerCase()} in the latest injury news.`,null];
   if(t==="Buy low: back"){const a=p.abs,g=a.missed===1?"game":"games";
     return ["Price",`He missed ${a.missed} of his club's recent EuroLeague ${g} and is back. His price has fallen ${a.drop.toFixed(1)} cr since then (a round without him costs 0.1 cr), while his ${a.usualSrc==="before"?"average before the absence":"PIR last season"} still reaches his break-even.`,
       [`${a.before.toFixed(1)} → ${p.price.toFixed(1)} cr`,`${a.usualSrc==="before"?"average before":"last season"} ${a.usual} vs break-even ${p.be}`,crx]];}
-  if(t==="Status changed"){const a=alertOf(p);return ["Injury news",`${a.from} → ${a.to} since the last daily report.`,[a.src,fmtDate(a.d)]];}
+  if(t==="Status changed"){const a=alertOf(p),dtd=[a.from,a.to].includes("Day to day");
+    return ["Injury news",`${stTxt(a.from)} → ${stTxt(a.to)} since the last daily report.${dtd?" "+dtdWhat():""}`,[a.src,fmtDate(a.d)]];}
   return ({
     "Out":["Injury news","Listed out for this round's game.",null],
     "Consider dropping":["In your squad","He is out, his price is expected to fall by 0.25 cr or more, or his last two games averaged over 4 points under break-even while his price is falling.",ex],
@@ -2242,7 +2250,7 @@ function drawer(){
   const stats=[["Price",p.price.toFixed(1)+" cr",(p.chg!=null?fmt(p.chg):"")+" last round"],["Last 3 FPT",p.l3??"–","last 3 EuroLeague games"],["Season FPT",p.fpt??"–",`${p.gp} games`],["PIR avg",p.pir??"–",p.pir2526!=null?`25-26: ${p.pir2526}`:""],["Minutes",p.min??"–","per game"],["Pts / Reb / Ast",`${p.pts??"–"} / ${p.reb??"–"} / ${p.ast??"–"}`,"per game"]];
   const inner=`
    <div class="dr-top" style="--tc:${TEAMS[p.team][1]}"><button type="button" class="dr-x" data-close aria-label="Close">✕</button>
-    <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="dr-nmrow"><h3>${esc(p.name)}</h3>${icos}</div><div class="muted">${facts(tname(p.team),POSN[p.pos],p.status&&`<b class="neg">${esc(p.status)}</b>`,["Owned",p.pop!=null?ownTxt(p):null])}</div></div></div>
+    <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="dr-nmrow"><h3>${esc(p.name)}</h3>${icos}</div><div class="muted">${facts(tname(p.team),POSN[p.pos],p.status&&`<b class="neg">${stHtml(p.status)}</b>`,["Owned",p.pop!=null?ownTxt(p):null])}</div></div></div>
     <div class="ptags">${tagTipHtml(p)}</div>
     ${nextGame}
    </div>
@@ -2319,8 +2327,8 @@ function proposal(){
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
     <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}</div>
-      <label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured and day-to-day players</label>
-      <div class="note">Nobody listed Out, Doubtful or Day to day in the latest injury news comes in. Your own players stay.</div></div>
+      <label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured and ${stHtml("Day to day")} players</label>
+      <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
@@ -2743,7 +2751,7 @@ function market(){
   <select id="sort" aria-label="Sort by">${[["x","Projection"],["exp","Expected price change"],["val","Points per credit"],["price","Price"],["min","Minutes"],["pop","Ownership"]].map(([v,l])=>`<option value="${v}" ${state.sort===v?"selected":""}>Sort: ${l}</option>`).join("")}</select>
   <button type="button" class="chip-toggle${state.only?" on":""}" id="only" aria-pressed="${state.only}">My squad &amp; picks</button>
   <select id="tagf" aria-label="Filter by tag"><option value="">Any tag</option>${(()=>{const tc=tagCounts(P);if(state.tag&&!tc.some(([k])=>k===state.tag))tc.push([state.tag,0]);
-    return tc.map(([k,n])=>`<option value="${esc(k)}" ${state.tag===k?"selected":""}>${esc(k)} (${n})</option>`).join("");})()}</select>
+    return tc.map(([k,n])=>`<option value="${esc(k)}" ${state.tag===k?"selected":""}>${esc(k==="DTD"?"DTD, may play":k)} (${n})</option>`).join("");})()}</select>
   ${(state.pins.length||state.avoids.length||state.coachPin)?'<button type="button" class="chip-toggle" id="clear">Clear picks</button>':""}</div>
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
 }
@@ -2929,7 +2937,7 @@ function blItems(o){
       detail:[["pts",`${sum.toFixed(1)} pts`],["",` projected from the five\n${L.form.join("-")}${L.six?`, 6th man ${L.six.short}`:""}`]]});}
   // every check is due before trades close: after the deadline the squad is fixed, so there is nothing left to decide
   o.checks.forEach(k=>items.push({id:`${o.round}:check:${k.p.id}`,kind:"check",title:`Check ${k.p.short} before ${o.deadline}`,ps:[k.p],
-    detail:[["pts",`${k.p.x.toFixed(1)} pts`],["",` at risk: ${k.why}${k.swap?`\nIf he is out, start ${k.swap.short}`:""}`]]}));
+    detail:[["pts",`${k.p.x.toFixed(1)} pts`],[""," at risk: "],...k.why,["",k.swap?`\nIf he is out, start ${k.swap.short}`:""]].filter(([c,t])=>c||t)}));
   return items;
 }
 // The routine's "Credit gainers to watch: Name (CLUB, price) why; …" line as rows; text when it can't be split; null when there is none.
@@ -2965,7 +2973,8 @@ function blInputs(){
       const tr=trades.find(t=>t.in.id===x.p.id);if(tr&&!tr.ifOut)tr.ifOut=x.t;});
     // one status check per player: injury status first, then a sat-out game with injury news
     const seen=new Set(),checks=[];
-    const why=x=>x.kind==="status"?x.st+(x.inj&&x.inj.reason?` (${x.inj.reason})`:""):`sat out ${fmtShort(x.sat)}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`;
+    // detail parts: [class, text]; "st" is an injury status (shown as DTD for Day to day)
+    const why=x=>x.kind==="status"?[["st",x.st],["",x.inj&&x.inj.reason?` (${x.inj.reason})`:""]]:[["",`sat out ${fmtShort(x.sat)}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`]];
     ["status","rest"].forEach(k=>W.filter(x=>x.kind===k&&(k!=="rest"||x.inj)).forEach(x=>{
       if(seen.has(x.p.id))return;seen.add(x.p.id);
       const swap=starters.has(x.p.id)?subs.filter(q=>!q.out&&q.day>=x.p.day).sort((a,b)=>b.x-a.x)[0]||null:null;
@@ -3007,7 +3016,7 @@ function blLiveItems(LR){
   items.push({id:`${R}:live:lineup:${nd}:${court.map(p=>p.id).join(",")}`,kind:"lineup",turn:nd,title:`Lineup before ${dayWhen(nd)}`,ps:court.concat(six?[six]:[]),
     detail:[["",`Still to play on court: ${court.map(p=>p.short).join(", ")||"nobody yet"}${six?`, 6th man ${six.short}`:""}${locked?`\nAlready played: ${locked}`:""}`]]});
   watchItems().filter(x=>x.kind==="status"&&unplayed(x.p)&&LR.sl.includes(x.p)&&x.p.day===nd).forEach(x=>items.push({id:`${R}:live:check:${x.p.id}`,kind:"check",turn:nd,
-    title:`Check ${x.p.short} before ${dayShort(x.p.day)}`,ps:[x.p],detail:[["",`${x.st}${x.inj&&x.inj.reason?` (${x.inj.reason})`:""}`]]}));
+    title:`Check ${x.p.short} before ${dayShort(x.p.day)}`,ps:[x.p],detail:[["st",x.st],...(x.inj&&x.inj.reason?[["",` (${x.inj.reason})`]]:[])]}));
   // later turns: what is known now, and what waits for the games before them
   dayKeys.filter(d=>d>nd).forEach(d=>{
     const c=W.calls.find(c=>c.kind==="if"&&c.day===d);
@@ -3045,7 +3054,7 @@ function bottomLine(){
   // wait items are not to-dos yet: they count once their games are played and they become real items
   const act=items.filter(i=>i.kind!=="wait"),n=act.filter(i=>done.has(i.id)).length,all=n===act.length&&act.length===items.length;
   const title=it=>{let h=esc(it.title);(it.ps||[]).filter(p=>p.pos).forEach(p=>{h=h.replace(esc(p.short),plink(p,p.short));});return h;};
-  const det=it=>it.detail.map(([c,t])=>c?`<span class="${c==="pts"?"bl-pts":"bl-cr"}">${esc(t)}</span>`:esc(t)).join("");
+  const det=it=>it.detail.map(([c,t])=>c==="st"?stHtml(t):c?`<span class="${c==="pts"?"bl-pts":"bl-cr"}">${esc(t)}</span>`:esc(t)).join("");
   const row=it=>it.kind==="wait"?`<div class="bl-i bl-wait"><span class="bl-w" aria-hidden="true">…</span><span><b>${title(it)}</b><small>${det(it)}</small></span></div>`
     :`<label class="bl-i${it.kind==="check"?" bl-al":""}${done.has(it.id)?" done":""}"><input type="checkbox" data-bl="${esc(it.id)}" id="bl-${esc(it.id)}"${done.has(it.id)?" checked":""}><span><b>${title(it)}</b><small>${det(it)}</small></span></label>`;
   // during a round: one section per turn still to play, and the progress line names each turn, never "the round is done"
@@ -3189,7 +3198,7 @@ function alertBox(){
   const A=(D.alerts||[]).filter(a=>orig.players.includes(a.id));
   if(!A.length)return "";
   return `<section class="al" aria-labelledby="alertH"><h2 id="alertH">Status changed</h2><ul>${A.map(a=>{const p=byId[a.id];
-    return `<li>${p?plink(p):`<b>${esc(a.name)}</b>`} <span><b>${esc(a.from)}</b> → <b>${esc(a.to)}</b></span><small>${facts(esc(a.src),esc(fmtDate(a.d)))}</small></li>`;}).join("")}</ul></section>`;
+    return `<li>${p?plink(p):`<b>${esc(a.name)}</b>`} <span><b>${stHtml(a.from)}</b> → <b>${stHtml(a.to)}</b></span><small>${facts(esc(a.src),esc(fmtDate(a.d)))}</small></li>`;}).join("")}</ul></section>`;
 }
 // The daily report's injury list ({name, team, status, reason, ret, src}), matched by name + team. Older data has none.
 const injuryOf=p=>(D.injuries||[]).find(x=>x.name===p.name&&x.team===p.team)||null;
@@ -3346,7 +3355,7 @@ function watchBox(){
     if(x.kind==="status")return [x.incoming?`Check before you bring him in${x.out?` for ${sh(x.out)}`:""}`:"Bench or trade if not back",""];
     return [`Check he plays ${day(x.p)}`,""];};
   const callHtml=x=>{const [a,b]=call(x);return `${a}${b?`<small>${b}</small>`:""}`;};
-  const tag=(t,c)=>`<span class="wt-t ${c}">${esc(t)}</span>`;
+  const tag=(t,c)=>stHtml(t,`wt-t ${c}`);
   const newsDate=x=>x.inj&&x.inj.src?x.inj.src:`news ${fmtShort((D.report&&D.report.date)||D.updated)}`;
   const mid=x=>x.kind==="status"
     ?facts(`${tag(x.st,/^out$/i.test(x.st)?"bad":"warn")}${x.inj&&x.inj.reason?" "+tag(x.inj.reason,"bad"):""}`,x.inj&&x.inj.ret&&`<span class="wt-day">back ${esc(x.inj.ret)}</span>`,
@@ -3377,7 +3386,7 @@ function newsPanel(){
   const clubs={};list.forEach(x=>{(clubs[x.team]=clubs[x.team]||[]).push(x);});
   const order=Object.keys(clubs).sort((a,b)=>clubs[b].length-clubs[a].length||(TEAMS[a]||[a])[0].localeCompare((TEAMS[b]||[b])[0]));
   const chip=x=>{const p=x.p,mine=p&&orig.players.includes(p.id),st=String(x.st);
-    return `<li class="ab${mine?" mine-ab":""}"><span class="ab-pos">${p?p.pos:"–"}</span>${p?plink(p):esc(x.name)}${p?`<small>${p.price.toFixed(1)}</small>`:""}${/^out$/i.test(st)?"":`<span class="tag ${esc(st)}">${esc(st)}</span>`}</li>`;};
+    return `<li class="ab${mine?" mine-ab":""}"><span class="ab-pos">${p?p.pos:"–"}</span>${p?plink(p):esc(x.name)}${p?`<small>${p.price.toFixed(1)}</small>`:""}${/^out$/i.test(st)?"":stHtml(st,`tag ${esc(st)}`)}</li>`;};
   const groups=order.map(t=>`<div class="ab-club"><div class="ab-h">${badge(t)}<b>${esc((TEAMS[t]||[t])[0])}</b><span>${clubs[t].length}</span></div><ul>${clubs[t].map(chip).join("")}</ul></div>`).join("");
   const other=(D.news||[]).filter(n=>!/^(Out|Doubtful|Injury|Injured)$/i.test(n.tag));
   return `<div class="panel news-card">

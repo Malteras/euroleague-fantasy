@@ -67,6 +67,11 @@ the round is finished.
 _Avoid_: showing his score or this round's projection under Proj.
 _Avoid_: xPTS (that is FantaSheet's input to it), prediction
 
+**DTD** (Day to day):
+An injury status: he may play; it is decided close to the game. The planner counts 75% of his projection (`PLAY_CHANCE`
+in index.html). The data keeps "Day to day"; the site shows DTD, with this meaning in its tooltip.
+_Avoid_: writing "Day to day" out on the site
+
 **Matchup**:
 How much the opponent lets a player's position score, as a percentage above or below an average team.
 _Avoid_: Score spread, fixture difficulty
