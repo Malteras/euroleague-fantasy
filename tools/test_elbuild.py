@@ -47,6 +47,38 @@ class OfficialScoresTest(unittest.TestCase):
         self.assertEqual(p['log'], [])
 
 
+class OfficialNextTest(unittest.TestCase):
+    # 27 Oct 2026: Sofascore refused every request, so no club had a next game and Round 9 read "no game found" for all
+    def games(self):
+        g = lambda rnd, utc, loc, road, played=False: {'round': rnd, 'utcDate': utc, 'played': played,
+            'local': {'club': {'code': loc, 'name': {'VIR': 'Virtus Bologna', 'BES': 'Besiktas', 'DUB': 'Dubai Basketball',
+                                                     'PRS': 'Paris Basketball', 'ZAL': 'Zalgiris Kaunas'}[loc]}},
+            'road': {'club': {'code': road, 'name': {'BES': 'Besiktas', 'PRS': 'Paris Basketball', 'ZAL': 'Zalgiris Kaunas',
+                                                     'VIR': 'Virtus Bologna'}[road]}}}
+        return [g(9, '2026-10-30T19:30:00Z', 'VIR', 'BES'), g(8, '2026-10-27T16:00:00Z', 'DUB', 'PRS'),
+                g(8, '2026-10-28T19:30:00Z', 'VIR', 'ZAL'), g(7, '2026-10-21T18:00:00Z', 'ZAL', 'VIR', True)]
+
+    def test_unplayed_games_in_order_in_banja_luka_time_with_club_codes(self):
+        nxt = elbuild.official_next(self.games())
+        self.assertEqual(nxt['VIR'], [
+            {'d': '2026-10-28', 't': '20:30', 'comp': 'EuroLeague R8', 'el': True, 'opp': 'Zalgiris Kaunas', 'ha': 'H', 'oc': 'ZAL'},
+            {'d': '2026-10-30', 't': '20:30', 'comp': 'EuroLeague R9', 'el': True, 'opp': 'Besiktas', 'ha': 'H', 'oc': 'BJK'}])
+        self.assertEqual(nxt['PBB'], [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague R8', 'el': True,
+                                       'opp': 'Dubai Basketball', 'ha': 'A', 'oc': 'DUB'}])
+
+    def test_fills_only_clubs_without_a_euroleague_game_and_gives_tip_off_times(self):
+        team_next = {'VIR': [], 'DUB': [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague', 'el': True, 'opp': 'Paris', 'ha': 'H'}],
+                     'ZAL': [{'d': '2026-10-25', 't': '18:00', 'comp': 'LKL', 'el': False, 'opp': 'Rytas', 'ha': 'A'}]}
+        times = {}
+        filled = elbuild.fill_next(team_next, times, elbuild.official_next(self.games()))
+        self.assertEqual(sorted(filled), ['BJK', 'PBB', 'VIR', 'ZAL'])
+        self.assertEqual([g['oc'] for g in team_next['VIR']], ['ZAL', 'BJK'])
+        self.assertEqual(team_next['DUB'][0]['opp'], 'Paris')  # Sofascore's list is kept when it has a EuroLeague game
+        self.assertEqual([g['d'] for g in team_next['ZAL']], ['2026-10-28'])
+        self.assertEqual(times['2026-10-27|DUB'], '17:00')
+        self.assertEqual(times['2026-10-28|VIR'], '20:30')
+
+
 class ParsePlayerTest(unittest.TestCase):
     def parse(self, header):
         with tempfile.TemporaryDirectory() as d:
