@@ -6,7 +6,7 @@
   8
  ],
  "coachPin": null,
- "budget": 99.5,
+ "budget": 99.6,
  "maxT": 4,
  "lam": 60,
  "noInj": true,
@@ -32,7 +32,7 @@
    285,
    361
   ],
-  "coach": "ZAL",
+  "coach": "CZV",
   "bank": 0.9,
   "cap": 23,
   "base": "2026-10-27"
@@ -59,5 +59,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-27T09:25:26.537Z"
+ "savedAt": "2026-10-27T09:25:28.190Z"
 }
