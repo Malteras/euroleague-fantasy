@@ -334,7 +334,10 @@ def trade_base(old, rnd):
         if old.get('deadline') and old.get('updated', '') <= old['deadline']:
             print(f"WARNING tradeBase for round {rnd} from data of {old.get('updated')}, before round {old['round']}'s deadline: "
                   'trades saved after it are not in it')
-        return {'round': rnd, 'players': list(sq['players']), 'coach': sq['coach'], 'from': old.get('updated')}
+        # its bank too: prices do not move during the market, so this squad plus this bank is the team value until the deadline
+        bank = (old.get('lineup') or {}).get('bank')
+        return {'round': rnd, 'players': list(sq['players']), 'coach': sq['coach'],
+                **({'bank': round(float(bank), 1)} if bank is not None else {}), 'from': old.get('updated')}
     return None
 
 

@@ -1233,7 +1233,7 @@ function init(data){
   const clubDates={};P.forEach(p=>p.log.forEach(g=>(clubDates[p.team]=clubDates[p.team]||new Set()).add(g.d)));
   P.forEach(p=>{p.abs=absenceOf(p,[...(clubDates[p.team]||[])].sort());});
   P.forEach(p=>{p.tags=tagsFor(p);});
-  if(state.budget==null||!state.budgetTouched)state.budget=teamValue();
+  if(state.budget==null||!state.budgetTouched)state.budget=budgetNow();
   window.__planner={get result(){return result},get state(){return state},get byId(){return byId},get orig(){return orig},get coaches(){return coachByTeam},get days(){return dayKeys},withMode,evalSquad,quickObj};
   render();
 }
@@ -1253,6 +1253,17 @@ function autoSlots(ids){
 const teamIds=()=>team.slots.filter(Boolean);
 const teamCost=()=>teamIds().reduce((a,i)=>a+byId[i].price,0)+(team.coach&&coachByTeam[team.coach]?coachByTeam[team.coach].price:0);
 const teamValue=()=>r1(teamCost()+team.bank);
+// The team value while the market is open: the round's starting squad (data.json tradeBase) at today's prices plus its
+// bank. Prices do not move until the round is played, so trades cannot change it; a My team bank that disagrees was typed
+// or added up wrong. null when the starting bank is unknown or the round has started.
+function marketValue(){
+  if(!start||start.bank==null||roundStarted()||!coachByTeam[start.coach]||!start.players.every(i=>byId[i]))return null;
+  return r1(start.players.reduce((a,i)=>a+byId[i].price,0)+coachByTeam[start.coach].price+start.bank);
+}
+// what the proposal may spend: the market value when known, else what My team adds up to
+const budgetNow=()=>marketValue()??teamValue();
+// the bank My team should show for its squad, when it does not (null when it does, or nothing to check against)
+const bankShould=()=>{const mv=marketValue();if(mv==null)return null;const b=r1(mv-teamCost());return Math.abs(b-team.bank)>.05?b:null;};
 function posCount(ids){const c={G:0,F:0,C:0};ids.forEach(i=>c[byId[i].pos]++);return c;}
 function starterForm(){const st=team.slots.slice(0,5).filter(Boolean);if(st.length<5)return null;const c=posCount(st);return FORMS.find(([g,f,cc])=>g===c.G&&f===c.F&&cc===c.C)?[c.G,c.F,c.C]:false;}
 function teamChecks(){
@@ -1283,7 +1294,7 @@ function teamChanged(){
   state.team={slots:team.slots,coach:team.coach,bank:team.bank,cap:team.cap,base:savedTeam.updated||""};
   orig={players:teamIds(),coach:team.coach};
   P.forEach(p=>{p.tags=tagsFor(p);});
-  state.budgetTouched=false;state.budget=teamValue();
+  state.budgetTouched=false;state.budget=budgetNow();
 }
 function courtRows(){
   const f=starterForm()||state.form||[2,2,1],need={G:f[0],F:f[1],C:f[2]},rows={G:[],F:[],C:[]},epos={};
@@ -1326,13 +1337,18 @@ const canReset=()=>!!start&&!TRADES_CLOSED&&tradesUsed()>0&&start.players.every(
 function resetToStart(){
   if(!canReset())return;
   const cp=t=>coachByTeam[t]?coachByTeam[t].price:0,cost=(ids,c)=>ids.reduce((a,i)=>a+byId[i].price,0)+cp(c);
-  team.bank=r1(team.bank+cost(teamIds(),team.coach)-cost(start.players,start.coach));
+  team.bank=start.bank!=null?start.bank:r1(team.bank+cost(teamIds(),team.coach)-cost(start.players,start.coach));
   team.slots=autoSlots(start.players.slice());team.coach=start.coach;
   // captain: the captain plan's first pick on the court (Apply on the proposal sets the plan's lineup and captain)
   const st=team.slots.slice(0,5);team.cap=capPlan(start.players).path.map(s=>s.p.id).find(i=>st.includes(i))||st.find(Boolean)||null;
   sel=null;justApplied=0;teamChanged();resetSlots=JSON.stringify(team.slots);
 }
 const resetBtn=()=>canReset()?`<button type="button" class="chip-toggle" data-reset-round>Back to Round ${D.round-1} squad</button>`:"";
+function bankBox(){
+  const b=bankShould();if(b==null)return "";
+  return `<div class="mt-over" role="alert"><b>Bank should be ${b.toFixed(1)}, not ${team.bank.toFixed(1)}.</b> Your team was worth ${marketValue().toFixed(1)} when the market opened (the squad that played Round ${D.round-1} with its bank, at today's prices), and trades do not change that. With ${team.bank.toFixed(1)} the planner spends credits you do not have.
+    <p class="mt-over-act"><button type="button" class="chip-toggle" data-fix-bank="${b}">Set bank to ${b.toFixed(1)}</button></p></div>`;
+}
 function overBox(){
   if(!tradesOver())return "";
   const u=tradesUsed(),L=tradeLimit(),m=madeTrades();
@@ -1350,7 +1366,7 @@ function myteam(){
   const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="has-tip${k===fk?" on":""}" aria-pressed="${k===fk}">${f[0]}G ${f[1]}F ${f[2]}C${tipPick("Formation",`${f[0]}G ${f[1]}F ${f[2]}C`,`${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""} and ${f[2]} centre${f[2]>1?"s":""} on the court.`)}</button>`}).join("")}</div></div>`;
   return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?facts("Saved for the daily report",savedTeam.updated&&`updated ${esc(fmtDate(savedTeam.updated))}`):facts("Not saved for the daily report yet","changed in this browser only")}</div><h2>My team</h2></div>
    <div class="mt-actions">${SYNC.mode==="on"?`<span id="syncPill" class="syncpill ${SYNC.status==="fail"?"bad":SYNC.status==="saving"?"busy":"ok"}">${syncLabel()}</span>`:""}</div></div>
-   ${overBox()}
+   ${overBox()}${bankBox()}
    ${SYNC.mode==="locked"?`<form class="connect" id="connectForm"><div><b>Connect this device</b><small>Enter your passcode once. Your team, picks and settings then stay the same on every device, and Save goes straight to the daily report.</small></div><input id="passIn" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode"><button class="btn-primary" type="submit">Connect</button><span class="note" id="passMsg" role="status"></span></form>`:""}
    ${formSeg}
    <div class="mt-grid">
@@ -1729,14 +1745,16 @@ const trades=(ids,coach,b=start||orig)=>ids.filter(i=>!b.players.includes(i)).le
 // what one swap does to the round's trades: +1 a new trade, 0 it changes one already made (sells a player bought this
 // round), −1 it undoes one (buys back a player sold this round)
 const swapTrades=(ids,coach,out,inn,b=start||orig)=>trades(ids.map(i=>i===out?inn:i),coach,b)-trades(ids,coach,b);
+// start from data.json tradeBase: the squad that played the round before, written by the builder for this round, and its
+// bank (null when unknown)
+const tradeStart=d=>{const b=d&&d.tradeBase;
+  return b&&b.round===d.round&&Array.isArray(b.players)&&b.players.length===10&&b.coach
+    ?{players:b.players,coach:b.coach,bank:typeof b.bank==="number"?b.bank:null}:null;};
 // tradeCount:end
 // the moves to make now on the official site: from My team to the proposal
 const moves=(ids,coach)=>trades(ids,coach,orig);
 // once trades are made this round a move can replace or undo one of them, so it is a "change", not a new trade
 const txWord=n=>(start&&trades(orig.players,orig.coach)?"change":"trade")+(n===1?"":"s");
-// start from data.json tradeBase: the squad that played the round before, written by the builder for this round
-const tradeStart=d=>{const b=d&&d.tradeBase;
-  return b&&b.round===d.round&&Array.isArray(b.players)&&b.players.length===10&&b.coach?{players:b.players,coach:b.coach}:null;};
 function clubOk(ids){const n={};for(const i of ids){const t=byId[i].team;n[t]=(n[t]||0)+1;if(n[t]>6)return false;}return true;}
 
 /* ---------- captain plan ----------
@@ -2245,7 +2263,7 @@ function applyTrades(){
   let bank=team.bank;
   pairs.forEach(([o,i])=>{if(o)bank+=byId[o].price;if(i)bank-=byId[i].price;});
   if(R.coach!==team.coach&&coachByTeam[R.coach]){bank+=(coachByTeam[team.coach]?coachByTeam[team.coach].price:0)-coachByTeam[R.coach].price;team.coach=R.coach;}
-  team.bank=Math.max(0,r1(bank));
+  team.bank=r1(bank); // never rounded up to 0: that would make credits out of nothing
   // lineup = the plan's first step: day-one starting five, 6th man and captain
   let plan=null;try{plan=initPlan(R,R.ev.L);}catch(e){}
   if(plan){
@@ -3389,7 +3407,8 @@ function bindTeam(rerender){
   });
   const bank=$("#bank");if(bank)bank.onchange=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){team.bank=v;teamChanged();rerender();}};
   document.querySelectorAll("[data-reset-round]").forEach(b=>b.onclick=()=>{resetToStart();rerender();});
-  const rs=$("#resetTeam");if(rs)rs.onclick=()=>{justApplied=0;team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=teamValue();rerender();};
+  document.querySelectorAll("[data-fix-bank]").forEach(b=>b.onclick=()=>{team.bank=+b.dataset.fixBank;teamChanged();rerender();});
+  const rs=$("#resetTeam");if(rs)rs.onclick=()=>{justApplied=0;team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=budgetNow();rerender();};
   const cf=$("#connectForm");if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#passIn").value.trim();if(!v)return;SYNC.pass=v;const m=$("#passMsg"),btn=cf.querySelector("button");m.textContent="Checking…";btn.disabled=true;
     api("state").then(r=>{
       if(r.status===401){m.textContent="Wrong passcode. Check capital letters (phones often capitalise the first letter).";btn.disabled=false;return;}
