@@ -683,7 +683,7 @@ html.locked,html.locked body{overflow:hidden}
 .bl-todo{display:flex;flex-direction:column;gap:2px;min-width:0}
 .bl-prog{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:2px 8px 8px;font-size:13.5px}
 .bl-prog.all{color:var(--good)}
-.bl-bar{flex:1;height:8px;border-radius:4px;background:var(--line-soft);overflow:hidden}
+.bl-bar{flex:1 1 60px;height:8px;border-radius:4px;background:var(--line-soft);overflow:hidden}
 .bl-bar i{display:block;height:100%;background:var(--good);transition:width .25s}
 .bl-i{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:7px 8px;border-radius:9px;cursor:pointer;align-items:start}
 .bl-i:hover{background:var(--raise)}
@@ -2748,8 +2748,8 @@ function market(){
   <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
 }
 function coaches(){
-  const list=C.slice().sort(projSort).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${c.price.toFixed(1)} cr · ${c.opp?(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0]:""} · ${esc(dayShort(c.day))} · win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""} · last two ${c.last.join(", ")}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
-  return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">Win by 1–10 +10 · 11–20 +20 · 21+ +25</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
+  const list=C.slice().sort(projSort).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${facts(`${c.price.toFixed(1)} cr`,c.opp&&(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0],esc(dayShort(c.day)),`win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""}`,["Last two",c.last.join(", ")])}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
+  return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">${facts("Win by 1–10 +10","11–20 +20","21+ +25")}</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
 }
 /* ---------- how the projections did ---------- */
 const HIST_FROM=7; // the first round with a history/round-N.json (#19)
@@ -3053,8 +3053,8 @@ function bottomLine(){
   const tState=d=>{const a=items.filter(i=>i.turn===d&&i.kind!=="wait"),k=a.filter(i=>done.has(i.id)).length,w=items.some(i=>i.turn===d&&i.kind==="wait");
     const prevD=dayKeys[dayKeys.indexOf(d)-1];
     return a.length&&k===a.length?(w?`✓ done so far, the rest after ${dayShort(prevD)}'s games`:"✓ all done"):a.length?`${k} of ${a.length} done`:`after ${dayShort(prevD)}'s games`;};
-  const rows=turnsLeft.length?turnsLeft.map(d=>`<div class="bl-turn">${esc(turnOf2(d))} · before ${esc(dayWhen(d))}</div>${items.filter(i=>i.turn===d).map(row).join("")}`).join(""):items.map(row).join("");
-  const label=turnsLeft.length?turnsLeft.map(d=>`<b>${esc(turnOf2(d))}:</b> ${esc(tState(d))}`).join(" · "):all?`<b>✓ All done for Round ${D.round}</b>`:`<b>${n} of ${act.length}</b> done`;
+  const rows=turnsLeft.length?turnsLeft.map(d=>`<div class="bl-turn">${facts(esc(turnOf2(d)),`before ${esc(dayWhen(d))}`)}</div>${items.filter(i=>i.turn===d).map(row).join("")}`).join(""):items.map(row).join("");
+  const label=turnsLeft.length?facts(...turnsLeft.map(d=>`<b>${esc(turnOf2(d))}:</b> ${esc(tState(d))}`)):all?`<b>✓ All done for Round ${D.round}</b>`:`<b>${n} of ${act.length}</b> done`;
   const prog=`<div class="bl-prog${all?" all":""}"><span>${label}</span><span class="bl-bar"><i style="width:${act.length?(100*n/act.length).toFixed(1):0}%"></i></span></div>`;
   // good to know: this round's matchups for the proposed squad (±15% and more, as the Soft/Tough tags), best first
   const ms=result.S.map(i=>byId[i]).filter(p=>p&&!p.out&&p.opp&&!(LR&&LR.score(p)!=null)).map(p=>({p,m:matchup(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
@@ -3062,7 +3062,7 @@ function bottomLine(){
   const G=blGainers(sum),byName=nm=>P.find(p=>p.name===nm);
   const gRows=G?G.rows.length?G.rows.map(g=>`<div class="bl-r"><span>${byName(g.name)?plink(byName(g.name),g.name):esc(g.name)} <span class="muted">${esc(g.team)}</span></span><b class="bl-cr">${g.price.toFixed(1)}</b><small>${esc(g.why)}</small></div>`).join(""):`<p class="bl-txt">${linkify(G.text)}</p>`:"";
   const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">Your players' matchups</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
-  return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">${LR?`⏱ Trades closed · ${LR.next?`next game ${esc(dayShort(LR.next))}${LR.tip?" "+esc(LR.tip):""}`:"round over"}`:`⏱ Trades close ${esc(deadlineRel())}`}</span></div>
+  return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">${LR?facts("⏱ Trades closed",LR.next?`next game ${esc(dayShort(LR.next))}${LR.tip?" "+esc(LR.tip):""}`:"round over"):`⏱ Trades close ${esc(deadlineRel())}`}</span></div>
     <div class="bl-cols${know?"":" one"}"><div class="bl-todo">${prog}${rows}</div>${know}</div></div>`;
 }
 document.addEventListener("change",e=>{const id=e.target.dataset&&e.target.dataset.bl;if(id==null)return;
@@ -3078,22 +3078,22 @@ function report(){
   const played=P.filter(p=>lastG(p));
   // his points for the game (PIR is part of them) and, under it, his value: the credit change from the game
   const val=p=>{const v=p.chg??0;return `<span class="${v>0?"up":v<0?"dn":""}">${fmt(v)} value</span>`;};
-  const row=(p,g,extra="")=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${TEAMS[p.team][0]} · ${p.price.toFixed(1)} cr · ${g.ha==="A"?"@":"vs"} ${g.opp} · ${g.min} min</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.fpt==null?"–":(+g.fpt).toFixed(1)}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> points</small></div><small class="muted">${val(p)}${extra?`<br>${extra}`:""}</small></div></div>`;
+  const row=(p,g,extra="")=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],`${p.price.toFixed(1)} cr`,`${g.ha==="A"?"@":"vs"} ${g.opp}`,`${g.min} min`)}</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.fpt==null?"–":(+g.fpt).toFixed(1)}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> points</small></div><small class="muted">${val(p)}${extra?`<br>${extra}`:""}</small></div></div>`;
   const top=played.slice().sort((a,b)=>lastG(b).fpt-lastG(a).fpt).slice(0,10).map(p=>row(p,lastG(p))).join("");
   const low=played.filter(p=>p.price>=8).map(p=>({p,g:lastG(p),d:lastG(p).fpt-p.be})).sort((a,b)=>a.d-b.d).slice(0,8).map(({p,g,d})=>row(p,g,`${r1(d)} vs break-even`)).join("");
   const domL=P.flatMap(p=>domRecent(p).slice(0,1).map(g=>({p,g}))).filter(({p,g})=>g.pir>=1.1*p.price+3&&g.min>=10).sort((a,b)=>(b.g.pir-1.1*b.p.price)-(a.g.pir-1.1*a.p.price)).slice(0,10)
-    .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${esc(g.comp)} · ${g.ha==="A"?"@":"vs"} ${esc(g.opp)} · ${g.min} min · ${g.pts} pts ${g.reb} reb ${g.ast} ast</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr · break-even ${p.be}</small></div></div>`).join("");
+    .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${facts(esc(g.comp),`${g.ha==="A"?"@":"vs"} ${esc(g.opp)}`,`${g.min} min`,`${g.pts} pts ${g.reb} reb ${g.ast} ast`)}</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr<br>break-even ${p.be}</small></div></div>`).join("");
   const rested=P.filter(p=>orig.players.includes(p.id)&&p.dom[0]&&(p.dom[0].dnp||p.dom[0].min<8)).map(p=>`${plink(p,p.short)} (${p.dom[0].absent?"not in the box score":p.dom[0].dnp?"did not play":p.dom[0].min+" min"} vs ${esc(p.dom[0].opp)})`);
-  const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>Last EuroLeague ${g?g.fpt+" FPT":"–"} · domestic: ${dtx} · next ${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
-  return `<section id="report"><div class="sec-head"><div><div class="eyebrow">Daily report · ${esc(fmtDate(R.date||D.updated))}</div><h2>Round report</h2></div></div>
+  const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>${facts(["Last EuroLeague",g?g.fpt+" FPT":"–"],["Next",`${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`])}</small><small>Domestic: ${dtx}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
+  return `<section id="report"><div class="sec-head"><div><div class="eyebrow">${facts("Daily report",esc(fmtDate(R.date||D.updated)))}</div><h2>Round report</h2></div></div>
   ${bottomLine()}
   ${roundCard()}
   ${reviewCard()}
   ${scoreCard()}
   <div class="two">
-    <div><div class="eyebrow" style="margin:0 0 6px">Top performers · last EuroLeague round</div><div class="panel list">${top}</div></div>
-    <div><div class="eyebrow" style="margin:0 0 6px">Below break-even · 8+ credit players</div><div class="panel list">${low}</div></div>
-    <div><div class="eyebrow" style="margin:0 0 6px">Domestic standouts · beat their EuroLeague break-even</div><div class="panel list">${domL||'<div class="lrow"><span class="note">No domestic standouts in the latest games.</span></div>'}</div></div>
+    <div><div class="eyebrow" style="margin:0 0 6px">Top performers in the last EuroLeague round</div><div class="panel list">${top}</div></div>
+    <div><div class="eyebrow" style="margin:0 0 6px">8+ credit players below break-even</div><div class="panel list">${low}</div></div>
+    <div><div class="eyebrow" style="margin:0 0 6px">Domestic standouts above their EuroLeague break-even</div><div class="panel list">${domL||'<div class="lrow"><span class="note">No domestic standouts in the latest games.</span></div>'}</div></div>
     <div><div class="eyebrow" style="margin:0 0 6px">Your squad check</div><div class="panel list">${squadRows}</div>${rested.length?`<div class="warnbox" style="margin-top:8px">Rested or barely used domestically: ${rested.join(", ")}</div>`:""}</div>
   </div></section>`;
 }
@@ -3121,7 +3121,7 @@ function results(){
     const stats=gameStats(r);
     const mine=stats.rows.some(x=>orig.players.includes(x.p.id));
     return `${head}<div class="rg${open?" open":""}${r.dom?" dom":""}"><button type="button" class="rg-row" data-game="${esc(k)}" aria-expanded="${open}">
-      <span class="rg-t">${title}</span><span class="rg-meta">${r.dom?esc(shortComp(r.comp)):"EuroLeague"}${mine?' · <span class="rg-mine">your players</span>':""}${stats.rows.length?` · ${stats.rows.length} player${stats.rows.length===1?"":"s"}`:""}</span>
+      <span class="rg-t">${title}</span><span class="rg-meta">${facts(r.dom?esc(shortComp(r.comp)):"EuroLeague",mine&&'<span class="rg-mine">your players</span>',stats.rows.length>0&&`${stats.rows.length} player${stats.rows.length===1?"":"s"}`)}</span>
       <span class="score">${esc(r.score)}</span><span class="chev" aria-hidden="true"></span></button>
       ${open?gameBox(r,stats):""}</div>`;}).join("");
   const seg=`<div class="seg sm" id="rf">${[["all","All"],["el","EuroLeague"],["dom","Domestic"],["mine","Your clubs"]].map(([v,l])=>`<button type="button" data-v="${v}" class="${f===v?"on":""}" aria-pressed="${f===v}">${l}</button>`).join("")}</div>`;
@@ -3189,7 +3189,7 @@ function alertBox(){
   const A=(D.alerts||[]).filter(a=>orig.players.includes(a.id));
   if(!A.length)return "";
   return `<section class="al" aria-labelledby="alertH"><h2 id="alertH">Status changed</h2><ul>${A.map(a=>{const p=byId[a.id];
-    return `<li>${p?plink(p):`<b>${esc(a.name)}</b>`} <span><b>${esc(a.from)}</b> → <b>${esc(a.to)}</b></span><small>${esc(a.src)} · ${esc(fmtDate(a.d))}</small></li>`;}).join("")}</ul></section>`;
+    return `<li>${p?plink(p):`<b>${esc(a.name)}</b>`} <span><b>${esc(a.from)}</b> → <b>${esc(a.to)}</b></span><small>${facts(esc(a.src),esc(fmtDate(a.d)))}</small></li>`;}).join("")}</ul></section>`;
 }
 // The daily report's injury list ({name, team, status, reason, ret, src}), matched by name + team. Older data has none.
 const injuryOf=p=>(D.injuries||[]).find(x=>x.name===p.name&&x.team===p.team)||null;
@@ -3254,18 +3254,18 @@ const dayFmt=d=>{const t=new Date(d+"T12:00:00");return isNaN(t)?d:`${"Sun Mon T
 function gameInfo(g,x,rnd){
   const m=/^([WL]) (\d+)-(\d+)/.exec(g.res||""),res=m?`${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`:"";
   const pct=x>0?Math.round(100*(g.fpt-x)/x):null,sg=v=>v>0?"+":v<0?"−":"";
-  const head=`${rnd!=null?`R${rnd} · `:""}${dayFmt(g.d)} · ${g.ha==="A"?"@":"vs"} ${g.opp}`;
-  return {when:`${head}${res?" · "+res:""}`,pts:`${g.fpt} points`,
-    vs:x!=null?`${x} projected${pct!=null?` · ${sg(pct)}${Math.abs(pct)}%`:""}`:"No projection on record",
+  const head=[rnd!=null?`R${rnd}`:null,dayFmt(g.d),`${g.ha==="A"?"@":"vs"} ${g.opp}`].filter(Boolean);
+  return {when:[...head,res].filter(Boolean).join(", "),pts:`${g.fpt} points`,
+    vs:x!=null?(pct!=null?`${sg(pct)}${Math.abs(pct)}% vs ${x} projected`:`${x} projected`):"No projection on record",
     cr:g.cr!=null?`${sg(g.cr)}${Math.abs(g.cr).toFixed(1)} cr value`:null,
-    head,res,win:m?m[1]==="W":null,pct,crN:g.cr??null};
+    head,res,win:m?m[1]==="W":null,proj:x??null,pct,pctTxt:pct!=null?`${sg(pct)}${Math.abs(pct)}%`:null,crN:g.cr??null};
 }
 // The same as the site's tooltip, in colour: green for a win, points above the projection, a gain; red for the opposite.
 // Points are judged only against a projection on record; zero is neither colour.
 function gameTipHtml(t){
   const c=v=>v>0?' class="tg-up"':v<0?' class="tg-dn"':"",em=(v,txt)=>v?`<em${c(v)}>${esc(txt)}</em>`:esc(txt);
-  const vs=t.pct!=null?esc(t.vs.slice(0,t.vs.lastIndexOf(" · ")+3))+em(t.pct,t.vs.slice(t.vs.lastIndexOf(" · ")+3)):esc(t.vs);
-  return `<span class="tip tip-pick" role="tooltip"><small>${esc(t.head)}${t.res?` · ${em(t.win?1:-1,t.res)}`:""}</small>`
+  const vs=t.pct!=null?em(t.pct,t.pctTxt)+esc(` vs ${t.proj} projected`):esc(t.vs);
+  return `<span class="tip tip-pick" role="tooltip"><small>${facts(...t.head.map(esc),t.res&&em(t.win?1:-1,t.res))}</small>`
     +`<b${t.pct?c(t.pct):""}>${esc(t.pts)}</b><span>${vs}</span>${t.cr?`<i>${em(t.crN,t.cr)}</i>`:""}</span>`;
 }
 // His next game: this round's until he has played it, then next round's (p.next from the builder; null if not known)
@@ -3338,7 +3338,7 @@ function watchBox(){
   const weekend=quiet.every(x=>[0,6].includes(new Date(x.sat+"T12:00:00").getDay()));
   const noteTxt=quiet.length?`${names(quiet)} sat out ${weekend?"at the weekend":quiet.length>1?"their club's last game":"his club's last game"} with no injury news, so ${quiet.length>1?"they're":"he's"} not listed.`:"";
   const rel=esc(deadlineRel());
-  if(!mates.length&&!also.length)return `<div class="wt-empty" role="status"><b>Nothing to watch</b><span>before trades close ${rel}${noteTxt?` · ${noteTxt}`:""}</span></div>`;
+  if(!mates.length&&!also.length)return `<div class="wt-empty" role="status"><b>Nothing to watch</b><span>before trades close ${rel}</span>${noteTxt?`<span>${noteTxt}</span>`:""}</div>`;
   // your call: [line, second outcome]
   const call=x=>{
     if(x.kind==="mate"){const t=esc(x.t.short);
@@ -3349,18 +3349,19 @@ function watchBox(){
   const tag=(t,c)=>`<span class="wt-t ${c}">${esc(t)}</span>`;
   const newsDate=x=>x.inj&&x.inj.src?x.inj.src:`news ${fmtShort((D.report&&D.report.date)||D.updated)}`;
   const mid=x=>x.kind==="status"
-    ?`${tag(x.st,/^out$/i.test(x.st)?"bad":"warn")}${x.inj&&x.inj.reason?" "+tag(x.inj.reason,"bad"):""}${x.inj&&x.inj.ret?` <span class="wt-day">back ${esc(x.inj.ret)}</span>`:""}${x.sat?` <span class="wt-day">· missed last game (${esc(fmtShort(x.sat))})</span>`:""} <span class="wt-day">· ${esc(newsDate(x))}</span>`
-    :`Sat out ${esc(fmtShort(x.sat))} ${tag(x.inj.reason,"bad")} <span class="wt-day">· ${esc(newsDate(x))}</span>`;
+    ?facts(`${tag(x.st,/^out$/i.test(x.st)?"bad":"warn")}${x.inj&&x.inj.reason?" "+tag(x.inj.reason,"bad"):""}`,x.inj&&x.inj.ret&&`<span class="wt-day">back ${esc(x.inj.ret)}</span>`,
+      x.sat&&`<span class="wt-day">missed last game (${esc(fmtShort(x.sat))})</span>`,`<span class="wt-day">${esc(newsDate(x))}</span>`)
+    :facts(`Sat out ${esc(fmtShort(x.sat))} ${tag(x.inj.reason,"bad")}`,`<span class="wt-day">${esc(newsDate(x))}</span>`);
   const head=xs=>{const x=xs[0],t=x.t;
-    return `${plink(t)} ${t.out?tag("Listed out","bad"):tag(`Missed last ${x.missed>1?x.missed+" games":"game"} · not listed out`,"warn")} <span class="muted">· plays ${esc(dayShort(t.day||x.p.day))}</span>`;};
-  const m=Math.max(...mates.map(sw),1),alsoLbl="Also check · injury news";
-  const row=x=>`<tr><td class="wt-p">${plink(x.p)} <span class="wt-day">· ${day(x.p)}</span></td><td class="n">${f1(x.wo)} <small>(${x.nwo})</small></td><td class="n">${f1(x.w)} <small>(${x.nw})</small></td><td class="wt-sw"><span class="wt-bar" style="--k:${(sw(x)/m).toFixed(3)}"><i></i><b>+${f1(sw(x))}</b></span></td><td class="wt-call">${callHtml(x)}</td></tr>`;
+    return facts(`${plink(t)} ${t.out?tag("Listed out","bad"):tag(`Missed last ${x.missed>1?x.missed+" games":"game"}, not listed out`,"warn")}`,`<span class="muted">plays ${esc(dayShort(t.day||x.p.day))}</span>`);};
+  const m=Math.max(...mates.map(sw),1),alsoLbl="Also check the injury news";
+  const row=x=>`<tr><td class="wt-p">${plink(x.p)} <span class="wt-day">plays ${day(x.p)}</span></td><td class="n">${f1(x.wo)} <small>(${x.nwo})</small></td><td class="n">${f1(x.w)} <small>(${x.nw})</small></td><td class="wt-sw"><span class="wt-bar" style="--k:${(sw(x)/m).toFixed(3)}"><i></i><b>+${f1(sw(x))}</b></span></td><td class="wt-call">${callHtml(x)}</td></tr>`;
   const table=`<table class="wt-dt"><colgroup><col><col class="wt-c1"><col class="wt-c2"><col class="wt-c3"><col class="wt-c4"></colgroup>
     <thead><tr><th>Player</th><th class="n">Without</th><th class="n">With</th><th class="wt-sw">Swing</th><th>Your call</th></tr></thead>
     <tbody>${[...groups.values()].map(xs=>`<tr class="wt-grp"><td colspan="5">${head(xs)}</td></tr>${xs.map(row).join("")}`).join("")}
-    ${also.length?`<tr class="wt-sep"><td colspan="5">${alsoLbl}</td></tr>${also.map(x=>`<tr><td class="wt-p">${plink(x.p)} <span class="wt-day">· ${day(x.p)}</span></td><td colspan="3">${mid(x)}</td><td class="wt-call">${callHtml(x)}</td></tr>`).join("")}`:""}</tbody></table>`;
-  const li=(x,right,l2)=>`<li><div class="wt-r1"><span>${plink(x.p)} <span class="wt-day">· plays ${day(x.p)}</span></span>${right}</div><span class="wt-l2">${l2}</span><span class="wt-call">${callHtml(x)}</span></li>`;
-  const phone=`<ul class="wt-rows">${[...groups.values()].map(xs=>`<li class="wt-grp">${head(xs)}</li>${xs.map(x=>li(x,`<span class="wt-sn">+${f1(sw(x))}</span>`,`${f1(x.wo)} without (${x.nwo}) · ${f1(x.w)} with (${x.nw})`)).join("")}`).join("")}
+    ${also.length?`<tr class="wt-sep"><td colspan="5">${alsoLbl}</td></tr>${also.map(x=>`<tr><td class="wt-p">${plink(x.p)} <span class="wt-day">plays ${day(x.p)}</span></td><td colspan="3">${mid(x)}</td><td class="wt-call">${callHtml(x)}</td></tr>`).join("")}`:""}</tbody></table>`;
+  const li=(x,right,l2)=>`<li><div class="wt-r1"><span>${plink(x.p)} <span class="wt-day">plays ${day(x.p)}</span></span>${right}</div><span class="wt-l2">${l2}</span><span class="wt-call">${callHtml(x)}</span></li>`;
+  const phone=`<ul class="wt-rows">${[...groups.values()].map(xs=>`<li class="wt-grp">${head(xs)}</li>${xs.map(x=>li(x,`<span class="wt-sn">+${f1(sw(x))}</span>`,facts(`${f1(x.wo)} without (${x.nwo})`,`${f1(x.w)} with (${x.nw})`))).join("")}`).join("")}
     ${also.length?`<li class="wt-sep">${alsoLbl}</li>${also.map(x=>li(x,"",mid(x))).join("")}`:""}</ul>`;
   return `<section class="wt" aria-labelledby="watchH"><div class="wt-h"><h2 id="watchH">Watch before the deadline</h2><span class="wt-pill">⏱ Trades close ${rel}</span></div>
     <div class="wt-body">${table}${phone}</div>${noteTxt?`<p class="wt-note"><i aria-hidden="true">i</i><span>${noteTxt}</span></p>`:""}</section>`;

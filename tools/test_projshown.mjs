@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
 const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
-const { projShown, projTxt, projBox, projCellHtml, projKey, gameInfo, gameTipHtml, tipPick, upcoming, roundOf, coachPts } = new Function(line("const esc=") + "\n" + cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameInfo,gameTipHtml,tipPick,upcoming,roundOf,coachPts};")();
+const { projShown, projTxt, projBox, projCellHtml, projKey, gameInfo, gameTipHtml, tipPick, upcoming, roundOf, coachPts } = new Function(line("const esc=") + "\n" + cut("// facts:begin", "// facts:end") + "\n" + cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameInfo,gameTipHtml,tipPick,upcoming,roundOf,coachPts};")();
 
 // Round 7 after Wednesday: LeDay scored 36.3 (deadline projection 21.0, today's 39.9); Maledon plays Thursday.
 const W = "2026-10-21", T = "2026-10-22";
@@ -79,28 +79,29 @@ test("tipPick: the site's tooltip (context, title, text, footer), escaped, never
 
 test("a Last 5 bar: date, opponent, result from his side, points vs projection when on record, credit change", () => {
   const away = { d: "2026-10-16", opp: "PAO", ha: "A", res: "W 81-91", fpt: 23.1, cr: 0.3 };
-  assert.deepEqual(gameInfo(away, null, 6), { when: "R6 · Fri 16 Oct · @ PAO · W 91–81", pts: "23.1 points", vs: "No projection on record", cr: "+0.3 cr value",
-    head: "R6 · Fri 16 Oct · @ PAO", res: "W 91–81", win: true, pct: null, crN: 0.3 });
+  assert.deepEqual(gameInfo(away, null, 6), { when: "R6, Fri 16 Oct, @ PAO, W 91–81", pts: "23.1 points", vs: "No projection on record", cr: "+0.3 cr value",
+    head: ["R6", "Fri 16 Oct", "@ PAO"], res: "W 91–81", win: true, proj: null, pct: null, pctTxt: null, crN: 0.3 });
   const home = { d: "2026-10-21", opp: "VIR", ha: "H", res: "W 90-81", fpt: 14.3, cr: -0.2 };
-  assert.deepEqual(gameInfo(home, 22.4, 7), { when: "R7 · Wed 21 Oct · vs VIR · W 90–81", pts: "14.3 points", vs: "22.4 projected · −36%", cr: "−0.2 cr value",
-    head: "R7 · Wed 21 Oct · vs VIR", res: "W 90–81", win: true, pct: -36, crN: -0.2 });
-  assert.equal(gameInfo({ ...home, cr: 0, fpt: 22.4 }, 22.4).vs, "22.4 projected · 0%");
+  assert.deepEqual(gameInfo(home, 22.4, 7), { when: "R7, Wed 21 Oct, vs VIR, W 90–81", pts: "14.3 points", vs: "−36% vs 22.4 projected", cr: "−0.2 cr value",
+    head: ["R7", "Wed 21 Oct", "vs VIR"], res: "W 90–81", win: true, proj: 22.4, pct: -36, pctTxt: "−36%", crN: -0.2 });
+  assert.equal(gameInfo({ ...home, cr: 0, fpt: 22.4 }, 22.4).vs, "0% vs 22.4 projected");
   assert.equal(gameInfo({ ...home, cr: 0 }, 22.4).cr, "0.0 cr value");
-  assert.equal(gameInfo(home, 22.4, null).when, "Wed 21 Oct · vs VIR · W 90–81"); // round unknown: left out, never guessed
+  assert.equal(gameInfo(home, 22.4, null).when, "Wed 21 Oct, vs VIR, W 90–81"); // round unknown: left out, never guessed
 });
 
 test("a Last 5 tooltip in colour: green for a win, above projection and a gain; red for a loss, below and a drop", () => {
   const home = { d: "2026-10-21", opp: "VIR", ha: "H", res: "W 90-81", fpt: 14.3, cr: -0.2 };
   assert.equal(gameTipHtml(gameInfo(home, 22.4, 7)),
-    '<span class="tip tip-pick" role="tooltip"><small>R7 · Wed 21 Oct · vs VIR · <em class="tg-up">W 90–81</em></small>'
-    + '<b class="tg-dn">14.3 points</b><span>22.4 projected · <em class="tg-dn">−36%</em></span><i><em class="tg-dn">−0.2 cr value</em></i></span>');
+    '<span class="tip tip-pick" role="tooltip"><small><span class="facts"><span class="f">R7</span><span class="f">Wed 21 Oct</span>'
+    + '<span class="f">vs VIR</span><span class="f"><em class="tg-up">W 90–81</em></span></span></small>'
+    + '<b class="tg-dn">14.3 points</b><span><em class="tg-dn">−36%</em> vs 22.4 projected</span><i><em class="tg-dn">−0.2 cr value</em></i></span>');
   const loss = { d: "2026-10-08", opp: "VAL", ha: "A", res: "L 93-82", fpt: 23, cr: 0.2 };
   const h = gameTipHtml(gameInfo(loss, null, 4));
   assert.match(h, /<em class="tg-dn">L 82–93<\/em>/);
   assert.match(h, /<b>23 points<\/b><span>No projection on record<\/span>/); // no projection: the points are not judged
   assert.match(h, /<em class="tg-up">\+0\.2 cr value<\/em>/);
   // no change: neither colour
-  assert.match(gameTipHtml(gameInfo({ ...home, fpt: 22.4, cr: 0 }, 22.4, 7)), /<b>22\.4 points<\/b><span>22\.4 projected · 0%<\/span><i>0\.0 cr value<\/i>/);
+  assert.match(gameTipHtml(gameInfo({ ...home, fpt: 22.4, cr: 0 }, 22.4, 7)), /<b>22\.4 points<\/b><span>0% vs 22\.4 projected<\/span><i>0\.0 cr value<\/i>/);
 });
 
 test("next game: this round's before he plays, next round's once he has played", () => {

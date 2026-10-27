@@ -33,6 +33,9 @@ last game day fills `actual` in history/round-N.json (`elbuild.py --history`: ea
 change; each coach's points) and commits it. "Round N, turn by turn" shows past rounds from these files and the matchup
 line pools them. Never delete, rewrite or skip a history file; if a round's actuals are missing, fill them and say so.
 
+The report text (summary, news, injuries, anything written into data.json) never joins facts with " · ": write a
+sentence, or one fact per line (docs/mistakes.md, #61).
+
 Be suspicious of numbers that look too neat (a last game equal to the season average, the same numbers as the game
 before). Say "I did not check" instead of giving an unchecked number as a fact.
 

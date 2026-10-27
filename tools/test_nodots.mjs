@@ -23,15 +23,8 @@ function dotsByPlace() {
   return out;
 }
 
-// The dots still to remove, place by place (#61 parts 2–6). This list only shrinks: when you remove dots, lower or
-// delete the entry; a dot in a new place, or one more in an old place, fails here. Use facts() instead.
-const LEFT = {
-  // part 6: Round report, Bottom line, watch list, injury news, game tooltips, coaches
-  coaches: 6, bottomLine: 3, report: 13, results: 2, alertBox: 1, gameInfo: 4, gameTipHtml: 3, watchBox: 11,
-};
-
-test("no new middle dots: every dot left is on the list, and the list is up to date", () => {
-  assert.deepEqual(dotsByPlace(), LEFT);
+test("no middle dot in anything the site shows (#61): group facts with facts() or layout instead", () => {
+  assert.deepEqual(dotsByPlace(), {});
 });
 
 test("facts() groups facts with space, skips empty ones, and labels a fact given as [label, value]", () => {

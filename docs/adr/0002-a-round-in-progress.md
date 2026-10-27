@@ -21,8 +21,8 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   Decided with Ognjen, 22 Oct 2026: the earlier time is never wrong, a later one could be.
 - **Bottom line**: one section per turn still to play, never "all done for the round" while a turn is left. The next turn's
   to-dos (captain, lineup changes, lineup, checks) can be ticked; a later turn shows what is already known and "decide after
-  Thu's games" lines for what the earlier games decide. The progress line names each turn ("Turn 2: ✓ all done · Turn 3:
-  after Thu's games"). The pill shows the next tip-off. Decided with Ognjen, 22 Oct 2026.
+  Thu's games" lines for what the earlier games decide. The progress line names each turn ("Turn 2: ✓ all done" and "Turn 3:
+  after Thu's games", side by side). The pill shows the next tip-off. Decided with Ognjen, 22 Oct 2026.
 - **Lineup changes between turns** (GLOSSARY, docs/rules.md): any swap, as long as the player coming in has not played
   and the new five is one of the five formations; the formation may change. Corrected with Ognjen on 22 Oct 2026 against
   the official rules book: this bullet first said "only same position, so the formation stays", a rule nobody had checked.
@@ -49,8 +49,8 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   - **Proj.**: TBC, with the site's tooltip "To be calculated after the current round is finished", sorted last. Next
     round's projection is made after the round. Never his score, never today's projection (it already includes the game).
   - **± cr / Value**: the real credit change from his game, not the estimate.
-  - **Next game**: next round's game with its round ("vs Efes · R8 · Wed 28 Oct"), in the column, the line under his name,
-    the player card and the picker. In his drawer, the played game is headed "This round · played".
+  - **Next game**: next round's game with its round ("vs Efes", with "R8 Wed 28 Oct" under it), in the column, the line under his name,
+    the player card and the picker. In his drawer, the played game is headed "Played this round".
   - **Team analysis**: a score block, like the report lists: points; % against the deadline projection, next to it; value.
   - **Last 5**: each bar's tooltip (the site's design) shows the round, date, opponent, result, points against the
     projection when one is on record, and the credit change, in green or red.
