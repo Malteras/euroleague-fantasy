@@ -533,6 +533,9 @@ section{padding-block:28px 8px}
 @media (max-width:900px){.plan{grid-template-columns:1fr}}
 @media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
+.mt-over{margin:2px 0 14px;padding:12px 14px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft);color:var(--fg);font-size:14px;line-height:1.45}
+.mt-over>b{color:var(--bad)}.mt-over ul{margin:6px 0 0;padding-left:20px}.mt-over li{margin:2px 0}
+.mt-err{margin:8px 0 0;text-align:right;color:var(--bad);font-weight:700;font-size:13.5px}
 @media (max-width:760px){.mt-save{justify-content:stretch}.mt-save .btn-primary{flex:1}}
 .btn-primary{border:0;border-radius:10px;padding:10px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);cursor:pointer}
 .mt-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -1305,6 +1308,15 @@ function slotHtml(i,ep){
   if(!p)return `<button type="button" class="${cls}" data-slot="${i}"${ep?` data-epos="${ep}"`:""} aria-label="${role}: add a player"><span class="plus">+</span><small>${role}</small></button>`;
   return `<button type="button" class="${cls}" data-slot="${i}" draggable="true" aria-pressed="${sel===i}" aria-label="${esc(p.name)}, ${role}${team.cap===id?", captain":""}">${team.cap===id?`<span class="capb has-tip">C${tipPick("Lineup","Captain","His score counts double.")}</span>`:""}${jersey(p.team,p.pos)}<b>${esc(p.short)}</b><small>${p.price.toFixed(1)} cr</small>${turnOf2(p.day)?`<small>${esc(turnOf2(p.day))}</small>`:""}</button>`;
 }
+// over the round's trade limit: a banner at the top of My team, and Save refuses (until the round starts: then the squad is
+// what it is, and Save still has to keep the lineup and captain)
+const tradesOver=()=>!!start&&tradesUsed()>tradeLimit();
+function overBox(){
+  if(!tradesOver())return "";
+  const u=tradesUsed(),L=tradeLimit(),m=madeTrades();
+  return `<div class="mt-over" role="alert"><b>${u} trades this round: the limit is ${L}.</b> Undo ${u-L===1?"one":u-L} before you save: put back a player you sold (Suggest replacements marks it "Frees a trade").
+    <ul>${m.rows.map(([a,b,lbl])=>`<li>${lbl?`${lbl} `:""}${a} <span aria-label="for">→</span> ${b}</li>`).join("")}</ul></div>`;
+}
 function myteam(){
   const saved=sameTeam(team,savedTeam);
   const checks=teamChecks().map(c=>`<span class="chk ${c.ok?"ok":"bad"}">${c.ok?"✓":"!"} ${esc(c.t)}</span>`).join("");
@@ -1315,6 +1327,7 @@ function myteam(){
   const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="has-tip${k===fk?" on":""}" aria-pressed="${k===fk}">${f[0]}G ${f[1]}F ${f[2]}C${tipPick("Formation",`${f[0]}G ${f[1]}F ${f[2]}C`,`${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""} and ${f[2]} centre${f[2]>1?"s":""} on the court.`)}</button>`}).join("")}</div></div>`;
   return `<section id="myteam"><div class="sec-head"><div><div class="eyebrow">${saved?facts("Saved for the daily report",savedTeam.updated&&`updated ${esc(fmtDate(savedTeam.updated))}`):facts("Not saved for the daily report yet","changed in this browser only")}</div><h2>My team</h2></div>
    <div class="mt-actions">${SYNC.mode==="on"?`<span id="syncPill" class="syncpill ${SYNC.status==="fail"?"bad":SYNC.status==="saving"?"busy":"ok"}">${syncLabel()}</span>`:""}</div></div>
+   ${overBox()}
    ${SYNC.mode==="locked"?`<form class="connect" id="connectForm"><div><b>Connect this device</b><small>Enter your passcode once. Your team, picks and settings then stay the same on every device, and Save goes straight to the daily report.</small></div><input id="passIn" type="password" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode"><button class="btn-primary" type="submit">Connect</button><span class="note" id="passMsg" role="status"></span></form>`:""}
    ${formSeg}
    <div class="mt-grid">
@@ -1332,6 +1345,7 @@ function myteam(){
    ${bar}
    <div class="checks">${checks}</div>
    <div class="mt-save">${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div>
+   <p class="mt-err" id="saveErr" role="alert" hidden></p>
    <div id="saveHelp" class="savehelp" hidden>
      <ol class="steps">
        <li><span>Your team is copied. If copying did not work, select the text below and copy it.</span></li>
@@ -3355,7 +3369,11 @@ function bindTeam(rerender){
       if(!r.ok)throw new Error("server "+r.status);
       return r.json().then(j=>{try{localStorage.setItem(PASSK,v);}catch(e){}const sq=applyRemote(j);if(sq)SQUAD=sq;init(D);});
     }).catch(err=>{btn.disabled=false;m.textContent=(err&&err.name==="AbortError")?"The server took too long. Try again.":"Could not connect ("+((err&&err.message)||"network")+"). Try again.";});};
+  // too many trades: say so beside Save and save nothing
+  const overSave=()=>{if(TRADES_CLOSED||!tradesOver())return false;const u=tradesUsed(),L=tradeLimit(),e=$("#saveErr");
+    e.textContent=`Not saved: ${u} trades this round, the limit is ${L}. Undo ${u-L===1?"one":u-L} first (see the red box at the top).`;e.hidden=false;return true;};
   const sv=$("#saveTeam");if(sv&&SYNC.mode==="on")sv.onclick=()=>{
+    if(overSave())return;
     if(!teamValid()){sv.textContent="Finish the team first";return;}
     const tj=teamJSON();sv.disabled=true;sv.textContent="Saving…";
     api("team",{method:"POST",body:JSON.stringify({team:tj})}).then(r=>r.json().then(j=>{if(!r.ok)throw new Error(j.error||r.status);
@@ -3364,6 +3382,7 @@ function bindTeam(rerender){
     })).catch(e=>{sv.disabled=false;sv.textContent="Save failed: "+(e.message||"try again");});
   };
   else if(sv)sv.onclick=()=>{
+    if(overSave())return;
     const ta=$("#teamJson"),box=$("#saveHelp");ta.value=JSON.stringify(teamJSON(),null,1);box.hidden=false;
     const fallback=()=>{ta.focus();ta.select();};
     try{navigator.clipboard.writeText(ta.value).then(()=>{sv.textContent="Copied ✓ now open GitHub";},fallback);}catch(e){fallback();}
