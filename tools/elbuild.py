@@ -196,6 +196,29 @@ def official_games(pages):
             out[(d, club)] = players
     return out
 
+def official_next(games):
+    """{club: [upcoming game]} from the official schedule's unplayed games, in Banja Luka time, shaped like teamNext's
+    Sofascore games (EuroLeague only)."""
+    from zoneinfo import ZoneInfo
+    tz, out = ZoneInfo('Europe/Sarajevo'), {}
+    for g in sorted((g for g in games if not g.get('played')), key=lambda g: g['utcDate']):
+        dt = datetime.datetime.fromisoformat(g['utcDate'].replace('Z', '+00:00')).astimezone(tz)
+        loc, road = (EL_CODE.get(g[s]['club']['code'], g[s]['club']['code']) for s in ('local', 'road'))
+        for club, opp, side, ha in ((loc, road, 'road', 'H'), (road, loc, 'local', 'A')):
+            out.setdefault(club, []).append({'d': dt.date().isoformat(), 't': dt.strftime('%H:%M'), 'comp': f"EuroLeague R{g['round']}",
+                                             'el': True, 'opp': g[side]['club']['name'], 'ha': ha, 'oc': opp})
+    return out
+
+def fill_next(team_next, times, official):
+    """When Sofascore gave a club no EuroLeague game (it refuses requests some days), use the official schedule's.
+    Tip-off times missing from Sofascore come from it too. Returns the clubs filled."""
+    filled = []
+    for club, gs in official.items():
+        if not any(g.get('el') for g in team_next.get(club) or []):
+            team_next[club] = gs[:3]; filled.append(club)
+        for g in gs: times.setdefault(g['d'] + '|' + club, g['t'])
+    return filled
+
 def find_line(name, lines):
     """His line among one club's players in one game: same name words, else same surname and first initial, else a unique surname."""
     w = el_name(name)
@@ -527,6 +550,12 @@ def main():
             teamNext[code] = lst
     except Exception as ex:
         print('tip-off times failed', ex)
+    try:
+        sched = json.load(open(get(EL_API, os.path.join(pages, 'el_games.json'))))['data']
+        filled = fill_next(teamNext, times, official_next(sched))
+        if filled: print(f'WARNING: Sofascore gave no EuroLeague game for {len(filled)} clubs; used the official schedule:', ' '.join(sorted(filled)))
+    except Exception as ex:
+        print('WARNING: official schedule failed, next games and tip-off times may be missing', ex)
     for f_ in fixtures:
         t_ = times.get(f_[0] + '|' + f_[1]) or times.get(f_[0] + '|' + f_[2])
         if t_ and len(f_) == 3: f_.append(t_)
