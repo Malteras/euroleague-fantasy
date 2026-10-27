@@ -70,7 +70,7 @@ test("lineup: the five starters, their projected total, formation and 6th man", 
 });
 
 test("check: the player, the points at risk, why, and who to swap in", () => {
-  const items = blItems({ ...base, checks: [{ p: Madar, why: "missed Maccabi's Sunday game", swap: pl(38, "Ojeleye", 8, 5) }] });
+  const items = blItems({ ...base, checks: [{ p: Madar, why: [["", "missed Maccabi's Sunday game"]], swap: pl(38, "Ojeleye", 8, 5) }] });
   const t = items.find(i => i.kind === "check");
   assert.equal(t.title, "Check Madar before Wed 18:00");
   assert.equal(text(t), "18.1 pts at risk: missed Maccabi's Sunday game\nIf he is out, start Ojeleye");
@@ -79,8 +79,13 @@ test("check: the player, the points at risk, why, and who to swap in", () => {
 });
 
 test("check with nobody to swap in", () => {
-  const t = blItems({ ...base, checks: [{ p: Madar, why: "Doubtful", swap: null }] }).find(i => i.kind === "check");
+  const t = blItems({ ...base, checks: [{ p: Madar, why: [["st", "Doubtful"]], swap: null }] }).find(i => i.kind === "check");
   assert.equal(text(t), "18.1 pts at risk: Doubtful");
+});
+
+test("a check's status is its own part, so the card can show Day to day as DTD with its tooltip (#59)", () => {
+  const t = blItems({ ...base, checks: [{ p: Madar, why: [["st", "Day to day"], ["", " (hamstring)"]], swap: null }] }).find(i => i.kind === "check");
+  assert.deepEqual(t.detail, [["pts", "18.1 pts"], ["", " at risk: "], ["st", "Day to day"], ["", " (hamstring)"]]);
 });
 
 test("credit gainers from the routine's line: name, club, price and why", () => {
