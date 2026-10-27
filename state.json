@@ -8,7 +8,7 @@
  "coachPin": null,
  "budget": 99.5,
  "maxT": 4,
- "lam": 60,
+ "lam": 35,
  "noInj": true,
  "pos": "ALL",
  "day": "ALL",
@@ -24,7 +24,7 @@
  "calOpen": true,
  "rf": "el",
  "rg": "2026-10-21|HTA|VIR|",
- "pmode": "q",
+ "pmode": "m",
  "blTicks": [
   "7:captain:73",
   "7:lineup:73,23,165,361,118",
@@ -42,5 +42,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-27T09:37:46.742Z"
+ "savedAt": "2026-10-27T09:37:53.825Z"
 }
