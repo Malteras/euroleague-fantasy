@@ -1253,8 +1253,16 @@ function teamChecks(){
     {ok:!!form,t:form?`Formation ${form.join("-")}`:form===null?"Starting five not full":"Starting five: invalid formation"},
     {ok:!!team.cap,t:team.cap?`Captain ${byId[team.cap].short}`:"No captain"},
     {ok:team.bank>=0,t:team.bank>=0?`Bank ${team.bank.toFixed(1)}`:`Over budget by ${(-team.bank).toFixed(1)}`},
+    ...(start?[(()=>{const u=tradesUsed(),L=tradeLimit();
+      return {ok:u<=L,t:L===Infinity?`${u} trades (free-trade window)`:u>L?`${u}/${L} trades: ${u-L} too many`:`${u}/${L} trades`};})()]:[]),
   ];
 }
+// Trades this round on My team, counted from the squad that played the round before (data.json tradeBase, see trades());
+// the coach counts. Without a tradeBase there is nothing to count from.
+const tradeLimit=()=>state.maxT>=99?Infinity:state.maxT;
+const tradesUsed=(ids=teamIds(),coach=team.coach)=>start?trades(ids,coach,start):0;
+// a change My team can't make: it needs a trade over the limit (a squad already over may still come down)
+const overLimit=(ids,coach)=>{const u=tradesUsed(ids,coach);return u>tradeLimit()&&u>tradesUsed();};
 const teamValid=()=>{const ids=teamIds(),c=posCount(ids);return ids.length===10&&c.G===4&&c.F===4&&c.C===2&&!!team.coach;};
 function teamJSON(){return {updated:new Date().toISOString().slice(0,10),players:teamIds(),coach:team.coach,bank:r1(team.bank),slots:team.slots,cap:team.cap,
   names:team.slots.map(i=>i?byId[i].name:null),coachName:team.coach&&coachByTeam[team.coach]?coachByTeam[team.coach].name:null};}
@@ -1340,13 +1348,14 @@ function picker(){
   const cnt=posCount(others),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
   let list;
   if(isCoach){
-    list=C.slice().sort(projSort).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk" data-pk-coach="${c.team}"><span class="pk-n"><b>${esc(c.name)}</b><small>${TEAMS[c.team][0]}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`).join("");
+    list=C.slice().sort(projSort).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>{const noT=overLimit(teamIds(),c.team);
+      return `<button type="button" class="pk${noT?" dis":""}" data-pk-coach="${c.team}"${noT?' aria-disabled="true"':""}><span class="pk-n"><b>${esc(c.name)}</b><small>${facts(TEAMS[c.team][0],noT&&"No trades left")}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`;}).join("");
   }else{
     const need=Object.keys(POSMAX).filter(k=>cnt[k]<POSMAX[k]);
     const pos=pick.pos==="ALL"?null:pick.pos;
     list=P.filter(p=>!others.includes(p.id)&&(!pos||p.pos===pos)&&(!pick.q||(p.name+" "+TEAMS[p.team][0]).toLowerCase().includes(pick.q.toLowerCase()))).sort(projSort).slice(0,80).map(p=>{
-      const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6;const dis=full||clubFull;
-      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],dis?(full?`${POSN[p.pos]}s full`:"6 from this club"):["Next",(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))])}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
+      const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6,noT=!full&&!clubFull&&overLimit([...others,p.id],team.coach);const dis=full||clubFull||noT;
+      return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],dis?(full?`${POSN[p.pos]}s full`:clubFull?"6 from this club":"No trades left"):["Next",(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))])}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
   }
   const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
   return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
@@ -1360,8 +1369,9 @@ function suggestFor(slot){
   const oid=team.slots[slot],o=byId[oid];if(!o)return {o:null,list:[]};
   const others=teamIds().filter(i=>i!==oid),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
   const val=p=>p.x+state.lam*p.exp;
-  const list=P.filter(c=>c.pos===o.pos&&c.id!==oid&&!others.includes(c.id)&&!c.out&&c.price<=r1(o.price+team.bank)+1e-9&&(club[c.team]||0)<6)
-    .map(c=>({c,score:r1(val(c)-val(o))})).sort((a,b)=>b.score-a.score).slice(0,6)
+  const list=P.filter(c=>c.pos===o.pos&&c.id!==oid&&!others.includes(c.id)&&!c.out&&c.price<=r1(o.price+team.bank)+1e-9&&(club[c.team]||0)<6
+      &&!overLimit(others.concat(c.id),team.coach))
+    .map(c=>({c,score:r1(val(c)-val(o)),dt:start?swapTrades(teamIds(),team.coach,oid,c.id,start):0})).sort((a,b)=>b.score-a.score).slice(0,6)
     .map(x=>({...x,why:reasons(x.c,o)}));
   return {o,list};
 }
@@ -1416,15 +1426,19 @@ function suggestPanel(){
   const {o,list}=suggestFor(sug);if(!o){sug=null;return "";}
   const cmpP=sugCmp!=null?byId[sugCmp]:null;
   const best=list[0];
-  const row=({c,score,why})=>{const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
+  const used=tradesUsed(),L=tradeLimit(),noneLeft=!!start&&used>=L;
+  // what the swap does to the round's trades (see swapTrades)
+  const tradeTxt=dt=>!start||L===Infinity?"":dt>0?(L-used===1?"Uses your last trade":`Uses 1 of ${L-used} trades left`):dt<0?"Frees a trade":"No new trade";
+  const row=({c,score,why,dt})=>{const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
     return `<li class="sg-item"><div class="sg-top">${jersey(c.team,c.pos)}<div class="sg-n">${plink(c)}<small>${facts(esc(TEAMS[c.team][0]),`${c.price.toFixed(1)} cr`,`${esc(turnOf2(c.day))}${c.opp?(c.opp.ha==="H"?" vs ":" @ ")+esc(c.opp.opp):""}`)}</small></div><div class="sg-s"><b class="${score>=0?"pos":"neg"}">${score>=0?"+":""}${score}</b><small>value</small></div></div>
       <ul class="sg-why">${why.slice(0,4).map(t=>`<li>${t}</li>`).join("")}</ul>
-      <div class="sg-act"><span class="muted">${facts(diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price",["Bank after",bankAfter.toFixed(1)])}</span><span class="sg-btns"><button type="button" class="chip-toggle" data-sg-cmp="${c.id}">Compare</button><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></span></div></li>`;};
+      <div class="sg-act"><span class="muted">${facts(diff>0?`Costs ${diff.toFixed(1)} more`:diff<0?`Saves ${(-diff).toFixed(1)} cr`:"Same price",["Bank after",bankAfter.toFixed(1)],tradeTxt(dt))}</span><span class="sg-btns"><button type="button" class="chip-toggle" data-sg-cmp="${c.id}">Compare</button><button type="button" class="btn-primary sm" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></span></div></li>`;};
   return `<div class="scrim" data-sg-close></div><aside class="drawer sugg" role="dialog" aria-modal="true" aria-label="Replacements for ${esc(o.name)}">
     <div class="dr-top" style="--tc:${(TEAMS[o.team]||["","#445"])[1]}"><button type="button" class="dr-x" data-sg-close aria-label="Close">✕</button>
       <div class="dr-id">${jersey(o.team,o.pos)}<div><div class="eyebrow" style="margin:0">Replace</div><h3>${esc(o.name)}</h3><div class="muted">${facts(`${o.price.toFixed(1)} cr`,projOf(o),esc(turnOf2(o.day)),["Bank",team.bank.toFixed(1)])}</div></div></div></div>
     <div class="dr-body">${cmpP?compareTable(o,cmpP):`
-      ${!list.length?'<p class="note">Nobody at this position fits your budget and club limits.</p>':best.score<tradeBar()?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${tradeBar()}+ value. Best options are below anyway.</div>`:""}
+      ${noneLeft?`<p class="note sg-none">${used>L?`${used} trades made, ${used-L} over the limit of ${L}: a swap marked "Frees a trade" brings you back.`:`No trades left (${used}/${L}).`} Only swaps that need no new trade are listed.</p>`:""}
+      ${!list.length?`<p class="note">Nobody at this position fits your budget, club limits${noneLeft?" and trades left":""}.</p>`:best.score<tradeBar()?`<div class="sg-keep"><b>Keeping ${esc(o.short)} is fine.</b> No swap adds ${tradeBar()}+ value. Best options are below anyway.</div>`:""}
       <p class="note" style="margin:10px 0">${POSN[o.pos]}s you can afford (up to ${r1(o.price+team.bank).toFixed(1)} cr), best first. "Value" = projected points + credit growth, compared with ${esc(o.short)}, using the planner's "What matters more" setting.</p>
       <ol class="sg-list">${list.map(row).join("")}</ol>
       <button type="button" class="chip-toggle" data-sg-all style="margin:6px 0 18px">Search all ${POSN[o.pos].toLowerCase()}s instead</button>`}
@@ -1670,7 +1684,12 @@ const cost=(ids,coach)=>ids.reduce((a,i)=>a+byId[i].price,0)+(coachByTeam[coach]
 // Trades count from the squad he had when this round's market opened (start), not from My team: a trade he already
 // saved this round is one of the 4. Re-trading a player he brought in (Faye → Nebo, then Nebo → Hayes) is still one trade;
 // bringing a sold player back frees it. start is null when the data has no squad for this round: count from My team.
+// tradeCount:begin
 const trades=(ids,coach,b=start||orig)=>ids.filter(i=>!b.players.includes(i)).length+(coach!==b.coach?1:0);
+// what one swap does to the round's trades: +1 a new trade, 0 it changes one already made (sells a player bought this
+// round), −1 it undoes one (buys back a player sold this round)
+const swapTrades=(ids,coach,out,inn,b=start||orig)=>trades(ids.map(i=>i===out?inn:i),coach,b)-trades(ids,coach,b);
+// tradeCount:end
 // the moves to make now on the official site: from My team to the proposal
 const moves=(ids,coach)=>trades(ids,coach,orig);
 // once trades are made this round a move can replace or undo one of them, so it is a "change", not a new trade
@@ -3365,7 +3384,7 @@ function bindTeam(rerender){
     if(!team.cap&&pick.slot<5&&team.slots.slice(0,5).filter(Boolean).length===5){}
     pick=null;teamChanged();rerender();
   });
-  document.querySelectorAll("[data-pk-coach]").forEach(b=>b.onclick=()=>{team.coach=b.dataset.pkCoach;pick=null;teamChanged();rerender();});
+  document.querySelectorAll("[data-pk-coach]").forEach(b=>b.onclick=()=>{if(b.classList.contains("dis"))return;team.coach=b.dataset.pkCoach;pick=null;teamChanged();rerender();});
   document.querySelectorAll("#pkpos button").forEach(b=>b.onclick=()=>{pick.pos=b.dataset.v;const q=$("#pkq");pick.q=q?q.value:pick.q;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);});
   const q=$("#pkq");let t;
   if(q)q.oninput=e=>{clearTimeout(t);t=setTimeout(()=>{pick.q=e.target.value;const pos=q.selectionStart;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);const n=$("#pkq");n.focus();n.setSelectionRange(pos,pos);},200);};
