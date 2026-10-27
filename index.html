@@ -535,6 +535,8 @@ section{padding-block:28px 8px}
 .mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
 .mt-over{margin:2px 0 14px;padding:12px 14px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft);color:var(--fg);font-size:14px;line-height:1.45}
 .mt-over>b{color:var(--bad)}.mt-over ul{margin:6px 0 0;padding-left:20px}.mt-over li{margin:2px 0}
+.mt-over-act{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0 0}.mt-over-act span{font-size:13px;color:var(--muted)}
+.mt-reset{margin:12px 0 0;text-align:right}
 .mt-err{margin:8px 0 0;text-align:right;color:var(--bad);font-weight:700;font-size:13.5px}
 @media (max-width:760px){.mt-save{justify-content:stretch}.mt-save .btn-primary{flex:1}}
 .btn-primary{border:0;border-radius:10px;padding:10px 16px;font-weight:700;background:var(--accent);color:var(--accent-ink);cursor:pointer}
@@ -1311,11 +1313,27 @@ function slotHtml(i,ep){
 // over the round's trade limit: a banner at the top of My team, and Save refuses (until the round starts: then the squad is
 // what it is, and Save still has to keep the lineup and captain)
 const tradesOver=()=>!!start&&tradesUsed()>tradeLimit();
+// Back to the squad that played the round before (tradeBase): every trade of this round undone in My team, so the
+// proposal plans the round's trades again from the start. Bank at today's prices (they do not move during the market),
+// so the team value stays the same. Nothing is saved; Undo changes brings back the saved team.
+let resetSlots=null;
+const canReset=()=>!!start&&!TRADES_CLOSED&&tradesUsed()>0&&start.players.every(i=>byId[i])&&!!coachByTeam[start.coach];
+function resetToStart(){
+  if(!canReset())return;
+  const cp=t=>coachByTeam[t]?coachByTeam[t].price:0,cost=(ids,c)=>ids.reduce((a,i)=>a+byId[i].price,0)+cp(c);
+  team.bank=r1(team.bank+cost(teamIds(),team.coach)-cost(start.players,start.coach));
+  team.slots=autoSlots(start.players.slice());team.coach=start.coach;
+  // captain: the captain plan's first pick on the court (Apply on the proposal sets the plan's lineup and captain)
+  const st=team.slots.slice(0,5);team.cap=capPlan(start.players).path.map(s=>s.p.id).find(i=>st.includes(i))||st.find(Boolean)||null;
+  sel=null;justApplied=0;teamChanged();resetSlots=JSON.stringify(team.slots);
+}
+const resetBtn=()=>canReset()?`<button type="button" class="chip-toggle" data-reset-round>Back to Round ${D.round-1} squad</button>`:"";
 function overBox(){
   if(!tradesOver())return "";
   const u=tradesUsed(),L=tradeLimit(),m=madeTrades();
   return `<div class="mt-over" role="alert"><b>${u} trades this round: the limit is ${L}.</b> Undo ${u-L===1?"one":u-L} before you save: put back a player you sold (Suggest replacements marks it "Frees a trade").
-    <ul>${m.rows.map(([a,b,lbl])=>`<li>${lbl?`${lbl} `:""}${a} <span aria-label="for">→</span> ${b}</li>`).join("")}</ul></div>`;
+    <ul>${m.rows.map(([a,b,lbl])=>`<li>${lbl?`${lbl} `:""}${a} <span aria-label="for">→</span> ${b}</li>`).join("")}</ul>
+    <p class="mt-over-act">${resetBtn()}<span>Starts again: every trade of this round undone, and the proposal plans all ${tradeLimit()} again.</span></p></div>`;
 }
 function myteam(){
   const saved=sameTeam(team,savedTeam);
@@ -1344,7 +1362,8 @@ function myteam(){
    </div>
    ${bar}
    <div class="checks">${checks}</div>
-   <div class="mt-save">${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div>
+   ${resetSlots===JSON.stringify(team.slots)&&!saved?`<p class="note mt-reset" role="status">Back to the squad that played Round ${D.round-1}, not saved yet. The proposal below now plans this round's trades from the start: apply it, then save.</p>`:""}
+   <div class="mt-save">${resetBtn()}${saved?"":`<button type="button" class="chip-toggle" id="resetTeam">Undo changes</button>`}<button type="button" class="btn-primary" id="saveTeam">Save for daily report</button></div>
    <p class="mt-err" id="saveErr" role="alert" hidden></p>
    <div id="saveHelp" class="savehelp" hidden>
      <ol class="steps">
@@ -3362,6 +3381,7 @@ function bindTeam(rerender){
     rerender();
   });
   const bank=$("#bank");if(bank)bank.onchange=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){team.bank=v;teamChanged();rerender();}};
+  document.querySelectorAll("[data-reset-round]").forEach(b=>b.onclick=()=>{resetToStart();rerender();});
   const rs=$("#resetTeam");if(rs)rs.onclick=()=>{justApplied=0;team=teamFrom(savedTeam);state.team=null;sel=null;orig={players:teamIds(),coach:team.coach};P.forEach(p=>{p.tags=tagsFor(p);});state.budgetTouched=false;state.budget=teamValue();rerender();};
   const cf=$("#connectForm");if(cf)cf.onsubmit=e=>{e.preventDefault();const v=$("#passIn").value.trim();if(!v)return;SYNC.pass=v;const m=$("#passMsg"),btn=cf.querySelector("button");m.textContent="Checking…";btn.disabled=true;
     api("state").then(r=>{
