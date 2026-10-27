@@ -1247,7 +1247,7 @@ function teamFrom(src){
   return {slots,coach:src.coach||null,bank:+(src.bank||0),cap:src.cap&&slots.slice(0,5).includes(src.cap)?src.cap:null,updated:src.updated||"",base:src.base||""};
 }
 function autoSlots(ids){
-  if(ids.length===10){const L=lineup(ids);if(L){const st=L.st.map(p=>p.id),six=L.six?L.six.id:null;const rest=ids.filter(i=>!st.includes(i)&&i!==six);return [...st,six,...rest];}}
+  if(ids.length===10){const L=dayOneLineup(ids.map(i=>byId[i]))||lineup(ids);if(L){const st=L.st.map(p=>p.id),six=L.six?L.six.id:null;const rest=ids.filter(i=>!st.includes(i)&&i!==six);return [...st,six,...rest];}}
   const a=ids.slice(0,10);while(a.length<10)a.push(null);return a;
 }
 const teamIds=()=>team.slots.filter(Boolean);
@@ -2635,11 +2635,9 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
 function initPlan(R,L){
   const ps=R.S.map(i=>byId[i]);
   const finalDay=dayKeys[dayKeys.length-1];
-  // initial lineup: best formation without last-day players where possible
-  const earlyIds=ps.filter(p=>p.day!==finalDay).map(p=>p.id);
-  let init=null;
-  try{const tmp=lineupPartial(ps.filter(p=>p.day!==finalDay),ps);init=tmp;}catch(e){}
-  if(!init)init={st:L.st.slice(),six:L.six}; // copy: L belongs to a cached result
+  // initial lineup: the earliest turn's players on the court and as 6th man (dayOneLineup)
+  const d1=dayOneLineup(ps);
+  let init=d1?{st:d1.st.slice(),six:d1.six}:{st:L.st.slice(),six:L.six}; // copy: L belongs to a cached result
   if(!init.six){init={...init,six:ps.filter(p=>!init.st.includes(p)).sort((a,b)=>b.x-a.x)[0]||null};}
   const name=p=>`<b>${plink(p,p.short)}</b>`;
   const stNames=init.st.map(name).join(", ");
@@ -2667,18 +2665,28 @@ function planSteps(R,L){
   if(risky.length)steps.push(`Minutes watch: ${risky.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.`);
   return steps.map(s=>`<li><span>${s}</span></li>`).join("");
 }
-function lineupPartial(early,all){
-  const by={G:[],F:[],C:[]};early.forEach(p=>by[p.pos].push(p));for(const k in by)by[k].sort((a,b)=>b.x-a.x);
+// dayOne:begin
+// The day-one lineup: as many players of the earliest turn as possible on the court and as 6th man, then the next turn's.
+// A later player on the bench can still come on after the earlier games; an early one on the bench is stuck at 50% once
+// he has played, whatever he scores. So turn first, projection second; a player listed Out counts as playing last.
+function dayOneLineup(ps){
+  const t=p=>{const k=dayKeys.indexOf(p.day);return p.out||k<0?dayKeys.length:k;};
+  const ord=(a,b)=>t(a)-t(b)||b.x-a.x;
+  const by={G:[],F:[],C:[]};ps.forEach(p=>by[p.pos].push(p));for(const k in by)by[k].sort(ord);
+  // how many of the six 100% places each turn fills, earliest turn first, then their projections
+  const key=six=>[...dayKeys.map((_,k)=>six.filter(p=>t(p)===k).length),six.reduce((a,p)=>a+p.x,0)];
+  const better=(a,b)=>{for(let i=0;i<a.length;i++)if(Math.abs(a[i]-b[i])>1e-9)return a[i]>b[i];return false;};
   let best=null;
   for(const [g,f,c] of FORMS){
     if(by.G.length<g||by.F.length<f||by.C.length<c)continue;
     const st=[...by.G.slice(0,g),...by.F.slice(0,f),...by.C.slice(0,c)];
-    const rest=early.filter(p=>!st.includes(p)).sort((a,b)=>b.x-a.x);
-    const s=st.reduce((a,p)=>a+p.x,0)+(rest[0]?rest[0].x:0);
-    if(!best||s>best.s)best={s,st,six:rest[0]};
+    const six=ps.filter(p=>!st.includes(p)).sort(ord)[0]||null;
+    const k=key(six?[...st,six]:st);
+    if(!best||better(k,best.k))best={k,st,six};
   }
-  if(!best)throw 0;return best;
+  return best;
 }
+// dayOne:end
 function pcard(p,role,isNew){
   const v=p.tags.find(t=>["Consider dropping","Keep: gaining","Keep: price steady","Must have","Out"].includes(t[0]));
   const b={cap:'<span class="badge cap">Captain</span>',start:'<span class="badge start">Start</span>',six:'<span class="badge six">6th man</span>'}[role]||'<span class="badge">Bench</span>';
