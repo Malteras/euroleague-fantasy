@@ -167,3 +167,10 @@ test("compare, both played: scores compared, projections TBC and not compared", 
   assert.deepEqual(cmpRow(R, "Projection").slice(3), [null, null, true]);
   assert.deepEqual(R[R.length - 1].slice(1), ["+0.9 cr this round", "−0.3 cr this round", 0.9, -0.3, true]);
 });
+
+// The replacement suggestions' value (suggestFor): never today's projection of a player who has played.
+test("suggestion value: projection plus credit growth before his game, null (TBC) after it", () => {
+  const { sgVal } = new Function(cut("// projShown:begin", "// projShown:end") + "\nreturn {sgVal};")();
+  assert.equal(sgVal(projShown(maledon, ctx), 0.5, 4), 22.6);
+  assert.equal(sgVal(projShown(leday, ctx), 0.5, 4), null);
+});
