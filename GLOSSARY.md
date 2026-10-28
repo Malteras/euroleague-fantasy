@@ -83,8 +83,14 @@ _Avoid_: popularity, pop (the data's field name)
 **Differential**:
 A pick about as good as the planner's (at most 4 projected points less) that far fewer teams own (at most half the share,
 and at least 5 points of share less). Shown as a hint under the captain and under each incoming player; it never changes
-the proposal (docs/adr/0003-differential-picks.md).
+the proposal, unless Chase rank is on (docs/adr/0003-differential-picks.md).
 _Avoid_: hidden gem (a different idea, #64), punt
+
+**Chase rank**:
+A planner setting, off by default: before the deadline, each incoming player and the first captain is swapped for his
+differential when he has one. A tie-break only, so a pick never gives up more than 4 projected points. No effect once the
+round has started.
+_Avoid_: differential mode, risk mode
 
 **Look-ahead**:
 Counting half of a player's next-round projection, with that round's matchup, when judging a trade made this round. Covers this round and the next one only, and never changes who starts or captains this round.

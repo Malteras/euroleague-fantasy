@@ -1,4 +1,4 @@
-# Differential picks: hints first, a "Chase rank" tie-break later
+# Differential picks: hints, and a "Chase rank" tie-break
 
 Ognjen is last in his league. Copying the popular picks keeps the gap; climbing needs points that few other teams get.
 So on a close call, a player few teams own is worth more for rank. Decided with Ognjen, 28 Oct 2026 (#26).
@@ -22,11 +22,19 @@ A pick about as good as the planner's, owned by far fewer teams:
   Judged on the same projected points as the trade, look-ahead included in Proposal 2.
 - Both are **hints only**: the proposal, its trades and its captain stay the same. Each has the site's tooltip with the numbers.
 
-## Decided, not built yet: (c) "Chase rank"
+## (c) "Chase rank", built in #102
 
-A setting that lets the optimiser itself prefer the differential, as a **tie-break only**: among picks within `DIFF_PTS`,
-the far less owned one wins. It never gives up more than `DIFF_PTS` projected points for a pick. A bonus that changes picks
-beyond near-ties was rejected for now. Built in its own ticket, after these hints have been seen for a few rounds.
+A setting (off by default, saved with the other planner settings) that lets the optimiser itself prefer the differential,
+as a **tie-break only**. A bonus that changes picks beyond near-ties was rejected.
+- The search runs as before. Then each incoming player is swapped for his differential (`chaseTrades()`), with the same pool
+  and the same projected points as hint (b), if he is not pinned, the swap keeps the trades within the limit, and the
+  differential is not one of his own players. Then the first captain is swapped for his (`chaseCap()`), from the same pool
+  as hint (a); the later turns and the keep mark stay.
+- One step from the planner's pick, never a chain of steps, so no pick gives up more than `DIFF_PTS` projected points.
+  A swapped-in player costs no more, so the budget holds. Coaches are never swapped.
+- Only at the deadline. Once the round has started there are no trades and the captain is his own (ADR 0002). A past
+  round's review (`withRound`) always runs with it off.
+- Where it swapped, the line under the player says "Chase rank: X over Y" instead of the hint.
 
 ## Consequences
 

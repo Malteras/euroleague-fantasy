@@ -67,3 +67,12 @@ test("the hint: name, points, ownership, and the site's tooltip (no title attrib
   assert.match(r, /projected 18.8 against 19.6\./);
   assert.match(diffHtml(pl("A<b", 10, 40), differential(pl("A<b", 10, 40), [pl("C&d", 10, 1)]), "Trade"), /Differential: C&amp;d,/);
 });
+
+test("Chase rank's line says what it took and over whom, with the site's tooltip", () => {
+  const pick = pl("Moore", 16.6, 40), alt = pl("Hayes", 15.2, 3);
+  const h = diffHtml(pick, differential(pick, [alt]), "Trade", true);
+  assert.match(h, /^<span class="diff has-tip" tabindex="0">Chase rank: Hayes over Moore, 1.4 pts less, owned by 3% vs 40%<span class="tip tip-pick"/);
+  assert.match(h, /<small>Chase rank<\/small><b>Hayes instead of Moore<\/b>/);
+  assert.match(h, /Chase rank is on, so the planner took him\./);
+  assert.doesNotMatch(h, /A hint only|title=| · /);
+});
