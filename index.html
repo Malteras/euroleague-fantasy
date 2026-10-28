@@ -1499,21 +1499,24 @@ function reasons(c,o){
   return R;
 }
 function compareTable(o,c){
-  const opp=p=>p.opp?`${p.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:p.opp.opp)}${p.opp.ha==="H"?" (home)":""}, ${esc(turnOf2(p.day))}`:"–";
-  const m=p=>matchup(p);const l3=p=>p.log.slice(0,3).map(g=>g.fpt);const a3=p=>{const v=l3(p);return v.length?v.reduce((x,y)=>x+y,0)/v.length:null;};
+  // the game a row is about: this round's until he has played it, then next round's (nextG, CLAUDE.md rule 7)
+  const opp=p=>{const n=nextG(p);if(!n)return "–";const when=n.round!=null&&n.round!==D.round?`R${n.round}, ${dayFmt(n.day)}`:turnOf2(n.day);
+    return `${n.ha==="H"?"vs":"@"} ${esc(TEAMS[n.opp]?TEAMS[n.opp][0]:n.opp)}${n.ha==="H"?" (home)":""}, ${esc(when)}`;};
+  const m=p=>{const n=nextG(p);return n?matchup(p,n):null;};const l3=p=>p.log.slice(0,3).map(g=>g.fpt);const a3=p=>{const v=l3(p);return v.length?v.reduce((x,y)=>x+y,0)/v.length:null;};
   const dom=p=>{const g=(p.dom||[])[0];if(!g)return "–";return g.dnp||g.absent?`did not play (${esc(g.opp)})`:`PIR≈${g.pir} in ${Math.round(g.min)} min`;};
   const mtxt=v=>v==null?"–":`${v>0?"+":""}${v} ${v>=25?"(very easy)":v>=12?"(easy)":v<=-25?"(very hard)":v<=-12?"(hard)":"(average)"}`;
+  const rnd=p=>({s:shown(p),xm:r1(p.x+mBonus(p)),exp:p.exp}),R=cmpRoundRows(rnd(o),rnd(c));
   // [label, valueA, valueB, numeric A, numeric B, higherIsBetter]
   const rows=[
     ["Price",o.price.toFixed(1),c.price.toFixed(1),o.price,c.price,false],
     ["Next game",opp(o),opp(c),null,null],
-    [`Opponent vs ${POSW[o.pos]}`,mtxt(m(o)),mtxt(m(c)),m(o),m(c),true],
-    ["Projection",shown(o).played?projOf(o):o.x,shown(c).played?projOf(c):c.x,o.x,c.x,true],
-    ["With matchup bonus",r1(o.x+mBonus(o)),r1(c.x+mBonus(c)),o.x+mBonus(o),c.x+mBonus(c),true],
+    // bold only when both games are in the same round
+    [`Opponent vs ${POSW[o.pos]}`,mtxt(m(o)),mtxt(m(c)),...((nextG(o)||{}).round===(nextG(c)||{}).round?[m(o),m(c)]:[null,null]),true],
+    ...R.slice(0,-1),
     ["Last 3 EuroLeague (FPT)",l3(o).join(", ")||"–",l3(c).join(", ")||"–",a3(o),a3(c),true],
     ["Season average",o.fpt??"–",c.fpt??"–",o.fpt,c.fpt,true],
     ["Break-even",o.be,c.be,null,null],
-    ["Expected price change",`${o.exp>=0?"+":""}${o.exp.toFixed(2)} cr`,`${c.exp>=0?"+":""}${c.exp.toFixed(2)} cr`,o.exp,c.exp,true],
+    R[R.length-1],
     ["Minutes last game",o.log[0]?Math.round(o.log[0].min):"–",c.log[0]?Math.round(c.log[0].min):"–",o.log[0]?o.log[0].min:null,c.log[0]?c.log[0].min:null,true],
     ["Last domestic game",dom(o),dom(c),null,null],
   ];
@@ -1522,7 +1525,7 @@ function compareTable(o,c){
   return `<div class="cmp"><button type="button" class="chip-toggle" data-sg-back>← Back to the list</button>
     <table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${facts(esc(TEAMS[o.team][0]),"in your team")}</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${esc(TEAMS[c.team][0])}</small></span></th></tr></thead>
     <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>
-    <p class="note" style="margin:8px 0 12px">Bold = better of the two. ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
+    <p class="note" style="margin:8px 0 12px">Bold = better of the two${shown(o).played!==shown(c).played?", only where both numbers mean the same: a score is not set against a projection":""}. ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
     <div class="cmp-act"><button type="button" class="chip-toggle" data-sg-back>Keep ${esc(o.short)}</button><button type="button" class="btn-primary" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></div>`;
 }
 function suggestPanel(){
@@ -3334,6 +3337,22 @@ function projShown(p,{played,score,deadX,cr}){
   if(!played(p))return {played:false,x:p.x};
   const pts=score(p),x=deadX[p.id??"c:"+p.team]??null;
   return {played:true,pts,x,pct:pts!=null&&x>0?Math.round(100*(pts-x)/x):null,cr:cr?cr(p):null};
+}
+// The rows of a side-by-side compare (compareTable) that change once he has played (CLAUDE.md rule 7). a, b: {s: projShown,
+// xm: today's projection with the matchup bonus, exp: expected credit change}. Rows [label, text A, text B, number A, number B,
+// higher is better], the price change last. A number is null, so never bold, unless both mean the same thing: two scores, two
+// projections, two real or two expected changes. Played: his score beside the deadline projection, TBC as projection.
+function cmpRoundRows(a,b){
+  const same=(ka,kb,va,vb)=>ka===kb?[va,vb]:[null,null],pa=a.s.played,pb=b.s.played;
+  const pts=s=>s.played?`${s.pts!=null?`${s.pts} pts`:"played"}${s.x!=null?` vs ${s.x} projected`:""}`:`${s.x} projected`;
+  const real=s=>s.played&&s.cr!=null,sg=(v,d)=>`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(d)}`;
+  const cr=v=>real(v.s)?`${sg(v.s.cr,1)} cr this round`:`${sg(v.exp,2)} cr expected`;
+  const R=[];
+  if(pa||pb)R.push(["This round",pts(a.s),pts(b.s),...same(pa,pb,pa?a.s.pts:a.s.x,pb?b.s.pts:b.s.x),true]);
+  R.push(["Projection",projCellHtml(a.s),projCellHtml(b.s),...same(pa,pb,pa?null:a.s.x,pb?null:b.s.x),true]);
+  R.push(["With matchup bonus",pa?projCellHtml(a.s):`${a.xm}`,pb?projCellHtml(b.s):`${b.xm}`,...same(pa,pb,pa?null:a.xm,pb?null:b.xm),true]);
+  R.push(["Price change",cr(a),cr(b),...same(real(a.s),real(b.s),real(a.s)?a.s.cr:a.exp,real(b.s)?b.s.cr:b.exp),true]);
+  return R;
 }
 // "proj 20.6" before his game; "36.3 pts (proj 21)" after it
 const projTxt=s=>s.played?`${s.pts!=null?`${s.pts} pts`:"played"}${s.x!=null?` (proj ${s.x})`:""}`:`proj ${s.x}`;

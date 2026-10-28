@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
 const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
-const { projShown, projTxt, projBox, projCellHtml, projKey, gameInfo, gameTipHtml, tipPick, upcoming, roundOf, coachPts } = new Function(line("const esc=") + "\n" + cut("// facts:begin", "// facts:end") + "\n" + cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameInfo,gameTipHtml,tipPick,upcoming,roundOf,coachPts};")();
+const { projShown, projTxt, projBox, projCellHtml, projKey, gameInfo, gameTipHtml, tipPick, upcoming, roundOf, coachPts, cmpRoundRows } = new Function(line("const esc=") + "\n" + cut("// facts:begin", "// facts:end") + "\n" + cut("// projShown:begin", "// projShown:end") + "\nreturn {projShown,projTxt,projBox,projCellHtml,projKey,gameInfo,gameTipHtml,tipPick,upcoming,roundOf,coachPts,cmpRoundRows};")();
 
 // Round 7 after Wednesday: LeDay scored 36.3 (deadline projection 21.0, today's 39.9); Maledon plays Thursday.
 const W = "2026-10-21", T = "2026-10-22";
@@ -129,4 +129,41 @@ test("the whole page script parses (a name declared twice breaks the page, and t
   const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
   assert.ok(blocks.length >= 3);
   blocks.forEach(body => assert.doesNotThrow(() => new Function(body)));
+});
+
+// The suggestion panel's compare (compareTable): a label is a promise (CLAUDE.md rule 7).
+const cmpRow = (R, k) => R.find(r => r[0] === k);
+const strip = t => String(t).replace(/<span class="tip[\s\S]*$/, "").replace(/<[^>]+>/g, "");
+test("compare, one played: his score beside the deadline projection, TBC as projection, real change, no bold across kinds", () => {
+  const R = cmpRoundRows({ s: projShown(leday, ctx), xm: 41.2, exp: 0.4 }, { s: projShown(maledon, ctx), xm: 21.5, exp: -0.12 });
+  assert.deepEqual(cmpRow(R, "This round").slice(1), ["36.3 pts vs 21 projected", "20.6 projected", null, null, true]);
+  const pr = cmpRow(R, "Projection");
+  assert.equal(strip(pr[1]), "TBC");
+  assert.equal(strip(pr[2]), "20.6");
+  assert.deepEqual(pr.slice(3), [null, null, true]);
+  const mb = cmpRow(R, "With matchup bonus");
+  assert.equal(strip(mb[1]), "TBC");
+  assert.equal(mb[2], "21.5");
+  assert.deepEqual(mb.slice(3), [null, null, true]);
+  assert.deepEqual(R[R.length - 1], ["Price change", "+0.9 cr this round", "−0.12 cr expected", null, null, true]);
+  // today's projection (39.9, 41.2) is never shown
+  assert.ok(!R.flat().some(v => /39\.9|41\.2/.test(String(v))));
+});
+
+test("compare, neither played: projections, compared; no This round row", () => {
+  const a = { ...maledon, id: 6, x: 18 };
+  const R = cmpRoundRows({ s: projShown(a, ctx), xm: 19, exp: 0.2 }, { s: projShown(maledon, ctx), xm: 21.5, exp: -0.12 });
+  assert.equal(cmpRow(R, "This round"), undefined);
+  assert.deepEqual(cmpRow(R, "Projection").slice(1), ["18", "20.6", 18, 20.6, true]);
+  assert.deepEqual(cmpRow(R, "With matchup bonus").slice(1), ["19", "21.5", 19, 21.5, true]);
+  assert.deepEqual(R[R.length - 1], ["Price change", "+0.20 cr expected", "−0.12 cr expected", 0.2, -0.12, true]);
+});
+
+test("compare, both played: scores compared, projections TBC and not compared", () => {
+  const b = { ...leday, id: 78 };
+  const c2 = { ...ctx, score: p => ({ 77: 36.3, 78: 12 })[p.id], deadX: { 77: 21, 78: 15 }, cr: p => ({ 77: 0.9, 78: -0.3 })[p.id] };
+  const R = cmpRoundRows({ s: projShown(leday, c2), xm: 41, exp: 0.4 }, { s: projShown(b, c2), xm: 30, exp: 0.1 });
+  assert.deepEqual(cmpRow(R, "This round").slice(1), ["36.3 pts vs 21 projected", "12 pts vs 15 projected", 36.3, 12, true]);
+  assert.deepEqual(cmpRow(R, "Projection").slice(3), [null, null, true]);
+  assert.deepEqual(R[R.length - 1].slice(1), ["+0.9 cr this round", "−0.3 cr this round", 0.9, -0.3, true]);
 });
