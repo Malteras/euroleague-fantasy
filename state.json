@@ -15,7 +15,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Consider for next round",
+ "tag": "Hidden gem",
  "dtab": "fixtures",
  "allGames": true,
  "collapsed": [],
@@ -38,5 +38,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T08:03:53.628Z"
+ "savedAt": "2026-10-28T08:04:00.084Z"
 }
