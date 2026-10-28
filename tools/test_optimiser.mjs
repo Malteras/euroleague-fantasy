@@ -13,6 +13,8 @@ const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;", line("con
   cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"), cut("// optimiser:begin", "// optimiser:end"),
   // Chase rank uses the differential rule; at the deadline nobody has played this round
   cut("// differential:begin", "// differential:end"), "const shown=()=>({played:false});",
+  // Include hidden gems (#64) uses the gem rule
+  line("const avg="), line("function domRecent("), cut("// gems:begin", "// gems:end"),
   "const setState=o=>Object.assign(state,o),closeTrades=v=>{TRADES_CLOSED=v;};",
   // the live globals, set the way init() sets them
   `function setLive(data,squad,budget){D=data;const R=project(data);P=R.players;dayKeys=R.dayKeys;LOOK_ON=R.look;
@@ -205,4 +207,60 @@ test("Chase rank does nothing once the round has started, and nothing in a past 
   const r = m.withRound(W, () => m.withMode("q", m.optimise));
   assert.equal(r.chase, null);
   assert.ok(has(r, 11) && !has(r, 15));
+});
+
+// Include hidden gems (#64, docs/adr/0004): on a near-tie a hidden gem wins; never more than DIFF_PTS less per pick.
+// Guard 15 (OLY, 5.5 cr) plays 25 minutes lately against 20 on the season, and ZAL are soft on guards: a gem.
+function gemRound(extra = [], pop = {}) {
+  const d = chaseRound([[15, "OLY", 12, 5.5, { min: 20 }], ...extra], pop);
+  d.defence = { ZAL: { vs_g: 15 } };
+  return d;
+}
+const runG = (m, d, gems, more = {}) => run(m, d, false, { gems, ...more });
+
+test("Include hidden gems off: the proposal is the one without the setting", () => {
+  const m = load(), d = gemRound();
+  const base = run(m, d, false), off = runG(m, d, false);
+  assert.deepEqual(sig(off), sig(base));
+  assert.equal(off.gems, null);
+  assert.ok(has(off, 11) && !has(off, 15), "the planner's own pick is the better guard");
+});
+
+test("Include hidden gems on: the trade goes to the gem within DIFF_PTS, same trades, within budget", () => {
+  const m = load(), d = gemRound();
+  const off = runG(m, d, false), on = runG(m, d, true);
+  assert.ok(has(on, 15) && !has(on, 11));
+  assert.deepEqual(on.gems.map(w => [w.from, w.to]), [[11, 15]]);
+  assert.equal(on.used, off.used);
+  assert.ok(on.cost <= budget(d) + 1e-9);
+  const lost = x(m, 11) - x(m, 15);
+  assert.ok(lost > 0 && lost <= m.DIFF_PTS, `gave up ${lost}`);
+});
+
+test("Include hidden gems takes nobody whose minutes are flat, or who is more than DIFF_PTS worse", () => {
+  const m = load();
+  const flat = gemRound(); flat.players.find(p => p.id === 15).min = 25;
+  assert.deepEqual(runG(m, flat, true).gems, []);
+  const weak = gemRound(); Object.assign(weak.players.find(p => p.id === 15), { fpt: 3, log: log(3) });
+  const on = runG(m, weak, true);
+  assert.ok(x(m, 11) - x(m, 15) > m.DIFF_PTS);
+  assert.ok(has(on, 11) && !has(on, 15));
+});
+
+test("Include hidden gems leaves a pinned incoming player alone, and does nothing once the round has started", () => {
+  const m = load(), d = gemRound();
+  assert.ok(has(runG(m, d, true, { pins: [11] }), 11));
+  m.closeTrades(true);
+  const off = runG(m, d, false), on = runG(m, d, true);
+  m.closeTrades(false);
+  assert.equal(on.gems, null);
+  assert.deepEqual(sig(on), sig(off));
+});
+
+test("with Chase rank also on, a gem it brought in stays: one step from the planner's pick, never two", () => {
+  const m = load(), d = gemRound([[16, "OLY", 11, 5]], { 11: 40, 15: 30, 16: 1 });
+  const on = run(m, d, true, { gems: true });
+  assert.ok(has(on, 15) && !has(on, 16));
+  assert.deepEqual(on.gems.map(w => [w.from, w.to]), [[11, 15]]);
+  assert.deepEqual(on.chase.swaps, []);
 });

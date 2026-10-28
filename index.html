@@ -943,7 +943,7 @@ function pickBtn(k,p,on){
   const P_=PICKS[k],mine=orig.players.includes(p.id),txt=mine?P_.mine:P_.other;
   return `<button type="button" class="ico ${k} has-tip${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On. Tap again to undo.</i>":""}</span></button>`;
 }
-let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
+let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -1651,7 +1651,8 @@ function tagsFor(p){
   }
   if(buyLow(p,p.abs))T.push(["Buy low: back","good"]);
   if(!p.out&&p.price<=8&&p.exp>=0.1)T.push(["Credit gainer","good"]);
-  if(dA!=null&&p.price<=9&&dA>=1.1*p.price+3)T.push(["Domestic form","good"]);
+  if(dA!=null&&p.price<=9&&domGood(p,dA))T.push(["Domestic form","good"]);
+  if(gemOf(p,matchup(p),shown(p).played))T.push(["Hidden gem","good"]);
   if(capOpt.has(p.id)&&!p.out)T.push(["Captain option","warn"]);
   // FantaSheet's rise chance is for his next game: once he has played this round, that is next round's (#66)
   if(p.rise!=null&&p.rise>=60&&!shown(p).played)T.push([`Rise ${Math.round(p.rise)}%`,"good"]);
@@ -1680,6 +1681,7 @@ function tagTip(p,t){
   if(t==="Buy low: back"){const a=p.abs,g=a.missed===1?"game":"games";
     return ["Price",`He missed ${a.missed} of his club's recent EuroLeague ${g} and is back. His price has fallen ${a.drop.toFixed(1)} cr since then (a round without him costs 0.1 cr), while his ${a.usualSrc==="before"?"average before the absence":"PIR last season"} still reaches his break-even.`,
       [`${a.before.toFixed(1)} → ${p.price.toFixed(1)} cr`,`${a.usualSrc==="before"?"average before":"last season"} ${a.usual} vs break-even ${p.be}`,crx]];}
+  if(t==="Hidden gem"){const g=gemOf(p,mu,shown(p).played);return g&&gemTip(p,g,opp);}
   if(t==="Status changed"){const a=alertOf(p),dtd=[a.from,a.to].includes("Day to day");
     return ["Injury news",`${stTxt(a.from)} → ${stTxt(a.to)} since the last daily report.${dtd?" "+dtdWhat():""}`,[a.src,fmtDate(a.d)]];}
   return ({
@@ -1824,10 +1826,10 @@ function withMode(mode,fn){
 let roundKey="live",roundBar=null;
 function withRound(W,fn){
   const live={D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED},keep={};
-  const KEYS=["pins","avoids","coachPin","budget","maxT","lam","noInj","chase"];KEYS.forEach(k=>keep[k]=state[k]);
+  const KEYS=["pins","avoids","coachPin","budget","maxT","lam","noInj","chase","gems"];KEYS.forEach(k=>keep[k]=state[k]);
   D=W.data;P=W.P;byId=Object.fromEntries(P.map(p=>[p.id,p]));C=W.C;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   orig=W.orig;start=W.start||null;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;TRADES_CLOSED=false;
-  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam,noInj:false,chase:false});
+  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam,noInj:false,chase:false,gems:false});
   try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED}=live);Object.assign(state,keep);}
 }
 let resultAlt=null;
@@ -2006,7 +2008,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,!!state.chase,TRADES_CLOSED]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,!!state.chase,!!state.gems,TRADES_CLOSED]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -2017,15 +2019,18 @@ function optimise(){
   // flat: every stop of the bar gives these same trades, so moving it changes nothing (said under the bar)
   const sig=p=>p.S.slice().sort().join()+"|"+p.coach;
   const flat=STOPS.every(l=>sig(pickAt(l))===sig(pick));
-  let {S,coach}=pick,cap=null,chase=null;const bar=tradeBar();
-  // Chase rank (#102): on a near-tie the far less owned player wins, one step from the pick above. Only at the deadline.
-  if(state.chase&&!TRADES_CLOSED){const c=chaseTrades(S,coach,orig.players,state.pins,own.lim);S=c.S;
+  let {S,coach}=pick,cap=null,chase=null,gems=null;const bar=tradeBar();
+  // Include hidden gems (#64): on a near-tie a hidden gem wins, one step from the pick above. Only at the deadline.
+  if(state.gems&&!TRADES_CLOSED){const g=gemTrades(S,coach,orig.players,state.pins,own.lim);S=g.S;gems=g.swaps;}
+  // Chase rank (#102): on a near-tie the far less owned player wins, one step from the pick above, so a gem stays. Only at the deadline.
+  if(state.chase&&!TRADES_CLOSED){const c=chaseTrades(S,coach,orig.players,state.pins.concat((gems||[]).map(w=>w.to)),own.lim);S=c.S;
     const cp=chaseCap(capPlan(S),S.map(i=>byId[i]));if(cp.chased)cap=cp;chase={swaps:c.swaps,cap:cp.chased||null};}
   let ev=evalSquad(S,coach);
   if(cap){const dv=cap.v-ev.cap.v;ev={...ev,cap,pts:ev.pts+dv,obj:ev.obj+dv};}
   // trades: the moves to make from My team; used: the round's trades counted from start, the ones made included
-  // cap: the captain plan when Chase rank changed it (else capPlan(S)); chase: what Chase rank changed, null when off
-  return {S,coach,ev,cap,chase,cost:cost(S,coach),trades:moves(S,coach),used:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
+  // cap: the captain plan when Chase rank changed it (else capPlan(S)); chase: what Chase rank changed, null when off;
+  // gems: the trades Include hidden gems changed, null when off
+  return {S,coach,ev,cap,chase,gems,cost:cost(S,coach),trades:moves(S,coach),used:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
 }
 // "Just missed": for each kept player, the best single swap that would add something at this setting but stays under the bar.
 // Shown under the trades so it's clear why a better-projected player isn't proposed.
@@ -2340,7 +2345,9 @@ function proposal(){
       <label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured and ${stHtml("Day to day")} players</label>
       <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div>
       <label class="opt-chk"><input type="checkbox" id="chase"${state.chase?" checked":""}> Chase rank: on a near-tie, pick the player few teams own</label>
-      <div class="note">For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.</div></div>
+      <div class="note">For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.</div>
+      <label class="opt-chk"><input type="checkbox" id="gems"${state.gems?" checked":""}> Include hidden gems: on a near-tie, pick the cheap player on the rise</label>
+      <div class="note">For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.</div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
@@ -2385,6 +2392,7 @@ function proposalParts(R){
   // room at his club, not left out by you), within DIFF_PTS of his projected points with the look-ahead. Coaches: none.
   // with Chase rank on, the incoming player it chose says so, and whom it chose him over
   const tradeDiff=b=>{if(byId[b.id]!==b)return "";const what=LA?"Trade, this round and half of next":"Trade";
+    const g=R.gems&&R.gems.find(w=>w.to===b.id);if(g)return `<small class="tx-own tx-diff">${gemSwapHtml(byId[g.from],g.d,what)}</small>`;
     const w=R.chase&&R.chase.swaps.find(w=>w.to===b.id);if(w)return `<small class="tx-own tx-diff">${diffHtml(byId[w.from],w.d,what,true)}</small>`;
     const d=differential(b,tradeDiffPool(b,R.S),tradeVal);return d?`<small class="tx-own tx-diff">${diffHtml(b,d,what)}</small>`:"";};
   const row=(a,b,key,name,role,x)=>{
@@ -3118,6 +3126,9 @@ function report(){
   const low=played.filter(p=>p.price>=8).map(p=>({p,g:lastG(p),d:lastG(p).fpt-p.be})).sort((a,b)=>a.d-b.d).slice(0,8).map(({p,g,d})=>row(p,g,`${r1(d)} vs break-even`)).join("");
   const domL=P.flatMap(p=>domRecent(p).slice(0,1).map(g=>({p,g}))).filter(({p,g})=>g.pir>=1.1*p.price+3&&g.min>=10).sort((a,b)=>(b.g.pir-1.1*b.p.price)-(a.g.pir-1.1*a.p.price)).slice(0,10)
     .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${facts(esc(g.comp),`${g.ha==="A"?"@":"vs"} ${esc(g.opp)}`,`${g.min} min`,`${g.pts} pts ${g.reb} reb ${g.ast} ast`)}</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${g.pir}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> PIR≈</small></div><small class="muted">${p.price.toFixed(1)} cr<br>break-even ${p.be}</small></div></div>`).join("");
+  // this round's hidden gems (#64): best projection first; a player who has played this round is never one
+  const gems=P.map(p=>({p,g:gemOf(p,matchup(p),shown(p).played)})).filter(({g})=>g).sort((a,b)=>b.p.x-a.p.x).slice(0,8)
+    .map(({p,g})=>`<div class="lrow"><div style="min-width:0"><div class="who" data-open="${p.id}" role="button" tabindex="0">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],["Matchup",`${p.opp.ha==="A"?"@":"vs"} ${p.opp.opp} +${g.mu}%`],["Minutes",`${g.min} → ${g.m3}`])}</small><span class="ptags">${tagHtml(p,3)}</span></span></div></div><div style="text-align:right"><div class="score">${projCell(p)}<small class="muted" style="font-size:12px;font-family:var(--body);font-weight:600"> proj.</small></div><small class="muted">${p.price.toFixed(1)} cr</small></div></div>`).join("");
   const rested=P.filter(p=>orig.players.includes(p.id)&&p.dom[0]&&(p.dom[0].dnp||p.dom[0].min<8)).map(p=>`${plink(p,p.short)} (${p.dom[0].absent?"not in the box score":p.dom[0].dnp?"did not play":p.dom[0].min+" min"} vs ${esc(p.dom[0].opp)})`);
   const squadRows=orig.players.map(i=>byId[i]).filter(Boolean).map(p=>{const g=p.log[0],dg=p.dom[0];const dtx=!dg?"no domestic game in the last 12 days":dg.absent?`not in the box score vs ${esc(dg.opp)} (${esc(dg.d)}), likely rested or left out`:dg.dnp?`did not play vs ${esc(dg.opp)}`:`PIR≈${dg.pir} in ${dg.min} min vs ${esc(dg.opp)} (${esc(dg.comp)})`;return `<div class="lrow"><div style="min-width:0"><b>${plink(p)}</b><small>${facts(["Last EuroLeague",g?g.fpt+" FPT":"–"],["Next",`${p.opp?(p.opp.ha==="H"?"vs ":"@ ")+p.opp.opp:"–"} ${esc(dayShort(p.day))}`])}</small><small>Domestic: ${dtx}</small></div><span class="ptags">${tagHtml(p,2)}</span></div>`}).join("");
   return `<section id="report"><div class="sec-head"><div><div class="eyebrow">${facts("Daily report",esc(fmtDate(R.date||D.updated)))}</div><h2>Round report</h2></div></div>
@@ -3128,6 +3139,7 @@ function report(){
   <div class="two">
     <div><div class="eyebrow" style="margin:0 0 6px">Top performers in the last EuroLeague round</div><div class="panel list">${top}</div></div>
     <div><div class="eyebrow" style="margin:0 0 6px">8+ credit players below break-even</div><div class="panel list">${low}</div></div>
+    <div><div class="eyebrow" style="margin:0 0 6px">This round's hidden gems: under ${GEM_PRICE} cr, minutes rising, soft matchup</div><div class="panel list">${gems||'<div class="lrow"><span class="note">No hidden gems this round.</span></div>'}</div></div>
     <div><div class="eyebrow" style="margin:0 0 6px">Domestic standouts above their EuroLeague break-even</div><div class="panel list">${domL||'<div class="lrow"><span class="note">No domestic standouts in the latest games.</span></div>'}</div></div>
     <div><div class="eyebrow" style="margin:0 0 6px">Your squad check</div><div class="panel list">${squadRows}</div>${rested.length?`<div class="warnbox" style="margin-top:8px">Rested or barely used domestically: ${rested.join(", ")}</div>`:""}</div>
   </div></section>`;
@@ -3285,14 +3297,17 @@ const DIFF_PTS=4;    // about as good: at most this many projected points less
 const DIFF_SHARE=.5; // far fewer teams: at most half the ownership share,
 const DIFF_GAP=5;    // and at least this many points of share less
 const lessOwned=(a,b)=>a.pop!=null&&b.pop!=null&&b.pop<=a.pop*DIFF_SHARE&&a.pop-b.pop>=DIFF_GAP; // b far less owned than a
-// The best differential for pick in pool (most projected points, then least owned), or null. val: his projected points.
-// The pool is already filtered to who could take pick's place (same turn for a captain, a legal trade for a trade).
-function differential(pick,pool,val=p=>p.x){
-  const v0=val(pick);let best=null;
-  for(const q of pool){if(q===pick||q.out||!lessOwned(pick,q))continue;const v=val(q);if(v<v0-DIFF_PTS)continue;
-    if(!best||v>best.v||(v===best.v&&q.pop<best.p.pop))best={p:q,v};}
+// The best player in pool who passes ok and is at most DIFF_PTS below pick (most projected points, then least owned), or
+// null. val: his projected points. The pool is already filtered to who could take pick's place (same turn for a captain,
+// a legal trade for a trade).
+function nearPick(pick,pool,ok,val=p=>p.x){
+  const v0=val(pick),pop=q=>q.pop??Infinity;let best=null;
+  for(const q of pool){if(q===pick||q.out||!ok(q))continue;const v=val(q);if(v<v0-DIFF_PTS)continue;
+    if(!best||v>best.v||(v===best.v&&pop(q)<pop(best.p)))best={p:q,v};}
   return best&&{...best,v0,less:r1(v0-best.v)};
 }
+// The best differential for pick in pool, or null.
+const differential=(pick,pool,val)=>nearPick(pick,pool,q=>lessOwned(pick,q),val);
 // Who could take a pick's place, the same for the hints and for Chase rank. An incoming player in squad S: same position,
 // no dearer, not in S, not left out by him (✕ or "Leave out injured"), not played this round, room at his club. Judged on
 // tradeVal, this round plus the look-ahead.
@@ -3303,15 +3318,16 @@ const tradeVal=p=>p.x+(p.nx||0);
 const capDiffPool=(cap,ps)=>ps.filter(p=>p.day===cap.day&&!shown(p).played);
 // Chase rank (#102, docs/adr/0003 (c)): the optimiser itself takes the differential, as a tie-break only. One step from the
 // planner's pick, so no pick gives up more than DIFF_PTS projected points. Coaches: none.
-// Each incoming player of plan S (not in mine, not pinned) for his differential, if that keeps the trades within lim and
+// Each incoming player of plan S (not in mine, not pinned) for find(him, pool), if that keeps the trades within lim and
 // is not a player of mine. A pool player costs no more, so the budget holds. Returns {S, swaps: [{from, to, d}]}.
-function chaseTrades(S,coach,mine,pins,lim){
+function nearTrades(S,coach,mine,pins,lim,find){
   S=S.slice();const swaps=[];
   S.forEach((id,k)=>{if(mine.includes(id)||pins.includes(id))return;
     const T=q=>S.map(i=>i===id?q.id:i),pool=tradeDiffPool(byId[id],S).filter(q=>!mine.includes(q.id)&&trades(T(q),coach)<=lim);
-    const d=differential(byId[id],pool,tradeVal);if(d){S[k]=d.p.id;swaps.push({from:id,to:d.p.id,d});}});
+    const d=find(byId[id],pool);if(d){S[k]=d.p.id;swaps.push({from:id,to:d.p.id,d});}});
   return {S,swaps};
 }
+const chaseTrades=(S,coach,mine,pins,lim)=>nearTrades(S,coach,mine,pins,lim,(b,pool)=>differential(b,pool,tradeVal));
 // The captain plan cp (capPlan) with its first captain swapped for his differential among the squad's players ps. The later
 // turns and the keep mark stay. chased: {from, d} when it changed.
 function chaseCap(cp,ps){
@@ -3330,6 +3346,43 @@ function diffHtml(pick,d,what,chosen){
       chosen?"Chase rank is on, so the planner took him. Turn it off in the settings above to get the best projection back.":"A hint only: the plan does not change.")+`</span>`;
 }
 // differential:end
+// gems:begin
+// A hidden gem (#64, docs/adr/0004): a cheap player whose role is growing and whose opponent this round is soft for his
+// position, so his projection, built on his season so far, may lag behind. Agreed with Ognjen; the numbers are here to tune.
+const GEM_PRICE=6; // costs under this many credits
+const GEM_MIN=3;   // his last 3 EuroLeague games average at least this many minutes more than his season
+const GEM_MU=10;   // this round's opponent allows his position at least this % more PIR than an average team
+// Good domestic form, the Domestic form tag's rule: his last two domestic games well above his price.
+const domGood=(p,dA)=>dA>=1.1*p.price+3;
+// The rules he meets and his numbers, or null. mu: this round's matchup (matchup(p)); played: he has played this round.
+// Domestic form counts only when his domestic games are known; then it must be good.
+function gemOf(p,mu,played){
+  if(played||p.out||p.status==="Out"||p.status==="Doubtful"||!(p.price<GEM_PRICE)||p.min==null)return null;
+  const m=p.log.slice(0,3).map(g=>g.min).filter(v=>v!=null);
+  if(m.length<3)return null;
+  const m3=avg(m);if(m3<p.min+GEM_MIN-1e-9)return null;
+  if(mu==null||mu<GEM_MU)return null;
+  const dA=avg(domRecent(p).map(g=>g.pir));if(dA!=null&&!domGood(p,dA))return null;
+  return {price:p.price,min:p.min,m3:r1(m3),mu,dom:dA==null?null:r1(dA)};
+}
+// The Hidden gem tag's tooltip, [context, text, footer], as tagTip gives it. g: gemOf(p); opp: his opponent's name.
+function gemTip(p,g,opp){
+  const pos=POSN[p.pos].toLowerCase()+"s";
+  return ["Cheap pick",`Costs under ${GEM_PRICE} cr, his last 3 EuroLeague games averaged ${GEM_MIN}+ minutes more than his season, and ${opp} allow ${pos} ${GEM_MU}%+ more PIR than an average team. His role is growing, so his projection may not have caught up.`,
+    [`${g.price.toFixed(1)} cr`,`minutes ${g.min} → ${g.m3}`,`+${g.mu}% vs ${pos}`,g.dom==null?"no domestic games on record":`domestic PIR ${g.dom}`]];
+}
+const isGem=p=>!!gemOf(p,matchup(p),shown(p).played);
+// Include hidden gems: each incoming player of plan S that is not a gem for the best gem that could take his place (the
+// differential's pool), at most DIFF_PTS worse this round plus the look-ahead. Same limits as chaseTrades.
+const gemTrades=(S,coach,mine,pins,lim)=>nearTrades(S,coach,mine,pins,lim,(b,pool)=>isGem(b)?null:nearPick(b,pool,isGem,tradeVal));
+// The line under an incoming player Include hidden gems took over the planner's pick. what: "Trade" and the look-ahead.
+function gemSwapHtml(pick,d,what){
+  const v=r1(d.v),v0=r1(d.v0),n=r1(Math.abs(v-v0)),by=!n?"same projection":`${n.toFixed(1)} pts ${v>v0?"more":"less"}`;
+  return `<span class="diff has-tip" tabindex="0">Hidden gem: ${esc(d.p.short)} over ${esc(pick.short)}, ${by}`
+    +tipPick("Hidden gem",`${d.p.short} instead of ${pick.short}`,`${what}: projected ${v.toFixed(1)} against ${v0.toFixed(1)}. A cheap player whose minutes are rising, with a soft matchup this round: his projection may not have caught up.`,
+      "Include hidden gems is on, so the planner took him. Turn it off in the settings above to get the best projection back.")+`</span>`;
+}
+// gems:end
 // Once he has played, next round's projection is not known until this round is finished: TBC, sorted last.
 const projCellHtml=s=>s.played?`<span class="tbc has-tip" tabindex="0">TBC${tipPick("Projection","TBC","To be calculated after the current round is finished.")}</span>`:`${s.x}`;
 const projKey=s=>s.played?-999:s.x??-999; // finite, so two TBC players compare equal
@@ -3575,6 +3628,7 @@ function bind(){
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
   const ni=$("#noInj");if(ni)ni.onchange=()=>{state.noInj=ni.checked;rerender();};
   const ch=$("#chase");if(ch)ch.onchange=()=>{state.chase=ch.checked;rerender();};
+  const gm=$("#gems");if(gm)gm.onchange=()=>{state.gems=gm.checked;rerender();};
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
   const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
