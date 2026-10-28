@@ -631,6 +631,11 @@ html.locked,html.locked body{overflow:hidden}
 .dr-nm{min-width:0}
 .dr-nmrow{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
 .dr-icos{display:flex;gap:6px}
+.dc-nav{display:flex;gap:8px;flex-wrap:wrap}
+.dc-tools{padding:12px 0 8px}.dc-tools .search{flex:1;min-width:160px}
+.dc-head{padding:6px 8px}.dc-list{padding:4px 0 10px;overflow:visible}
+.dc-hd{display:flex;align-items:flex-start;gap:8px}.dc-hd>span{display:flex;flex-direction:column;min-width:0}.dc-hd .plink{text-align:left}
+.dc-grp{padding:12px 8px 4px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .dr-icos .ico{position:relative;width:30px;height:30px;font-size:14px;background:var(--surface)}
 .dr-icos .ico:hover,.dr-icos .ico:focus-visible{color:var(--fg);border-color:var(--faint)}
 .dr-icos .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -935,7 +940,7 @@ const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","
 const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
-let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,start=null,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,tp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
+let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,start=null,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,dcmp=null,tp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
 // "What matters more" stops: lam = how many points one credit of expected price rise is worth. Default (20) sits in the middle.
 const STOPS=[0,10,20,35,60];
 const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
@@ -1013,7 +1018,7 @@ function linkify(text){
 const inkOn=hex=>{let h=hex.replace("#","");if(h.length===3)h=h.replace(/./g,"$&$&");const L=[0,2,4].map(i=>{const v=parseInt(h.substr(i,2),16)/255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);return 1.05/(L+.05)>=4.5?"#fff":"#0f1a2d";};
 const jersey=(t,pos)=>{const c=(TEAMS[t]||["","#445"])[1];return `<span class="jersey" data-pos="${pos}" style="background:${c};color:${inkOn(c)}">${t}</span>`;};
 
-document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(tp&&!state.open){tp=null;render();}else if(sug!=null&&!state.open){if(sugCmp!=null)sugCmp=null;else sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(tp&&!state.open){tp=null;render();}else if(sug!=null&&!state.open){if(sugCmp!=null)sugCmp=null;else sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open&&dcmp){dcmp=null;render();}else if(state.open){state.open=null;save();render();}});
 let SQUAD=null;
 // the commit this deployment was built from, shown in the footer so you can tell which code is live (#52)
 let BUILD=null;
@@ -2269,6 +2274,7 @@ function playerGames(p){
 }
 function drawer(){
   const p=byId[state.open];if(!p)return "";
+  if(dcmp){const inner=drawerCmp(p);return {inner,wrap:`<div class="scrim" data-close></div><aside class="drawer" data-id="${p.id}" role="dialog" aria-modal="true" aria-label="Compare ${esc(p.name)}">${inner}</aside>`};}
   const tabs=[["overview","Overview"],["games","Games"],["fixtures","Fixtures"]];
   const mu=matchup(p);
   const g=playerGames(p);
@@ -2291,7 +2297,7 @@ function drawer(){
   }
   // Must have / Leave out as icons beside the name; the tooltip says what each does
   const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
-  const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span>`;
+  const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span><button type="button" class="chip-toggle sm" data-dc>Compare</button>`;
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
   const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>${shown(p).played?"Played this round":"Next game"}</span><span>${facts(esc(dayLabel(p.day)),tipoff(p))}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${tname(p.opp.opp)}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
@@ -2310,6 +2316,68 @@ function drawer(){
    <div class="dr-tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${state.dtab===k}" class="${state.dtab===k?"on":""}">${l}</button>`).join("")}</div>
    <div class="dr-body">${body}</div>`;
   return {inner,wrap:`<div class="scrim" data-close></div><aside class="drawer" data-id="${p.id}" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">${inner}</aside>`};
+}
+/* ---------- compare from the player drawer (#51) ----------
+   dcmp: null, {q,pos} while picking the other player, or {id} for the side-by-side table. Any player, any position or price.
+   Rule 7: a player who has played this round shows his score beside the deadline projection under "This round", TBC as his
+   projection and next round's, his real credit change, and next round's game. A row is bolded only when the two numbers
+   mean the same thing (both played, or both not). */
+function cmpRows(a,b){
+  const S=p=>shown(p),both=S(a).played===S(b).played;
+  const thisRound=p=>{const s=S(p);if(s.played)return `${s.pts!=null?`<b>${s.pts}</b> pts`:"Played"}${s.x!=null?` vs ${s.x} projected`:""}`;
+    return p.opp?`${p.opp.ha==="H"?"vs":"@"} ${esc(TEAMS[p.opp.opp]?TEAMS[p.opp.opp][0]:p.opp.opp)}, ${esc(dayLabel(p.day))}`:"No game";};
+  // next round's game: the club's next EuroLeague game after this round (the Fixtures tab's list), else the planner's opponent
+  const nr=p=>{const o=p.opp2;if(!o)return null;const g=((D.teamNext||{})[p.team]||[]).find(x=>x.el&&x.oc===o.opp&&!dayKeys.includes(x.d));
+    return `${o.ha==="H"?"vs":"@"} ${esc(TEAMS[o.opp]?TEAMS[o.opp][0]:o.opp)}${g?`, ${esc(dayFmt(g.d))}`:""}`;};
+  const mu=p=>S(p).played?null:matchup(p);
+  const mtxt=v=>v==null?"–":`${v>0?"+":""}${v}% ${v>=25?"(very easy)":v>=12?"(easy)":v<=-25?"(very hard)":v<=-12?"(hard)":"(average)"}`;
+  // next round's projection: only before his game this round (CLAUDE.md rule 6)
+  const n2=p=>S(p).played||!p.opp2?null:nProj(p);
+  const n2Txt=p=>S(p).played?projCellHtml(S(p)):p.opp2?n2(p):"–";
+  const l3=p=>p.log.slice(0,3).map(g=>g.fpt);
+  const cr=p=>`${fmt(crShown(p))} cr <small>${S(p).played?"from his game":"expected"}</small>`;
+  const st=p=>p.status?`<b class="neg">${stHtml(p.status)}</b>`:"No news";
+  // [label, A, B, numeric A, numeric B, higher is better]
+  return [
+    ["Price",`${a.price.toFixed(1)} cr`,`${b.price.toFixed(1)} cr`],
+    ["Injury news",st(a),st(b)],
+    ["This round",thisRound(a),thisRound(b)],
+    ["Projection",projCell(a),projCell(b),...both?[projKey(S(a)),projKey(S(b)),true]:[]],
+    ["Credit change",cr(a),cr(b),...both?[crShown(a),crShown(b),true]:[]],
+    ["Matchup this round",S(a).played?"Played":mtxt(mu(a)),S(b).played?"Played":mtxt(mu(b)),mu(a),mu(b),true],
+    ["Break-even",S(a).played?"Played":a.be,S(b).played?"Played":b.be],
+    ["Next round",nr(a)||"–",nr(b)||"–"],
+    ["Next round projection",n2Txt(a),n2Txt(b),n2(a),n2(b),true],
+    ["Last 3 EuroLeague (FPT)",l3(a).join(", ")||"–",l3(b).join(", ")||"–",a.l3,b.l3,true],
+    ["Season average (FPT)",a.fpt??"–",b.fpt??"–",a.fpt,b.fpt,true],
+    ["PIR average",a.pir??"–",b.pir??"–",a.pir,b.pir,true],
+    ["Minutes per game",a.min??"–",b.min??"–",a.min,b.min,true],
+    ["Owned by",a.pop!=null?ownTxt(a):"–",b.pop!=null?ownTxt(b):"–"],
+  ];
+}
+function drawerCmp(p){
+  const top=`<div class="dr-top" style="--tc:${TEAMS[p.team][1]}"><button type="button" class="dr-x" data-close aria-label="Close">✕</button>
+    <div class="dr-id">${jersey(p.team,p.pos)}<div class="dr-nm"><div class="eyebrow" style="margin:0">Compare</div><h3>${esc(p.name)}</h3><div class="muted">${facts(tname(p.team),POSN[p.pos])}</div></div></div>
+    <div class="dc-nav"><button type="button" class="chip-toggle sm" data-dc-back>← Back to ${esc(p.short)}</button>${dcmp.id!=null?`<button type="button" class="chip-toggle sm" data-dc>Compare with someone else</button>`:""}</div></div>`;
+  const b=dcmp.id!=null?byId[dcmp.id]:null;
+  if(b){
+    const mine=x=>orig.players.includes(x.id)?"in your team":null;
+    const cell=(txt,me,other,hib)=>{const win=me!=null&&other!=null&&hib!=null&&me!==-999&&other!==-999&&Math.abs(me-other)>1e-9&&(hib?me>other:me<other);return `<td class="${win?"win":""}">${win?`<b>${txt}</b>`:txt}</td>`;};
+    const head=x=>`<th><div class="dc-hd">${jersey(x.team,x.pos)}<span>${plink(x)}<small>${facts(esc(TEAMS[x.team][0]),POSN[x.pos],mine(x))}</small></span></div></th>`;
+    return top+`<div class="dr-body"><div class="cmp"><table class="cmp-t"><thead><tr><th></th>${head(p)}${head(b)}</tr></thead>
+      <tbody>${cmpRows(p,b).map(([k,x,y,nx,ny,h])=>`<tr><th scope="row">${k}</th>${cell(x,nx,ny,h)}${cell(y,ny,nx,h)}</tr>`).join("")}</tbody></table>
+      <p class="note" style="margin:8px 0 12px">Bold = better of the two, only where both numbers mean the same thing. Once a player has played this round, his projection and next round's are TBC until the round is finished.</p></div></div>`;
+  }
+  const q=(dcmp.q||"").toLowerCase(),pos=dcmp.pos&&dcmp.pos!=="ALL"?dcmp.pos:null;
+  const ok=x=>x.id!==p.id&&(!pos||x.pos===pos)&&(!q||(x.name+" "+TEAMS[x.team][0]).toLowerCase().includes(q));
+  const row=x=>{const n=nextG(x);return `<button type="button" class="pk" data-dc-pick="${x.id}">${jersey(x.team,x.pos)}<span class="pk-n"><b>${esc(x.name)}</b><small>${facts(TEAMS[x.team][0],POSN[x.pos],["Next",n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–"])}</small></span><span class="pk-p">${x.price.toFixed(1)}</span><span class="pk-x">${projCell(x)}</span></button>`;};
+  const mine=P.filter(x=>orig.players.includes(x.id)&&ok(x)).sort(projSort);
+  const rest=P.filter(x=>!orig.players.includes(x.id)&&ok(x)).sort(projSort).slice(0,80);
+  const grp=(h,L)=>L.length?`<div class="dc-grp">${h}</div>${L.map(row).join("")}`:"";
+  return top+`<div class="dr-body"><div class="pk-tools dc-tools"><input id="dcq" class="search" type="search" placeholder="Search name or club" value="${esc(dcmp.q||"")}" aria-label="Search a player to compare with">
+    <div class="seg sm" id="dcpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${(dcmp.pos||"ALL")===v?"on":""}" aria-pressed="${(dcmp.pos||"ALL")===v}">${v==="ALL"?"All":v}</button>`).join("")}</div></div>
+    <div class="pk-head dc-head"><span>Player</span><span>Price</span><span>Proj.</span></div>
+    <div class="pk-list dc-list" id="dclist">${grp("Your team",mine)+grp(q||pos?"Players":"All players, best projection first",rest)||'<p class="note" style="padding:12px">Nothing matches.</p>'}</div></div>`;
 }
 function shortOpp(n){return n.split(/\s+/).filter(w=>!/^(KK|BC|BK|CB|FC|SK|AS|CSP|B\.K\.|Basket|Basketball|Club|Baloncesto)$/i.test(w))[0]||n;}
 function shortComp(c){return ({"Liga ACB":"ACB","Lega A Basket":"LBA","Stoiximan GBL":"GBL","AdmiralBet ABA League":"ABA","France Pro A":"LNB","Germany BBL":"BBL","Betsafe-LKL":"LKL","Turkish Basketball Super League":"BSL","Israeli Basketball Super League":"ISR"})[c]||c;}
@@ -3701,15 +3769,22 @@ function bind(){
     state.pins=state.pins.filter(x=>x!==i&&x!==o).concat(o);state.avoids=state.avoids.filter(x=>x!==o);rerender();});
   document.querySelectorAll("[data-coach-keep]").forEach(b=>b.onclick=()=>{state.coachPin=b.dataset.coachKeep;rerender();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=state.avoids.includes(id)?state.avoids.filter(i=>i!==id):[...state.avoids,id];rerender();});
-  document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
-  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;rerender();});
+  document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";dcmp=null;rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
+  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;dcmp=null;rerender();});
+  // compare from the drawer (#51)
+  const drTop=()=>{const d=document.querySelector("#drawer-root .drawer");if(d)d.scrollTop=0;};
+  document.querySelectorAll("[data-dc]").forEach(b=>b.onclick=()=>{dcmp={q:"",pos:"ALL"};rerender();drTop();setTimeout(()=>{const q=$("#dcq");if(q)q.focus();},0);});
+  document.querySelectorAll("[data-dc-back]").forEach(b=>b.onclick=()=>{dcmp=null;rerender();drTop();});
+  document.querySelectorAll("[data-dc-pick]").forEach(b=>b.onclick=()=>{dcmp={id:+b.dataset.dcPick};rerender();drTop();});
+  document.querySelectorAll("#dcpos button").forEach(b=>b.onclick=()=>{const q=$("#dcq");dcmp={q:q?q.value:"",pos:b.dataset.v};rerender();});
+  {const q=$("#dcq");let t;if(q)q.oninput=e=>{clearTimeout(t);t=setTimeout(()=>{dcmp={...dcmp,q:e.target.value};const at=q.selectionStart;rerender();const n=$("#dcq");if(n){n.focus();n.setSelectionRange(at,at);}},200);};}
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.dtab=b.dataset.tab;rerender();});
   document.querySelectorAll("#allg button").forEach(b=>b.onclick=()=>{state.allGames=b.dataset.v==="1";rerender();});
   const ct=$("#calToggle");if(ct)ct.onclick=()=>{state.calOpen=!state.calOpen;rerender();};
   document.querySelectorAll("[data-pmode]").forEach(b=>b.onclick=()=>{state.pmode=b.dataset.pmode;justApplied=0;rerender();});
   document.querySelectorAll("[data-team]").forEach(b=>{const go=e=>{e.stopPropagation();e.preventDefault();tp=b.dataset.team;
     // the team panel sits under the player drawer: a club link in the drawer closes it, so the panel shows
-    if(b.closest("#drawer-root"))state.open=null;rerender();setTimeout(()=>{const x=document.querySelector(".tpanel .dr-x");if(x)x.focus();},0);};b.onclick=go;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")go(e);};});
+    if(b.closest("#drawer-root")){state.open=null;dcmp=null;}rerender();setTimeout(()=>{const x=document.querySelector(".tpanel .dr-x");if(x)x.focus();},0);};b.onclick=go;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")go(e);};});
   document.querySelectorAll("[data-tp-close]").forEach(b=>b.onclick=()=>{tp=null;rerender();});
   document.querySelectorAll("[data-game]").forEach(b=>b.onclick=e=>{if(e.target.closest(".plink"))return;const k=b.dataset.game;state.rg=state.rg===k?null:k;rerender();});
   document.querySelectorAll("[data-rgt]").forEach(b=>b.onclick=()=>{state.rgt={k:b.dataset.rgk,t:b.dataset.rgt};rerender();});
