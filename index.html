@@ -1215,7 +1215,7 @@ function turnReview(snap,logs,saved){
     projRound+=r1(r.x*m)-r.px;
     Object.assign(r,{cap:false,moved:true,mult:m,counted:r1((r.fpt||0)*m),px:r1(r.x*m)});}
   if(firstCap&&capCall.next)projRound+=capCall.next.x;
-  return {round:snap.round,from,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall,
+  return {round:snap.round,from,coach:from==="saved"&&saved.coach?saved.coach:(snap.squad||{}).coach,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall,
     squad:ps.map(({p})=>p),days:R.dayKeys,fixtures:snap.fixtures||[]};
 }
 // review:end
@@ -2095,7 +2095,7 @@ function roundReview(snap,saved,opt){
   // his own: the lineup and captain turnReview counts, from the actual points as the players' logs
   const turnOf={};snap.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;});
   const logs={};snap.players.forEach(p=>{const a=A.players[p.id];logs[p.id]=a&&a.fpt!=null?[{d:turnOf[p.team],fpt:a.fpt}]:[];});
-  const V=turnReview(snap,logs,saved),coach=V&&V.from==="saved"&&saved.coach?saved.coach:(snap.squad||{}).coach;
+  const V=turnReview(snap,logs,saved),coach=V?V.coach:(snap.squad||{}).coach;
   const you={pts:r1((V?V.got:0)+coachPts(coach)),coach,from:V?V.from:"snapshot"};
   // a plan counted with the actual points: its lineup, and the captain plan's armband kept while he scores keepAt+
   const count=r=>{const L=r.ev.L,mult={};
