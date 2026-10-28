@@ -537,7 +537,9 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tl-warn{margin-top:8px;padding:7px 11px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:13.5px}
 @media (max-width:900px){.plan{grid-template-columns:1fr}}
 @media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.opt-chk,.field .opt-chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--fg);cursor:pointer}
+.opts{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+.opt-chk,.field .opt-chk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--fg);cursor:pointer;white-space:nowrap}
+.opt .note{margin:3px 0 0 26px}
 .opt-chk input{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:none}
 .mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
 .mt-over{margin:2px 0 14px;padding:12px 14px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft);color:var(--fg);font-size:14px;line-height:1.45}
@@ -1079,7 +1081,7 @@ const stTxt=s=>s==="Day to day"?"DTD":s;
 const dtdWhat=()=>`Day to day: he may play; decided close to the game. The site counts ${Math.round(PLAY_CHANCE["Day to day"]*100)}% of his projection.`;
 const stHtml=(s,cls="")=>s==="Day to day"?`<span class="${cls?cls+" ":""}dtd has-tip" tabindex="0">DTD${tipPick("Injury news","DTD",dtdWhat())}</span>`
   :cls?`<span class="${cls}">${esc(s)}</span>`:esc(s);
-// "Leave out injured and day-to-day players": nobody listed Out, Doubtful or Day to day is brought in by the proposal or
+// "Leave out injured" (day-to-day players too): nobody listed Out, Doubtful or Day to day is brought in by the proposal or
 // suggested as a replacement. Your own players stay where they are.
 const skipIn=p=>!!state.noInj&&p.status in PLAY_CHANCE&&!orig.players.includes(p.id);
 // The projections for one round's data: the live data.json, or a history/round-N.json snapshot. Touches no globals.
@@ -2378,12 +2380,14 @@ function proposal(){
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
     <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}</div>
-      <label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured and ${stHtml("Day to day")} players</label>
-      <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div>
-      <label class="opt-chk"><input type="checkbox" id="chase"${state.chase?" checked":""}> Chase rank: on a near-tie, pick the player few teams own</label>
-      <div class="note">For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.</div>
-      <label class="opt-chk"><input type="checkbox" id="gems"${state.gems?" checked":""}> Include hidden gems: on a near-tie, pick the cheap player on the rise</label>
-      <div class="note">For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.</div></div>
+      <div class="opts">
+      <div class="opt"><label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured</label>
+      <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div></div>
+      <div class="opt"><label class="opt-chk"><input type="checkbox" id="chase"${state.chase?" checked":""}> Chase rank</label>
+      <div class="note">On a near-tie, pick the player few teams own. For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.</div></div>
+      <div class="opt"><label class="opt-chk"><input type="checkbox" id="gems"${state.gems?" checked":""}> Include hidden gems</label>
+      <div class="note">On a near-tie, pick the cheap player on the rise. For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.</div></div>
+      </div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
