@@ -92,6 +92,19 @@ differential when he has one. A tie-break only, so a pick never gives up more th
 round has started.
 _Avoid_: differential mode, risk mode
 
+**Hidden gem**:
+A cheap player whose projection may lag behind his growing role. All of: costs under 6 cr; his last 3 EuroLeague games
+average at least 3 minutes more than his season; this round's opponent allows his position at least 10% more PIR than an
+average team (soft, shown as plus); if his domestic games are known, they are good (the Domestic form rule: PIR at least
+1.1 × price + 3), and when none are known that rule is skipped. Never Out, Doubtful, or a player who has played this round.
+Agreed with Ognjen, 28 Oct 2026 (#64); the numbers are constants in index.html (`GEM_PRICE`, `GEM_MIN`, `GEM_MU`).
+_Avoid_: differential (a different idea: few owners), sleeper, punt
+
+**Include hidden gems**:
+A planner setting, off by default: before the deadline, each incoming player is swapped for the best hidden gem that could
+take his place. A tie-break only, so a pick never gives up more than 4 projected points; with Chase rank also on, a gem it
+brought in stays (docs/adr/0004-hidden-gems.md).
+
 **Look-ahead**:
 Counting half of a player's next-round projection, with that round's matchup, when judging a trade made this round. Covers this round and the next one only, and never changes who starts or captains this round.
 _Avoid_: Horizon, fixture run, multi-round
