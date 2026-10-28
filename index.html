@@ -730,9 +730,9 @@ html.locked,html.locked body{overflow:hidden}
 .sc-foot{margin:8px 0 0;font-size:12.5px}
 .rv{margin-bottom:16px}
 .rv-tot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
-.rv-tot div{background:var(--raise);border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
-.rv-tot small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
-.rv-tot b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}.rv-tot .rv-got b{color:var(--accent)}
+.rv-tot>div{background:var(--raise);border:1px solid var(--line-soft);border-radius:10px;padding:8px 10px}
+.rv-tot>div>small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
+.rv-tot>div>b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}.rv-tot>.rv-got>b{color:var(--accent)}
 /* the captain strip: one line for the next call, then the armband's walk, one stop per captain */
 .rv-arm{margin:0 0 28px}
 .rv-al{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding-bottom:10px;margin-bottom:28px;border-bottom:1px solid var(--line-soft);font-size:15px}
@@ -769,7 +769,7 @@ html.locked,html.locked body{overflow:hidden}
 .rv-pill.ok{background:var(--good-soft);color:var(--good)}.rv-pill.off{background:var(--bad-soft);color:var(--bad)}
 .rv-day{display:flex;justify-content:space-between;gap:8px;align-items:end;margin:12px 0 4px;font-weight:700}
 .rv-day small{font-weight:600;color:var(--muted);font-size:12.5px;text-align:right}
-.rv-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.rv-head h3{margin:0}
+.rv-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}.rv-head h3{margin:0}
 .rv-h,.rv-row{display:grid;grid-template-columns:minmax(0,1fr) 52px 52px 52px 52px 64px;gap:8px;align-items:center} /* px, not em: the header's smaller font must not narrow its columns */
 .rv-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .rv-h span:not(:first-child),.rv-row span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
@@ -788,7 +788,7 @@ html.locked,html.locked body{overflow:hidden}
 .rr-row{padding:6px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
 .rr-row>span:nth-child(odd){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rr-row .rv-c{color:var(--accent);font-weight:700}.rr-row .muted{color:var(--muted)}
-@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 38px 36px 36px 40px 56px;gap:4px}}
+@media (max-width:420px){.rv-tot{grid-template-columns:1fr 1fr}.rv-tot>div:last-child{grid-column:1/-1}.rv-h,.rv-row{grid-template-columns:minmax(0,1fr) 38px 36px 36px 40px 56px;gap:4px}}
 #day button,#pos button{flex:1 0 auto}
 #maxT button{white-space:normal}
 .chart-scroll{overflow-x:auto;margin:0 -4px}
@@ -1177,7 +1177,9 @@ function actualLogs(snap){
 }
 function turnReview(snap,logs,saved){
   const R=project(snap),by=Object.fromEntries(R.players.map(p=>[p.id,p])),last=R.dayKeys[R.dayKeys.length-1]||"";
-  const from=saved&&(saved.updated||"")<=last?"saved":"snapshot",sq=from==="saved"?saved:(snap.squad||{});
+  // his saved team while it is from this round; after it, the team he played the round with (played, #109), which the
+  // builder keeps because the snapshot is taken before his deadline-day trades; the snapshot only for rounds without it
+  const from=saved&&(saved.updated||"")<=last?"saved":snap.played?"played":"snapshot",sq=from==="saved"?saved:from==="played"?snap.played:(snap.squad||{});
   const slots=(Array.isArray(sq.slots)&&sq.slots.length?sq.slots:sq.players||[]).slice(0,10);
   const cap=sq.cap&&slots.slice(0,5).includes(sq.cap)?sq.cap:null;
   const played=new Set(Object.values(logs).flat().map(g=>g.d));
@@ -1215,7 +1217,7 @@ function turnReview(snap,logs,saved){
     projRound+=r1(r.x*m)-r.px;
     Object.assign(r,{cap:false,moved:true,mult:m,counted:r1((r.fpt||0)*m),px:r1(r.x*m)});}
   if(firstCap&&capCall.next)projRound+=capCall.next.x;
-  return {round:snap.round,from,coach:from==="saved"&&saved.coach?saved.coach:(snap.squad||{}).coach,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall,
+  return {round:snap.round,from,coach:from!=="snapshot"&&sq.coach?sq.coach:(snap.squad||{}).coach,turns,got:r1(got),projSoFar:r1(projSoFar),projRound:r1(projRound),cap:capCall,
     squad:ps.map(({p})=>p),days:R.dayKeys,fixtures:snap.fixtures||[]};
 }
 // review:end
@@ -2851,7 +2853,7 @@ function roundCard(){
     <p class="rr-say">${gap}</p>${V.best.trades.length?rows(V.best.trades):""}
     <div class="rr-sub">The proposal's trades</div>${rows(V.plan.trades)}
     <p class="note sc-foot">Counted with the actual points: court and 6th man 100%, bench 50%, captain ×2, plus the coach.</p>
-    <p class="note sc-foot">You: ${V.you.from==="saved"?"the lineup and captain you saved during the round":"the lineup and captain at the deadline"}.</p>
+    <p class="note sc-foot">You: ${V.you.from!=="snapshot"?"the lineup and captain you saved during the round":"the lineup and captain at the deadline"}.</p>
     <p class="note sc-foot">The proposal: ${pn} from the data at the deadline, at today's What matters more setting, without your pins. Its captain keeps the armband only if he reaches the plan's mark.</p>
     <p class="note sc-foot">Best in hindsight: the most points your squad at the deadline could have reached with ${lim}, ${f(V.best.budget)} cr and 6 players per club.</p></div>`;
 }
@@ -2933,7 +2935,9 @@ function reviewCard(){
     return `<div class="rv-day"><span>${esc(day(t.d))}</span><small>${f(got)} counted<br>${f(px)} projected</small></div>
       <div class="rv-h"><span>Player</span><span>Value</span><span>Pts</span><span>Proj</span><span>± %</span><span>Matchup</span></div>${rows}`;}).join("");
   const cap=capStripHtml(V);
-  const tot=`<div class="rv-tot"><div class="rv-got"><small>Counted so far</small><b>${f(V.got)}</b></div><div><small>Projected, same turns</small><b>${f(V.projSoFar)}</b></div><div><small>Projected, whole round</small><b>${f(V.projRound)}</b></div></div>`;
+  // the three totals, each with the site's tooltip: what is counted, and that both projections are the deadline's
+  const tb=(cls,lab,v,txt)=>`<div class="${cls?cls+" ":""}has-tip" tabindex="0"><small>${lab}</small><b>${f(v)}</b>${tipPick(`Round ${V.round}`,lab,txt,"Court and 6th man 100%, bench ½, captain ×2")}</div>`;
+  const tot=`<div class="rv-tot">${tb("rv-got","Counted so far",V.got,"His points from the turns played so far.")}${tb("","Projected, turns played",V.projSoFar,"His projections at the deadline for the same turns, counted the same way: compare it with Counted so far.")}${tb("","Projected, whole round",V.projRound,"His projections at the deadline for every turn of the round.")}</div>`;
   return `<div class="card rv" id="rvCard"><div class="rv-head"><h3>Round ${V.round}, turn by turn</h3>${pick}</div>${tot}${cap}${turns}
     <p class="note sc-foot">Players only: coach points come after the round. Pts is his own score and ± % is how far it landed from his projection at the deadline; the turn totals count court and 6th man 100%, bench ½, captain ×2 (the tags). Value is the credit change from the game. Matchup is how much more (+) or less (−) his opponent let his position score than an average team, at the deadline.${V.from==="snapshot"?" Lineup and captain from the deadline: you saved a new squad after this round.":" Lineup and captain from the squad you saved."}</p></div>`;
 }
