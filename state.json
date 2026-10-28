@@ -13,7 +13,7 @@
  "sort": "price",
  "only": false,
  "tag": "Consider for next round",
- "dtab": "overview",
+ "dtab": "fixtures",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:48:18.232Z"
+ "savedAt": "2026-10-28T07:48:22.564Z"
 }
