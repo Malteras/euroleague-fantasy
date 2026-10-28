@@ -23,7 +23,7 @@
  "team": null,
  "budgetTouched": false,
  "calOpen": true,
- "rf": "mine",
+ "rf": "all",
  "rg": "2026-10-21|HTA|VIR|",
  "pmode": "m",
  "blTicks": [
@@ -38,5 +38,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T08:48:08.695Z"
+ "savedAt": "2026-10-28T08:48:11.058Z"
 }
