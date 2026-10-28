@@ -347,6 +347,31 @@ class WriteHistoryTest(unittest.TestCase):
         self.assertEqual(actual['players']['654'], {'fpt': 17.5, 'min': 28.3, 'cr': 0.1})
         self.assertEqual(actual['coaches'], {'EFS': 20})
 
+    # played: the team he played the round with, saved from the site after the snapshot was taken (#109)
+    def run_with_save(self, updated, saved, slots=(655, 654), cap=655):
+        d = data_for(updated)
+        d['squad'] = {'players': [654, 655], 'coach': 'RMB'}
+        d['lineup'] = {'slots': list(slots), 'cap': cap, 'bank': 0.4, 'updated': saved}
+        elbuild.write_history(d, self.dir)
+        return self.read().get('played')
+
+    def test_a_save_during_the_round_is_the_team_he_played(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.assertEqual(self.run_with_save('2026-10-22', '2026-10-21'),
+                         {'players': [654, 655], 'coach': 'RMB', 'slots': [655, 654], 'cap': 655, 'bank': 0.4, 'updated': '2026-10-21'})
+        self.assertEqual(self.read()['squad']['players'], [654])  # the snapshot itself is never rewritten
+
+    def test_a_save_before_the_deadline_or_after_the_round_is_not_the_team_he_played(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.assertIsNone(self.run_with_save('2026-10-20', '2026-10-20'))
+        self.assertIsNone(self.run_with_save('2026-10-24', '2026-10-23'))
+
+    def test_the_latest_save_of_the_round_wins_and_an_older_one_never_comes_back(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.run_with_save('2026-10-21', '2026-10-21')
+        self.assertEqual(self.run_with_save('2026-10-22', '2026-10-22', cap=654)['cap'], 654)
+        self.assertEqual(self.run_with_save('2026-10-23', '2026-10-21')['updated'], '2026-10-22')
+
 
     def test_command_line_reads_a_data_file(self):
         src = os.path.join(self.tmp.name, 'data.json')

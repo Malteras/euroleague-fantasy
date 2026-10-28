@@ -80,6 +80,23 @@ test("the lineup he saved counts while it is from this round", () => {
   assert.equal(later.turns[0].rows.find(r => r.id === 7).mult, 0.5);
 });
 
+test("after the round: the team he played it with (played), not a snapshot taken before his trades (#109)", () => {
+  const s = snap();
+  s.players.push(pl(11, "OLY", "F", 15));
+  s.squad.coach = "PAO";
+  // traded 10 for 11 on deadline day, after the snapshot; armband on 6 for Thursday
+  s.played = { players: [1, 2, 3, 4, 5, 6, 7, 8, 9, 11], coach: "OLY", slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 11], cap: 6, updated: T };
+  const thu = { ...wed, 3: [T, 9], 4: [T, 6], 6: [T, 20], 8: [T, 5], 9: [T, 2], 11: [T, 30] };
+  const R = turnReview(s, live(thu), { slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cap: 1, coach: "ZAL", updated: "2026-10-26" });
+  assert.equal(R.from, "played");
+  assert.equal(R.coach, "OLY");
+  const ids = R.turns.flatMap(t => t.rows.map(r => r.id));
+  assert.ok(ids.includes(11) && !ids.includes(10), ids.join());
+  assert.ok(R.squad.some(p => p.id === 11));
+  // his saved team still wins while it is from this round
+  assert.equal(turnReview(s, live(thu), { slots: s.played.slots, cap: 6, updated: T }).from, "saved");
+});
+
 test("captain call: the plan's keep threshold against what he scored, and what you did", () => {
   const R = turnReview(snap(), live(wed), null);
   assert.equal(R.cap.first.id, 1);

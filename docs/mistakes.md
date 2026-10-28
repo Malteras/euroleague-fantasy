@@ -183,3 +183,14 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   once trades close it is a squad he can no longer get.
 - **Guard:** `blMatchSquad()` in index.html: his saved team during a round, the proposal before the deadline, and the
   heading says "proposed squad" when the two differ; tools/test_bottomline.mjs covers both.
+
+## 28 Oct 2026 · "Round 7, turn by turn" showed Ndiaye as the Turn 3 captain; Etienne was (#109)
+- **What:** once Round 7 was over, the card counted a squad he never played: Madar instead of Etienne, Ndiaye on the
+  bench. Its captain walk then gave Turn 3 to Ndiaye, where the site had told him Etienne during the round.
+- **Why:** the history snapshot is taken on the first run of deadline day (13:18 UTC). He saved his trades from the site at
+  17:08, so the snapshot kept his team from before them. During the round the card used his saved team; once he saved
+  next round's team, it fell back to the stale snapshot. Round 8's snapshot had the same problem.
+- **Guard:** `fill_played()` in tools/elbuild.py records `played` (his last save between the deadline and the round's last
+  game day) in history/round-N.json; `turnReview()` counts it once the round is over. Rounds 7 and 8 were filled from the
+  squad.json saves in git. Tests: tools/test_elbuild.py, tools/test_review.mjs. Player ids are the same in every data file;
+  that was checked, not assumed.

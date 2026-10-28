@@ -370,9 +370,28 @@ def write_history(data, hist_dir):
         if not re.fullmatch(r'round-\d+\.json', name): continue
         p = os.path.join(hist_dir, name)
         snap = json.load(open(p, encoding='utf-8'))
+        if fill_played(snap, data):
+            save(p, snap)
+            print(f'history: the team he played in {p}')
         if fill_actual(snap, data):
             save(p, snap)
             print(f'history: actuals in {p}')
+
+def fill_played(snap, data):
+    """The team he played the round with (#109): his last save from the site between the round's deadline and its last game
+    day. The snapshot is taken on the first run of deadline day, often before his trades are saved, so its squad can be the
+    team before them. A newer save in the round replaces an older one; a save outside the round is another round's team.
+    Returns True when played changed."""
+    fixtures, lineup, squad = snap.get('fixtures') or [], data.get('lineup') or {}, data.get('squad') or {}
+    saved = lineup.get('updated')
+    if not fixtures or not saved or not snap.get('deadline') or not squad.get('players'): return False
+    if not snap['deadline'] <= saved <= max(f[0] for f in fixtures): return False
+    if (snap.get('played') or {}).get('updated', '') > saved: return False
+    played = {'players': list(squad['players']), 'coach': squad.get('coach'),
+              **{k: lineup.get(k) for k in ('slots', 'cap', 'bank', 'updated')}}
+    if snap.get('played') == played: return False
+    snap['played'] = played
+    return True
 
 def fill_actual(snap, data):
     """After the round's last game day, add what happened: each player's FPT, minutes and credit change (None = did not play)
