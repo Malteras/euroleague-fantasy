@@ -2987,6 +2987,14 @@ function blGainers(summary){
 function blMatchups(squad,played,m){
   return squad.filter(p=>p&&!p.out&&p.opp&&!played(p)).map(p=>({p,m:m(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
 }
+// Whose matchups the card lists (#106). During a round: his saved team, the lineup liveRound() plays (ADR 0002); the proposal
+// can no longer be made. Before the deadline: the proposal, the team he is about to make; the heading says "your players"
+// only when it holds the same players as his squad (mine). Ids in, {ids, title} out.
+function blMatchSquad({live,team,mine,proposal}){
+  if(live)return {ids:team,title:"Your players' matchups"};
+  const same=proposal.length===mine.length&&proposal.every(i=>mine.includes(i));
+  return {ids:proposal,title:same?"Your players' matchups":"Matchups in the proposed squad"};
+}
 // the ticked item ids that belong to this round; older rounds' ticks are dropped
 const blTicks=(ids,round)=>new Set((ids||[]).filter(id=>id.startsWith(round+":")));
 // bottomLine:end
@@ -3104,12 +3112,13 @@ function bottomLine(){
   const rows=turnsLeft.length?turnsLeft.map(d=>`<div class="bl-turn">${facts(esc(turnOf2(d)),`before ${esc(dayWhen(d))}`)}</div>${items.filter(i=>i.turn===d).map(row).join("")}`).join(""):items.map(row).join("");
   const label=turnsLeft.length?facts(...turnsLeft.map(d=>`<b>${esc(turnOf2(d))}:</b> ${esc(tState(d))}`)):all?`<b>✓ All done for Round ${D.round}</b>`:`<b>${n} of ${act.length}</b> done`;
   const prog=`<div class="bl-prog${all?" all":""}"><span>${label}</span><span class="bl-bar"><i style="width:${act.length?(100*n/act.length).toFixed(1):0}%"></i></span></div>`;
-  // good to know: this round's matchups for the proposed squad (±15% and more, as the Soft/Tough tags), best first
-  const ms=blMatchups(result.S.map(i=>byId[i]),p=>!!(LR&&LR.score(p)!=null),p=>matchup(p));
+  // good to know: this round's matchups (±15% and more, as the Soft/Tough tags), best first; his team once the round has started
+  const MS=blMatchSquad({live:!!LR,team:LR&&LR.sl.map(p=>p.id),mine:orig.players,proposal:result.S});
+  const ms=blMatchups(MS.ids.map(i=>byId[i]),p=>!!(LR&&LR.score(p)!=null),p=>matchup(p));
   const mRows=ms.map(({p,m})=>`<div class="bl-r"><span>${plink(p,p.short)} <span class="muted">${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</span></span><b class="${m>0?"up":"dn"}">${m>0?"+":"−"}${Math.abs(m)}%</b><small>${POSW[p.pos]}</small></div>`).join("");
   const G=blGainers(sum),byName=nm=>P.find(p=>p.name===nm);
   const gRows=G?G.rows.length?G.rows.map(g=>`<div class="bl-r"><span>${byName(g.name)?plink(byName(g.name),g.name):esc(g.name)} <span class="muted">${esc(g.team)}</span></span><b class="bl-cr">${g.price.toFixed(1)}</b><small>${esc(g.why)}</small></div>`).join(""):`<p class="bl-txt">${linkify(G.text)}</p>`:"";
-  const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">Your players' matchups</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
+  const know=(mRows||gRows)?`<div class="bl-know">${mRows?`<div class="eyebrow">${esc(MS.title)}</div>${mRows}`:""}${gRows?`<div class="eyebrow"${mRows?' style="margin-top:12px"':""}>Credit gainers to watch</div>${gRows}`:""}</div>`:"";
   return `<div class="card bl-card"><div class="bl-h"><h3>Bottom line</h3><span class="wt-pill">${LR?facts("⏱ Trades closed",LR.next?`next game ${esc(dayShort(LR.next))}${LR.tip?" "+esc(LR.tip):""}`:"round over"):`⏱ Trades close ${esc(deadlineRel())}`}</span></div>
     <div class="bl-cols${know?"":" one"}"><div class="bl-todo">${prog}${rows}</div>${know}</div></div>`;
 }
