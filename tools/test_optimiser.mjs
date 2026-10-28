@@ -11,12 +11,15 @@ const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)
 const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;", line("const FORMS="), line("const POSN="), line("const STOPS="),
   line("let D,P,byId,C,"), line("let LOOK_ON="), line("let state="),
   cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"), cut("// optimiser:begin", "// optimiser:end"),
+  // Chase rank uses the differential rule; at the deadline nobody has played this round
+  cut("// differential:begin", "// differential:end"), "const shown=()=>({played:false});",
+  "const setState=o=>Object.assign(state,o),closeTrades=v=>{TRADES_CLOSED=v;};",
   // the live globals, set the way init() sets them
   `function setLive(data,squad,budget){D=data;const R=project(data);P=R.players;dayKeys=R.dayKeys;LOOK_ON=R.look;
     byId=Object.fromEntries(P.map(p=>[p.id,p]));C=R.coaches;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
     orig={players:squad.players,coach:squad.coach};P.forEach(p=>{p.sd=spreadOf(p);});state.budget=budget;}`,
   "const live=()=>({D,P,orig,state:{...state}});"].join("\n");
-const load = () => new Function(src + "\nreturn {project,withRound,withMode,optimise,tradePairs,setLive,live,spreadOf};")();
+const load = () => new Function(src + "\nreturn {project,withRound,withMode,optimise,tradePairs,setLive,live,spreadOf,setState,closeTrades,DIFF_PTS,byId:()=>byId};")();
 
 // A small round: two turns, six clubs, each player with three games behind him at his form f.
 const W = "2026-10-21", T = "2026-10-22";
@@ -116,4 +119,90 @@ test("undoing a trade made this round frees it for a better one", () => {
   assert.ok(has(r, 1) && has(r, 11) && !has(r, 4) && !has(r, 15));
   assert.equal(r.used, 1);
   assert.equal(r.trades, 2);
+});
+
+// Chase rank (#102, docs/adr/0003 (c)): on a near-tie the far less owned player wins; never more than DIFF_PTS less per pick.
+// The round's market guard 11 (form 14) is the trade; ownership and a few more guards are added here.
+function chaseRound(extra = [], pop = {}) {
+  const d = round();
+  d.players.push(...extra.map(([id, team, f, price, more]) => ({ id, name: `P${id} Name${id}`, team, pos: "G", price, xpts: 0, fpt: f, log: log(f), ...more })));
+  d.players.forEach(p => { p.pop = pop[p.id] ?? 30; });
+  return d;
+}
+// one trade allowed, so the planner's own pick is 4 → 11 and nothing else
+const run = (m, d, chase, more = {}) => { m.setLive(d, d.squad, budget(d)); m.setState({ chase, maxT: 1, lam: 20, pins: [], ...more }); return m.withMode("q", m.optimise); };
+const x = (m, id) => m.byId()[id].x;
+
+test("Chase rank off: the proposal is the one without the setting", () => {
+  const m = load(), d = chaseRound([[15, "OLY", 12, 6]], { 11: 40, 15: 3 });
+  const base = run(m, d, undefined), off = run(m, d, false);
+  assert.deepEqual(sig(off), sig(base));
+  assert.equal(off.ev.cap.path[0].p.id, base.ev.cap.path[0].p.id);
+  assert.equal(off.chase, null);
+  assert.ok(has(off, 11) && !has(off, 15), "the planner's own pick is the better guard");
+});
+
+test("Chase rank on: a star trade goes to the far less owned guard within DIFF_PTS", () => {
+  const m = load(), d = chaseRound([[15, "OLY", 12, 6]], { 11: 40, 15: 3 });
+  const off = run(m, d, false), on = run(m, d, true);
+  assert.ok(has(on, 15) && !has(on, 11));
+  assert.equal(on.used, off.used, "no extra trade");
+  assert.ok(on.cost <= budget(d) + 1e-9);
+  assert.deepEqual(on.chase.swaps.map(w => [w.from, w.to]), [[11, 15]]);
+  const lost = x(m, 11) - x(m, 15);
+  assert.ok(lost > 0 && lost <= m.DIFF_PTS, `gave up ${lost}`);
+});
+
+test("Chase rank never takes an Out player, one more than DIFF_PTS worse, or a dearer one", () => {
+  const m = load();
+  const d = chaseRound([[15, "OLY", 14, 6, { status: "Out" }], [16, "OLY", 3, 5], [17, "OLY", 14, 7]], { 11: 40, 15: 1, 16: 1, 17: 1 });
+  const off = run(m, d, false), on = run(m, d, true);
+  assert.ok(x(m, 11) - x(m, 16) > m.DIFF_PTS);
+  assert.ok(has(off, 11));
+  assert.deepEqual(sig(on), sig(off));
+  assert.deepEqual(on.chase.swaps, []);
+});
+
+test("Chase rank leaves a pick nobody is far less owned than (a bench-type pick owned by 2%)", () => {
+  const m = load(), d = chaseRound([[15, "OLY", 12, 6]], { 11: 2, 15: 0 });
+  const off = run(m, d, false), on = run(m, d, true);
+  assert.ok(has(off, 11));
+  assert.deepEqual(sig(on), sig(off));
+});
+
+test("Chase rank leaves a pinned incoming player alone", () => {
+  const m = load(), d = chaseRound([[15, "OLY", 12, 6]], { 11: 40, 15: 3 });
+  const on = run(m, d, true, { pins: [11] });
+  assert.ok(has(on, 11) && !has(on, 15));
+});
+
+test("Chase rank on: the first captain goes to a far less owned squad player of his turn within DIFF_PTS", () => {
+  const m = load(), d = chaseRound([], { 1: 50, 5: 50, 9: 4, 11: 50 });
+  d.players[8].fpt = 8; d.players[8].log = log(8); // the centre (BAR, turn 1) a little under the other turn-1 players
+  d.players[10].fpt = 1; d.players[10].log = log(1); // no guard worth a trade: the captain comes from his squad
+  const off = run(m, d, false), on = run(m, d, true);
+  const c0 = off.ev.cap.path[0].p;
+  assert.notEqual(c0.id, 9);
+  assert.equal(on.cap.path[0].p.id, 9);
+  assert.equal(on.ev.cap.path[0].p.id, 9);
+  assert.equal(on.chase.cap.from.id, c0.id);
+  assert.ok(c0.x - x(m, 9) <= m.DIFF_PTS);
+  assert.deepEqual(sig(on), sig(off), "the trades stay");
+  assert.equal(on.cap.path[0].keepAt, off.ev.cap.path[0].keepAt, "the later turns stay");
+  assert.ok(on.ev.pts < off.ev.pts && off.ev.pts - on.ev.pts <= m.DIFF_PTS);
+});
+
+test("Chase rank does nothing once the round has started, and nothing in a past round's review", () => {
+  const m = load(), d = chaseRound([[15, "OLY", 12, 6]], { 1: 50, 5: 50, 9: 4, 11: 40, 15: 3 });
+  m.closeTrades(true);
+  const off = run(m, d, false), on = run(m, d, true);
+  m.closeTrades(false);
+  assert.deepEqual(sig(on), sig(off));
+  assert.equal(on.chase, null);
+  assert.equal(on.ev.cap.path[0].p.id, off.ev.cap.path[0].p.id);
+  m.setState({ chase: true });
+  const W = { ...world(m, d), lam: 20, maxT: 1 };
+  const r = m.withRound(W, () => m.withMode("q", m.optimise));
+  assert.equal(r.chase, null);
+  assert.ok(has(r, 11) && !has(r, 15));
 });

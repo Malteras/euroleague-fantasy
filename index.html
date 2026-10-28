@@ -943,7 +943,7 @@ function pickBtn(k,p,on){
   const P_=PICKS[k],mine=orig.players.includes(p.id),txt=mine?P_.mine:P_.other;
   return `<button type="button" class="ico ${k} has-tip${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On. Tap again to undo.</i>":""}</span></button>`;
 }
-let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,noInj:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
+let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -1824,10 +1824,10 @@ function withMode(mode,fn){
 let roundKey="live",roundBar=null;
 function withRound(W,fn){
   const live={D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED},keep={};
-  const KEYS=["pins","avoids","coachPin","budget","maxT","lam","noInj"];KEYS.forEach(k=>keep[k]=state[k]);
+  const KEYS=["pins","avoids","coachPin","budget","maxT","lam","noInj","chase"];KEYS.forEach(k=>keep[k]=state[k]);
   D=W.data;P=W.P;byId=Object.fromEntries(P.map(p=>[p.id,p]));C=W.C;coachByTeam=Object.fromEntries(C.map(c=>[c.team,c]));
   orig=W.orig;start=W.start||null;dayKeys=W.dayKeys;LOOK_ON=W.look;roundKey=W.key;roundBar=W.bar??null;TRADES_CLOSED=false;
-  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam,noInj:false});
+  Object.assign(state,{pins:[],avoids:[],coachPin:null,budget:W.budget,maxT:W.maxT,lam:W.lam,noInj:false,chase:false});
   try{return fn();}finally{({D,P,byId,C,coachByTeam,orig,start,dayKeys,LOOK_ON,roundKey,roundBar,TRADES_CLOSED}=live);Object.assign(state,keep);}
 }
 let resultAlt=null;
@@ -2006,7 +2006,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,TRADES_CLOSED]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,!!state.chase,TRADES_CLOSED]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -2017,9 +2017,15 @@ function optimise(){
   // flat: every stop of the bar gives these same trades, so moving it changes nothing (said under the bar)
   const sig=p=>p.S.slice().sort().join()+"|"+p.coach;
   const flat=STOPS.every(l=>sig(pickAt(l))===sig(pick));
-  const {S,coach}=pick,bar=tradeBar();
+  let {S,coach}=pick,cap=null,chase=null;const bar=tradeBar();
+  // Chase rank (#102): on a near-tie the far less owned player wins, one step from the pick above. Only at the deadline.
+  if(state.chase&&!TRADES_CLOSED){const c=chaseTrades(S,coach,orig.players,state.pins,own.lim);S=c.S;
+    const cp=chaseCap(capPlan(S),S.map(i=>byId[i]));if(cp.chased)cap=cp;chase={swaps:c.swaps,cap:cp.chased||null};}
+  let ev=evalSquad(S,coach);
+  if(cap){const dv=cap.v-ev.cap.v;ev={...ev,cap,pts:ev.pts+dv,obj:ev.obj+dv};}
   // trades: the moves to make from My team; used: the round's trades counted from start, the ones made included
-  return {S,coach,ev:evalSquad(S,coach),cost:cost(S,coach),trades:moves(S,coach),used:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
+  // cap: the captain plan when Chase rank changed it (else capPlan(S)); chase: what Chase rank changed, null when off
+  return {S,coach,ev,cap,chase,cost:cost(S,coach),trades:moves(S,coach),used:trades(S,coach),warnings:own.warnings,bar,near:nearMisses(S,coach,own.lim,state.lam,bar),flat};
 }
 // "Just missed": for each kept player, the best single swap that would add something at this setting but stays under the bar.
 // Shown under the trades so it's clear why a better-projected player isn't proposed.
@@ -2332,7 +2338,9 @@ function proposal(){
     <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
     <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}</div>
       <label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured and ${stHtml("Day to day")} players</label>
-      <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div></div>
+      <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div>
+      <label class="opt-chk"><input type="checkbox" id="chase"${state.chase?" checked":""}> Chase rank: on a near-tie, pick the player few teams own</label>
+      <div class="note">For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.</div></div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
@@ -2375,8 +2383,10 @@ function proposalParts(R){
     return side==="o"&&!was?`<small class="tx-own">Bought this round</small>`:side==="i"&&was?`<small class="tx-own">Sold, back in</small>`:"";};
   // a differential for an incoming player (#26): one the optimiser could also have picked (same position, no dearer,
   // room at his club, not left out by you), within DIFF_PTS of his projected points with the look-ahead. Coaches: none.
-  const tradeDiff=b=>{if(byId[b.id]!==b)return "";
-    const d=differential(b,tradeDiffPool(b,R.S),tradeVal);return d?`<small class="tx-own tx-diff">${diffHtml(b,d,LA?"Trade, this round and half of next":"Trade")}</small>`:"";};
+  // with Chase rank on, the incoming player it chose says so, and whom it chose him over
+  const tradeDiff=b=>{if(byId[b.id]!==b)return "";const what=LA?"Trade, this round and half of next":"Trade";
+    const w=R.chase&&R.chase.swaps.find(w=>w.to===b.id);if(w)return `<small class="tx-own tx-diff">${diffHtml(byId[w.from],w.d,what,true)}</small>`;
+    const d=differential(b,tradeDiffPool(b,R.S),tradeVal);return d?`<small class="tx-own tx-diff">${diffHtml(b,d,what)}</small>`:"";};
   const row=(a,b,key,name,role,x)=>{
     // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
@@ -2401,7 +2411,7 @@ function proposalParts(R){
     .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach",
       orig.coach?xBtn("data-coach-keep",orig.coach,"Remove this trade: keep your coach"):"")]:[]).join("");
   // the captain plan is part of the projected points too (see capPlan): show what the trades do to it
-  const ca=capPlan(orig.players.filter(i=>byId[i])),cb=capPlan(R.S),dcap=cb.v-ca.v;
+  const ca=capPlan(orig.players.filter(i=>byId[i])),cb=R.cap||capPlan(R.S),dcap=cb.v-ca.v;
   const capWho=c=>c.path.length?`${esc(c.path[0].p.short)} first (${esc(turnOf2(c.path[0].p.day))})`:"–";
   let capRow="";
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
@@ -2609,7 +2619,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
   const applyBtn=`<button type="button" class="btn-primary" data-apply>${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
-    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>${capDiff(cap0,ps)}
+    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>${capDiff(cap0,ps,R.chase&&R.chase.cap)}
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
   const nextDay=d=>dayKeys[dayKeys.indexOf(d)+1];
   const capActs=live?liveCap.steps:capSteps(capPath,name,turnOf2).map(a=>({...a,day:nextDay(a.day)}));
@@ -2650,7 +2660,9 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
 }
 // a differential for the first captain (#26): a squad player of the same turn, so the armband's walk stays the same.
 // Only at the deadline: once the round has started the captain is his own, moved by the turn-by-turn plan.
-function capDiff(cap,ps){
+// chased: Chase rank's swap ({from, d}), said instead of a hint
+function capDiff(cap,ps,chased){
+  if(chased)return `<p class="note tl-diff">${diffHtml(chased.from,chased.d,"Captain",true)}</p>`;
   const d=differential(cap,capDiffPool(cap,ps));
   return d?`<p class="note tl-diff">${diffHtml(cap,d,"Captain")}</p>`:"";
 }
@@ -2666,7 +2678,7 @@ function initPlan(R,L){
   const reserves=ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x);
   const lateRes=reserves.filter(p=>p.day===finalDay);
   // captain path, one per turn (see capPlan): the first one gets the armband, the rest are where it moves after a quiet game
-  const capPath=capPlan(R.S).path;
+  const capPath=(R.cap||capPlan(R.S)).path; // R.cap: Chase rank moved the first captain
   const cap0=capPath[0].p;
   if(!init.st.includes(cap0)){const k=init.st.findIndex(p=>p.pos===cap0.pos);if(k>=0){if(init.six===cap0)init.six=init.st[k];init.st[k]=cap0;}}
   return {ps,finalDay,init,cap0,capPath,reserves:ps.filter(p=>!init.st.includes(p)&&p!==init.six).sort((a,b)=>b.x-a.x)};
@@ -3289,11 +3301,33 @@ const tradeDiffPool=(b,S)=>P.filter(q=>q.pos===b.pos&&q.price<=b.price&&!S.inclu
 const tradeVal=p=>p.x+(p.nx||0);
 // The first captain cap among the squad's players ps: one of his turn who has not played, so the armband's walk stays the same.
 const capDiffPool=(cap,ps)=>ps.filter(p=>p.day===cap.day&&!shown(p).played);
+// Chase rank (#102, docs/adr/0003 (c)): the optimiser itself takes the differential, as a tie-break only. One step from the
+// planner's pick, so no pick gives up more than DIFF_PTS projected points. Coaches: none.
+// Each incoming player of plan S (not in mine, not pinned) for his differential, if that keeps the trades within lim and
+// is not a player of mine. A pool player costs no more, so the budget holds. Returns {S, swaps: [{from, to, d}]}.
+function chaseTrades(S,coach,mine,pins,lim){
+  S=S.slice();const swaps=[];
+  S.forEach((id,k)=>{if(mine.includes(id)||pins.includes(id))return;
+    const T=q=>S.map(i=>i===id?q.id:i),pool=tradeDiffPool(byId[id],S).filter(q=>!mine.includes(q.id)&&trades(T(q),coach)<=lim);
+    const d=differential(byId[id],pool,tradeVal);if(d){S[k]=d.p.id;swaps.push({from:id,to:d.p.id,d});}});
+  return {S,swaps};
+}
+// The captain plan cp (capPlan) with its first captain swapped for his differential among the squad's players ps. The later
+// turns and the keep mark stay. chased: {from, d} when it changed.
+function chaseCap(cp,ps){
+  const f=cp.path[0];if(!f)return cp;
+  const d=differential(f.p,capDiffPool(f.p,ps));if(!d)return cp;
+  const p=d.p,v=f.keepAt==null?p.x:eMax(p.x,p.sd||.5*Math.max(p.x,4),f.keepAt);
+  return {v,path:[{p,keepAt:f.keepAt},...cp.path.slice(1)],chased:{from:f.p,d}};
+}
 // what: whose call it is ("Captain", "Trade"), the tooltip's first words
-function diffHtml(pick,d,what){
+// chosen: Chase rank already took d.p in place of pick, so the line says what it did instead of hinting
+function diffHtml(pick,d,what,chosen){
   const v=r1(d.v),v0=r1(d.v0),n=r1(Math.abs(v-v0)),by=!n?"same projection":`${n.toFixed(1)} pts ${v>v0?"more":"less"}`; // the gap between the numbers shown
-  return `<span class="diff has-tip" tabindex="0">Differential: ${esc(d.p.short)}, ${by}, owned by ${d.p.pop}% vs ${pick.pop}%`
-    +tipPick("Differential",`${d.p.short} instead of ${pick.short}`,`${what}: projected ${v.toFixed(1)} against ${v0.toFixed(1)}. Owned by ${d.p.pop}% of teams against ${pick.pop}%. Points few teams get are what climbs the ranking.`,"A hint only: the plan does not change.")+`</span>`;
+  const ctx=chosen?"Chase rank":"Differential";
+  return `<span class="diff has-tip" tabindex="0">${chosen?`Chase rank: ${esc(d.p.short)} over ${esc(pick.short)}`:`Differential: ${esc(d.p.short)}`}, ${by}, owned by ${d.p.pop}% vs ${pick.pop}%`
+    +tipPick(ctx,`${d.p.short} instead of ${pick.short}`,`${what}: projected ${v.toFixed(1)} against ${v0.toFixed(1)}. Owned by ${d.p.pop}% of teams against ${pick.pop}%. Points few teams get are what climbs the ranking.`,
+      chosen?"Chase rank is on, so the planner took him. Turn it off in the settings above to get the best projection back.":"A hint only: the plan does not change.")+`</span>`;
 }
 // differential:end
 // Once he has played, next round's projection is not known until this round is finished: TBC, sorted last.
@@ -3540,6 +3574,7 @@ function bind(){
   document.querySelectorAll("[data-stop]").forEach(b=>b.onclick=()=>{state.lam=STOPS[+b.dataset.stop];rerender();});
   document.querySelectorAll("#maxT button").forEach(b=>b.onclick=()=>{state.maxT=+b.dataset.v;rerender();});
   const ni=$("#noInj");if(ni)ni.onchange=()=>{state.noInj=ni.checked;rerender();};
+  const ch=$("#chase");if(ch)ch.onchange=()=>{state.chase=ch.checked;rerender();};
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
   const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
