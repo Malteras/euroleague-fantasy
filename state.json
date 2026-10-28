@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Rise %",
+ "tag": "Soft matchup",
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:46:54.943Z"
+ "savedAt": "2026-10-28T07:46:58.119Z"
 }
