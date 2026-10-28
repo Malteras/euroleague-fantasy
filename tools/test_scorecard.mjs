@@ -11,7 +11,7 @@ const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)
 const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;",
   cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"),
   line("const MT="), cut("// scorecard:begin", "// scorecard:end")].join("\n");
-const { scoreRounds, project } = new Function(src + "\nreturn {scoreRounds,project};")();
+const { scoreRounds, project, scSummary } = new Function(src + "\nreturn {scoreRounds,project,scSummary};")();
 
 const near = (a, b, tol = 0.01) => assert.ok(Math.abs(a - b) < tol, `${a} vs ${b}`);
 const log = (...f) => f.map((fpt, i) => ({ d: `2026-10-0${i + 1}`, fpt, min: 25, opp: "X", ha: "H", res: "" }));
@@ -109,4 +109,53 @@ test("the best version is the one with the smallest season miss, look-ahead asid
   const maes = S.rows.filter(r => r.key !== "look").map(r => r.season.all.mae);
   near(S.best.season.all.mae, Math.min(...maes));
   assert.notEqual(S.best.key, "look");
+});
+
+// scSummary(): the plain line under the heading (#107), on made-up numbers. maes: version → average miss per round,
+// one number for every round (the last one is "last"); bias: band → today's bias over the season; n: players per band.
+const made = (maes, bias = {}, n = 50) => {
+  const st = (mae, b) => ({ all: { n, mae, bias: 0 }, lo: { n, mae, bias: b.lo ?? 0 }, mid: { n, mae, bias: b.mid ?? 0 }, hi: { n, mae, bias: b.hi ?? 0 } });
+  const rounds = Object.values(maes)[0].map((_, i) => 7 + i), avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const rows = Object.entries(maes).map(([key, a]) => ({
+    key, label: key, last: st(a[a.length - 1], {}), season: st(avg(a), key === "today" ? bias : {}),
+    byRound: Object.fromEntries(a.map((m, i) => [rounds[i], st(m, {})])),
+  }));
+  rows.push({ key: "look", label: "look", last: st(1, {}), season: st(1, {}), byRound: {} }); // left out: it would win
+  return { rounds, last: rounds[rounds.length - 1], rows };
+};
+
+test("summary: versions within 0.5 points are too close to act on", () => {
+  const S = made({ xpts: [6.2], today: [6.35], m50: [6.5] });
+  assert.deepEqual(scSummary(S, "season", "all"), ["All versions are within 0.3 points of each other. Too early to change how the site projects."]);
+});
+
+test("summary: a clear winner needs 3 rounds and most of them", () => {
+  // xpts best in rounds 7, 8, 9 and 11 (4 of 5), by about 1 point over the season
+  const S = made({ xpts: [5, 5, 5, 7, 5], today: [6, 6, 6, 6, 6], m50: [6.2, 6.2, 6.2, 6.2, 6.2] });
+  assert.deepEqual(scSummary(S, "season", "all"), ["xpts has missed least in 4 of 5 rounds, by about 0.6 points a player."]);
+  // only two rounds: no winner yet
+  const T = made({ xpts: [5, 5], today: [6, 6] });
+  assert.deepEqual(scSummary(T, "season", "all"), ["xpts missed least, 1.0 point a player less than the next version. Only 2 rounds so far: too early to change how the site projects."]);
+  // best overall but not in most rounds
+  const U = made({ xpts: [1.5, 7, 7], today: [6, 5, 6.5], m50: [6, 6, 5] });
+  assert.deepEqual(scSummary(U, "season", "all"), ["xpts missed least overall, but no version missed least in most rounds. Too early to change how the site projects."]);
+  // the round view never calls a winner
+  assert.deepEqual(scSummary(S, "last", "all"), ["xpts missed least in round 11, 1.0 point a player less than the next version. One round is too few to change how the site projects."]);
+});
+
+test("summary: a price band leans when today's projection is 1.5 points off over 30 players", () => {
+  const S = made({ xpts: [6.2], today: [6.35] }, { lo: -2.1, mid: 1.4, hi: 3 });
+  assert.deepEqual(scSummary(S, "season", "all"), ["All versions are within 0.1 points of each other. Too early to change how the site projects.",
+    "Players under 8 cr are projected 2.1 points too low by today's projection.", "Players of 14 cr or more are projected 3.0 points too high by today's projection."]);
+  // one band picked: only that band
+  assert.deepEqual(scSummary(S, "season", "hi").slice(1), ["Players of 14 cr or more are projected 3.0 points too high by today's projection."]);
+  // too few players: no lean
+  assert.equal(scSummary(made({ xpts: [6.2], today: [6.35] }, { lo: -2.1 }, 29), "season", "all").length, 1);
+});
+
+test("summary for round 7's real numbers", () => {
+  const H = [7].map(n => JSON.parse(readFileSync(new URL(`../history/round-${n}.json`, import.meta.url), "utf8")));
+  const say = scSummary(scoreRounds(H), "season", "all");
+  assert.match(say[0], /^All versions are within 0\.\d points of each other\./);
+  for (const t of say) assert.doesNotMatch(t, / · /);
 });
