@@ -3285,14 +3285,17 @@ const DIFF_PTS=4;    // about as good: at most this many projected points less
 const DIFF_SHARE=.5; // far fewer teams: at most half the ownership share,
 const DIFF_GAP=5;    // and at least this many points of share less
 const lessOwned=(a,b)=>a.pop!=null&&b.pop!=null&&b.pop<=a.pop*DIFF_SHARE&&a.pop-b.pop>=DIFF_GAP; // b far less owned than a
-// The best differential for pick in pool (most projected points, then least owned), or null. val: his projected points.
-// The pool is already filtered to who could take pick's place (same turn for a captain, a legal trade for a trade).
-function differential(pick,pool,val=p=>p.x){
-  const v0=val(pick);let best=null;
-  for(const q of pool){if(q===pick||q.out||!lessOwned(pick,q))continue;const v=val(q);if(v<v0-DIFF_PTS)continue;
-    if(!best||v>best.v||(v===best.v&&q.pop<best.p.pop))best={p:q,v};}
+// The best player in pool who passes ok and is at most DIFF_PTS below pick (most projected points, then least owned), or
+// null. val: his projected points. The pool is already filtered to who could take pick's place (same turn for a captain,
+// a legal trade for a trade).
+function nearPick(pick,pool,ok,val=p=>p.x){
+  const v0=val(pick),pop=q=>q.pop??Infinity;let best=null;
+  for(const q of pool){if(q===pick||q.out||!ok(q))continue;const v=val(q);if(v<v0-DIFF_PTS)continue;
+    if(!best||v>best.v||(v===best.v&&pop(q)<pop(best.p)))best={p:q,v};}
   return best&&{...best,v0,less:r1(v0-best.v)};
 }
+// The best differential for pick in pool, or null.
+const differential=(pick,pool,val)=>nearPick(pick,pool,q=>lessOwned(pick,q),val);
 // Who could take a pick's place, the same for the hints and for Chase rank. An incoming player in squad S: same position,
 // no dearer, not in S, not left out by him (✕ or "Leave out injured"), not played this round, room at his club. Judged on
 // tradeVal, this round plus the look-ahead.
@@ -3303,15 +3306,16 @@ const tradeVal=p=>p.x+(p.nx||0);
 const capDiffPool=(cap,ps)=>ps.filter(p=>p.day===cap.day&&!shown(p).played);
 // Chase rank (#102, docs/adr/0003 (c)): the optimiser itself takes the differential, as a tie-break only. One step from the
 // planner's pick, so no pick gives up more than DIFF_PTS projected points. Coaches: none.
-// Each incoming player of plan S (not in mine, not pinned) for his differential, if that keeps the trades within lim and
+// Each incoming player of plan S (not in mine, not pinned) for find(him, pool), if that keeps the trades within lim and
 // is not a player of mine. A pool player costs no more, so the budget holds. Returns {S, swaps: [{from, to, d}]}.
-function chaseTrades(S,coach,mine,pins,lim){
+function nearTrades(S,coach,mine,pins,lim,find){
   S=S.slice();const swaps=[];
   S.forEach((id,k)=>{if(mine.includes(id)||pins.includes(id))return;
     const T=q=>S.map(i=>i===id?q.id:i),pool=tradeDiffPool(byId[id],S).filter(q=>!mine.includes(q.id)&&trades(T(q),coach)<=lim);
-    const d=differential(byId[id],pool,tradeVal);if(d){S[k]=d.p.id;swaps.push({from:id,to:d.p.id,d});}});
+    const d=find(byId[id],pool);if(d){S[k]=d.p.id;swaps.push({from:id,to:d.p.id,d});}});
   return {S,swaps};
 }
+const chaseTrades=(S,coach,mine,pins,lim)=>nearTrades(S,coach,mine,pins,lim,(b,pool)=>differential(b,pool,tradeVal));
 // The captain plan cp (capPlan) with its first captain swapped for his differential among the squad's players ps. The later
 // turns and the keep mark stay. chased: {from, d} when it changed.
 function chaseCap(cp,ps){
