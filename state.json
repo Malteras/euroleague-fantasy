@@ -6,6 +6,8 @@
  "maxT": 4,
  "lam": 20,
  "noInj": true,
+ "chase": false,
+ "gems": false,
  "pos": "ALL",
  "day": "ALL",
  "sort": "price",
@@ -33,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T05:40:01.870Z"
+ "savedAt": "2026-10-28T07:45:43.187Z"
 }
