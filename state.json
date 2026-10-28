@@ -14,7 +14,7 @@
  "only": false,
  "tag": "Soft matchup",
  "dtab": "overview",
- "allGames": false,
+ "allGames": true,
  "collapsed": [],
  "form": null,
  "team": null,
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:47:04.009Z"
+ "savedAt": "2026-10-28T07:47:11.637Z"
 }
