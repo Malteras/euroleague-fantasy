@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Keep: gaining",
+ "tag": "Credit gainer",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:48:47.813Z"
+ "savedAt": "2026-10-28T07:48:51.494Z"
 }
