@@ -13,7 +13,7 @@
  "sort": "price",
  "only": false,
  "tag": "Credit gainer",
- "dtab": "fixtures",
+ "dtab": "overview",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T08:02:09.204Z"
+ "savedAt": "2026-10-28T08:02:13.002Z"
 }
