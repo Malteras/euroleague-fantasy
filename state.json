@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Captain option",
+ "tag": "Keep: gaining",
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:46:30.499Z"
+ "savedAt": "2026-10-28T07:46:44.736Z"
 }
