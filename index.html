@@ -415,6 +415,8 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}
 .has-tip{cursor:help}
 .tbc{position:relative;color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
+/* a differential hint (#26): a quiet line with the site's tooltip; the underline says there is more */
+.diff{position:relative;cursor:help;text-decoration:underline dotted;text-underline-offset:3px}.tl-diff{margin:4px 0 0}
 /* the site's tooltip: a .tip inside a .has-tip parent (a TBC cell, the hit area over each Last 5 bar, a tag...) */
 .has-tip>.tip{position:fixed;top:0;left:0;width:max-content;max-width:260px;background:var(--fg);color:var(--bg);text-align:left;opacity:0;pointer-events:none;transition:opacity .12s;z-index:60;white-space:normal;text-decoration:none;
   font-family:var(--body);font-weight:500;font-style:normal;text-transform:none;letter-spacing:normal}
@@ -2371,11 +2373,17 @@ function proposalParts(R){
   const madeNote=(p,side)=>{if(!start||p.id==null)return "";
     const was=start.players.includes(p.id);
     return side==="o"&&!was?`<small class="tx-own">Bought this round</small>`:side==="i"&&was?`<small class="tx-own">Sold, back in</small>`:"";};
+  // a differential for an incoming player (#26): one the optimiser could also have picked (same position, no dearer,
+  // room at his club, not left out by you), within DIFF_PTS of his projected points with the look-ahead. Coaches: none.
+  const tradeDiff=b=>{if(byId[b.id]!==b)return "";
+    const pool=P.filter(q=>q.pos===b.pos&&q.price<=b.price&&!R.S.includes(q.id)&&!state.avoids.includes(q.id)&&!skipIn(q)
+      &&!shown(q).played&&clubOk(R.S.map(i=>i===b.id?q.id:i)));
+    const d=differential(b,pool,p=>p.x+(p.nx||0));return d?`<small class="tx-own tx-diff">${diffHtml(b,d,LA?"Trade, this round and half of next":"Trade")}</small>`:"";};
   const row=(a,b,key,name,role,x)=>{
     // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
-    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}${madeNote(p,side)}</span></span>`:`<span class="tx-p ${side}">—</span>`;
+    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}${side==="i"?tradeDiff(p):""}${madeNote(p,side)}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
     // grey out → in beside the bars: this round's projections, then next round's (the striped bar is half the difference)
     const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>(p.x2||0).toFixed(1),a)} → ${ow(p=>(p.x2||0).toFixed(1),b)}`;
@@ -2603,7 +2611,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
   const applyBtn=`<button type="button" class="btn-primary" data-apply>${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
-    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>
+    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>${capDiff(cap0,ps)}
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
   const nextDay=d=>dayKeys[dayKeys.indexOf(d)+1];
   const capActs=live?liveCap.steps:capSteps(capPath,name,turnOf2).map(a=>({...a,day:nextDay(a.day)}));
@@ -2641,6 +2649,12 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   }).join("");
   const timeline=`<div class="card ptl"><h3>Plan for the round</h3><ol class="tl">${TRADES_CLOSED?`<li class="now"><div class="tl-h"><b>Trades closed</b><small>the round started ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div><p class="note" style="margin:0">No trades until next round's deadline. Follow the turns below: move the captain and bring in only players who have not played yet.</p></li>`:`<li class="now"><div class="tl-h"><b>Now</b><small>trades close ${esc(dayShort(D.deadline))}${tip?" "+esc(tip):""}</small></div>${nowBody}</li>`}${turns}</ol></div>`;
   return `<div class="plan">${court}${timeline}</div>`;
+}
+// a differential for the first captain (#26): a squad player of the same turn, so the armband's walk stays the same.
+// Only at the deadline: once the round has started the captain is his own, moved by the turn-by-turn plan.
+function capDiff(cap,ps){
+  const d=differential(cap,ps.filter(p=>p.day===cap.day&&!shown(p).played));
+  return d?`<p class="note tl-diff">${diffHtml(cap,d,"Captain")}</p>`:"";
 }
 function initPlan(R,L){
   const ps=R.S.map(i=>byId[i]);
@@ -3254,6 +3268,28 @@ const projBox=s=>{if(!s.played)return "";const sg=v=>`<span class="${v>0?"up":v<
 // A slot may be a list of facts, shown side by side with facts() instead of joined by " · " (#61).
 const tipTxt=x=>Array.isArray(x)?facts(...x.map(v=>v==null||v===false||v===""?null:esc(v))):esc(x);
 const tipPick=(ctx,title,text,foot)=>`<span class="tip tip-pick" role="tooltip"><small>${tipTxt(ctx)}</small><b>${esc(title)}</b><span>${tipTxt(text)}</span>${(Array.isArray(foot)?foot.some(Boolean):foot)?`<i>${tipTxt(foot)}</i>`:""}</span>`;
+// differential:begin
+// A differential (#26, docs/adr/0003): a pick about as good as the planner's, owned by far fewer teams. Points few teams get
+// are what climbs a ranking. Display only: the proposal and its captain do not change. Ownership is FantaSheet's, all teams.
+const DIFF_PTS=4;    // about as good: at most this many projected points less
+const DIFF_SHARE=.5; // far fewer teams: at most half the ownership share,
+const DIFF_GAP=5;    // and at least this many points of share less
+const lessOwned=(a,b)=>a.pop!=null&&b.pop!=null&&b.pop<=a.pop*DIFF_SHARE&&a.pop-b.pop>=DIFF_GAP; // b far less owned than a
+// The best differential for pick in pool (most projected points, then least owned), or null. val: his projected points.
+// The pool is already filtered to who could take pick's place (same turn for a captain, a legal trade for a trade).
+function differential(pick,pool,val=p=>p.x){
+  const v0=val(pick);let best=null;
+  for(const q of pool){if(q===pick||q.out||!lessOwned(pick,q))continue;const v=val(q);if(v<v0-DIFF_PTS)continue;
+    if(!best||v>best.v||(v===best.v&&q.pop<best.p.pop))best={p:q,v};}
+  return best&&{...best,v0,less:r1(v0-best.v)};
+}
+// what: whose call it is ("Captain", "Trade"), the tooltip's first words
+function diffHtml(pick,d,what){
+  const v=r1(d.v),v0=r1(d.v0),n=r1(Math.abs(v-v0)),by=!n?"same projection":`${n.toFixed(1)} pts ${v>v0?"more":"less"}`; // the gap between the numbers shown
+  return `<span class="diff has-tip" tabindex="0">Differential: ${esc(d.p.short)}, ${by}, owned by ${d.p.pop}% vs ${pick.pop}%`
+    +tipPick("Differential",`${d.p.short} instead of ${pick.short}`,`${what}: projected ${v.toFixed(1)} against ${v0.toFixed(1)}. Owned by ${d.p.pop}% of teams against ${pick.pop}%. Points few teams get are what climbs the ranking.`,"A hint only: the plan does not change.")+`</span>`;
+}
+// differential:end
 // Once he has played, next round's projection is not known until this round is finished: TBC, sorted last.
 const projCellHtml=s=>s.played?`<span class="tbc has-tip" tabindex="0">TBC${tipPick("Projection","TBC","To be calculated after the current round is finished.")}</span>`:`${s.x}`;
 const projKey=s=>s.played?-999:s.x??-999; // finite, so two TBC players compare equal

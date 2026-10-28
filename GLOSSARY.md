@@ -76,6 +76,16 @@ _Avoid_: writing "Day to day" out on the site
 How much the opponent lets a player's position score, as a percentage above or below an average team.
 _Avoid_: Score spread, fixture difficulty
 
+**Ownership**:
+The share of all FantaSheet teams that own a player ("Owned by 4.3%", with the change since last round). Not his league's.
+_Avoid_: popularity, pop (the data's field name)
+
+**Differential**:
+A pick about as good as the planner's (at most 4 projected points less) that far fewer teams own (at most half the share,
+and at least 5 points of share less). Shown as a hint under the captain and under each incoming player; it never changes
+the proposal (docs/adr/0003-differential-picks.md).
+_Avoid_: hidden gem (a different idea, #64), punt
+
 **Look-ahead**:
 Counting half of a player's next-round projection, with that round's matchup, when judging a trade made this round. Covers this round and the next one only, and never changes who starts or captains this round.
 _Avoid_: Horizon, fixture run, multi-round
