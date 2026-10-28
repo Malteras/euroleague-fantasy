@@ -7,6 +7,7 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 ## What every card does after the first tip-off (`roundStarted()` → `TRADES_CLOSED`, `liveRound()`)
 
 - **Trades**: none. The planner proposes no trades and the Trades card says they are closed. A player who has played is never suggested.
+  On My team, "Suggest replacements" stays in place but is disabled, with a tooltip saying why (decided with Ognjen, 28 Oct 2026).
 - **Lineup and captain**: his own saved lineup and captain (My team), not a new pick from projections.
 - **A played turn is history**: it shows the real scores and the captain he had. Never re-pick its captain or lineup,
   and never show a projection for a game that was played.

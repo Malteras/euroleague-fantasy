@@ -586,6 +586,8 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tv{font-family:var(--display);font-size:30px;font-weight:800;line-height:1}.tv small{font-size:14px;color:var(--muted)}
 .selbar{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--accent)}
 .selbtns{display:flex;gap:6px;flex-wrap:wrap}
+/* greyed by colour, not opacity, so the tooltip inside keeps its colours (docs/mistakes.md) */
+.btn-primary.dis{background:var(--raise);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);cursor:not-allowed}
 .checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .chk{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px}
 .chk.ok{background:var(--good-soft);color:var(--good)}.chk.bad{background:var(--bad-soft);color:var(--bad)}
@@ -1408,7 +1410,7 @@ function myteam(){
   const saved=sameTeam(team,savedTeam);
   const checks=teamChecks().map(c=>`<span class="chk ${c.ok?"ok":"bad"}">${c.ok?"✓":"!"} ${esc(c.t)}</span>`).join("");
   const sp=sel!=null&&team.slots[sel]?byId[team.slots[sel]]:null;
-  const bar=sp?`<div class="selbar"><span><b>${plink(sp)}</b> selected. Tap another spot to swap.</span><span class="selbtns"><button type="button" class="btn-primary sm" data-act="suggest">Suggest replacements</button>${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
+  const bar=sp?`<div class="selbar"><span><b>${plink(sp)}</b> selected. Tap another spot to swap.</span><span class="selbtns">${TRADES_CLOSED?`<button type="button" class="btn-primary sm dis has-tip" data-act="suggest" aria-disabled="true">Suggest replacements${tipPick("Trades closed","Suggest replacements",`${D.roundLabel} has started (first tip-off ${dayFmt(D.deadline)}). Trades are closed until the next round's deadline, so no player can come in from outside your squad.`,"You can still swap your own players between court and bench and move the captain.")}</button>`:`<button type="button" class="btn-primary sm" data-act="suggest">Suggest replacements</button>`}${sel<5?`<button type="button" class="chip-toggle" data-act="cap">Make captain</button>`:""}<button type="button" class="chip-toggle" data-act="replace">Replace</button><button type="button" class="chip-toggle" data-act="remove">Remove</button><button type="button" class="chip-toggle" data-open="${sp.id}">Profile</button><button type="button" class="chip-toggle" data-act="cancel">Done</button></span></div>`:`<p class="note" style="margin:0">Tap a player, then tap another spot to swap them. On a computer you can also drag. Tap an empty spot to add a player.</p>`;
   const coach=team.coach&&coachByTeam[team.coach];
   const cr=courtRows(),fk=cr.f.join("-");
   const formSeg=`<div class="formbar"><span class="lbl" style="margin:0">Formation</span><div class="seg sm" id="formSeg" role="group" aria-label="Formation">${FORMS.map(f=>{const k=f.join("-");return `<button type="button" data-form="${k}" class="has-tip${k===fk?" on":""}" aria-pressed="${k===fk}">${f[0]}G ${f[1]}F ${f[2]}C${tipPick("Formation",`${f[0]}G ${f[1]}F ${f[2]}C`,`${f[0]} guard${f[0]>1?"s":""}, ${f[1]} forward${f[1]>1?"s":""} and ${f[2]} centre${f[2]>1?"s":""} on the court.`)}</button>`}).join("")}</div></div>`;
@@ -1534,6 +1536,7 @@ function compareTable(o,c){
     <div class="cmp-act"><button type="button" class="chip-toggle" data-sg-back>Keep ${esc(o.short)}</button><button type="button" class="btn-primary" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></div>`;
 }
 function suggestPanel(){
+  if(sug!=null&&TRADES_CLOSED){sug=null;sugCmp=null;}
   if(sug==null)return "";
   const {o,list}=suggestFor(sug);if(!o){sug=null;return "";}
   const cmpP=sugCmp!=null?byId[sugCmp]:null;
@@ -3632,6 +3635,7 @@ function bindTeam(rerender){
   document.querySelectorAll("[data-apply]").forEach(at=>at.onclick=()=>{withMode(state.pmode==="m"?"m":"q",applyTrades);rerender();setTimeout(()=>{const m=$("#myteam");if(m)m.scrollIntoView({behavior:"smooth",block:"start"});},0);});
   const cs=$("[data-coach-slot]");if(cs)cs.onclick=()=>setPick({slot:"coach",q:"",pos:"ALL"});
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
+    if(b.getAttribute("aria-disabled")==="true")return; // trades closed: the tooltip says why
     const a=b.dataset.act,id=team.slots[sel];
     if(a==="cap"){team.cap=id;sel=null;teamChanged();}
     else if(a==="remove"){const s2=team.slots.slice();s2[sel]=null;team.slots=s2;if(team.cap===id)team.cap=null;sel=null;teamChanged();}
