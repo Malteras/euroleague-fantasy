@@ -175,3 +175,11 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Guard:** CLAUDE.md Part A: never say merged / not merged / live / deployed before checking right then
   (`git fetch origin main` and `git log origin/main..<branch>`, or the PR's state on GitHub). A
   `…-git-<branch>-….vercel.app` address is the branch preview, not main.
+
+## 28 Oct 2026 · "Your players' matchups" listed players who were not his (#106)
+- **What:** during Round 8 the Bottom line listed Ndiaye and Vezenkov at Beşiktaş under "Your players' matchups". Ndiaye
+  had been sold and Vezenkov was never bought.
+- **Why:** the card read the planner's proposal (`result.S`). Before the deadline that is the team he is about to make;
+  once trades close it is a squad he can no longer get.
+- **Guard:** `blMatchSquad()` in index.html: his saved team during a round, the proposal before the deadline, and the
+  heading says "proposed squad" when the two differ; tools/test_bottomline.mjs covers both.

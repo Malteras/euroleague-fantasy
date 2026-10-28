@@ -37,7 +37,7 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   lineup changes on My team and ticks that turn's Bottom line items. Nothing reaches the daily report until Save on My team.
 - **The captain walk** starts at the round's first captain (the deadline snapshot), not the saved one, so a played turn keeps
   the captain it had after the armband moves on.
-- **Your players' matchups**: only games still to play.
+- **Your players' matchups**: his saved team, not the proposal (#106), and only games still to play. Before the deadline the card lists the proposal, headed "Matchups in the proposed squad" when it differs from his squad.
 - **Round schedule**: a played game shows "Final" and the score; his players in it show their points (never PIR), ± % against
   the projection at the deadline (the snapshot; the live projection already includes the game) and the credit change from
   the game. The header says trades are closed.
