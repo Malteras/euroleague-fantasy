@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": null,
+ "tag": "Must have",
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:46:04.735Z"
+ "savedAt": "2026-10-28T07:46:21.288Z"
 }
