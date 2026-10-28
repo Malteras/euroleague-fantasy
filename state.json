@@ -10,7 +10,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Rise %",
+ "tag": null,
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -33,5 +33,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T05:38:51.741Z"
+ "savedAt": "2026-10-28T05:38:54.905Z"
 }
