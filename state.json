@@ -13,7 +13,7 @@
  "sort": "price",
  "only": false,
  "tag": "Buy low: back",
- "dtab": "overview",
+ "dtab": "fixtures",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -35,5 +35,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T07:47:47.730Z"
+ "savedAt": "2026-10-28T07:47:50.552Z"
 }
