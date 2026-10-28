@@ -19,24 +19,7 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
- "team": {
-  "slots": [
-   23,
-   38,
-   73,
-   185,
-   255,
-   118,
-   165,
-   245,
-   176,
-   361
-  ],
-  "coach": "CZV",
-  "bank": 1,
-  "cap": 73,
-  "base": "2026-10-27"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -54,5 +37,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T05:38:06.099Z"
+ "savedAt": "2026-10-28T05:38:17.749Z"
 }
