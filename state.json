@@ -1,6 +1,7 @@
 {
  "pins": [
-  352
+  352,
+  279
  ],
  "avoids": [],
  "coachPin": null,
@@ -37,5 +38,5 @@
   "t": "VIR"
  },
  "maxTAuto": "8:false",
- "savedAt": "2026-10-28T08:03:18.767Z"
+ "savedAt": "2026-10-28T08:03:20.372Z"
 }
