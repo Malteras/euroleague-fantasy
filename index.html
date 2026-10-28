@@ -2376,9 +2376,7 @@ function proposalParts(R){
   // a differential for an incoming player (#26): one the optimiser could also have picked (same position, no dearer,
   // room at his club, not left out by you), within DIFF_PTS of his projected points with the look-ahead. Coaches: none.
   const tradeDiff=b=>{if(byId[b.id]!==b)return "";
-    const pool=P.filter(q=>q.pos===b.pos&&q.price<=b.price&&!R.S.includes(q.id)&&!state.avoids.includes(q.id)&&!skipIn(q)
-      &&!shown(q).played&&clubOk(R.S.map(i=>i===b.id?q.id:i)));
-    const d=differential(b,pool,p=>p.x+(p.nx||0));return d?`<small class="tx-own tx-diff">${diffHtml(b,d,LA?"Trade, this round and half of next":"Trade")}</small>`:"";};
+    const d=differential(b,tradeDiffPool(b,R.S),tradeVal);return d?`<small class="tx-own tx-diff">${diffHtml(b,d,LA?"Trade, this round and half of next":"Trade")}</small>`:"";};
   const row=(a,b,key,name,role,x)=>{
     // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
@@ -2653,7 +2651,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
 // a differential for the first captain (#26): a squad player of the same turn, so the armband's walk stays the same.
 // Only at the deadline: once the round has started the captain is his own, moved by the turn-by-turn plan.
 function capDiff(cap,ps){
-  const d=differential(cap,ps.filter(p=>p.day===cap.day&&!shown(p).played));
+  const d=differential(cap,capDiffPool(cap,ps));
   return d?`<p class="note tl-diff">${diffHtml(cap,d,"Captain")}</p>`:"";
 }
 function initPlan(R,L){
@@ -3283,6 +3281,14 @@ function differential(pick,pool,val=p=>p.x){
     if(!best||v>best.v||(v===best.v&&q.pop<best.p.pop))best={p:q,v};}
   return best&&{...best,v0,less:r1(v0-best.v)};
 }
+// Who could take a pick's place, the same for the hints and for Chase rank. An incoming player in squad S: same position,
+// no dearer, not in S, not left out by him (✕ or "Leave out injured"), not played this round, room at his club. Judged on
+// tradeVal, this round plus the look-ahead.
+const tradeDiffPool=(b,S)=>P.filter(q=>q.pos===b.pos&&q.price<=b.price&&!S.includes(q.id)&&!state.avoids.includes(q.id)&&!skipIn(q)
+  &&!shown(q).played&&clubOk(S.map(i=>i===b.id?q.id:i)));
+const tradeVal=p=>p.x+(p.nx||0);
+// The first captain cap among the squad's players ps: one of his turn who has not played, so the armband's walk stays the same.
+const capDiffPool=(cap,ps)=>ps.filter(p=>p.day===cap.day&&!shown(p).played);
 // what: whose call it is ("Captain", "Trade"), the tooltip's first words
 function diffHtml(pick,d,what){
   const v=r1(d.v),v0=r1(d.v0),n=r1(Math.abs(v-v0)),by=!n?"same projection":`${n.toFixed(1)} pts ${v>v0?"more":"less"}`; // the gap between the numbers shown
