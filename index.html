@@ -2982,6 +2982,11 @@ function blGainers(summary){
     .map(m=>({name:m[1],team:m[2],price:+m[3],why:m[4]}));
   return rows.length===parts.length?{rows,text:null}:{rows:[],text:body};
 }
+// The matchups card: the squad's players with a matchup of ±15% or more (as the Soft/Tough tags), best first.
+// Players who are out, have no game or have played this round are left out. squad: player objects; m(p): his matchup %.
+function blMatchups(squad,played,m){
+  return squad.filter(p=>p&&!p.out&&p.opp&&!played(p)).map(p=>({p,m:m(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
+}
 // the ticked item ids that belong to this round; older rounds' ticks are dropped
 const blTicks=(ids,round)=>new Set((ids||[]).filter(id=>id.startsWith(round+":")));
 // bottomLine:end
@@ -3100,7 +3105,7 @@ function bottomLine(){
   const label=turnsLeft.length?facts(...turnsLeft.map(d=>`<b>${esc(turnOf2(d))}:</b> ${esc(tState(d))}`)):all?`<b>✓ All done for Round ${D.round}</b>`:`<b>${n} of ${act.length}</b> done`;
   const prog=`<div class="bl-prog${all?" all":""}"><span>${label}</span><span class="bl-bar"><i style="width:${act.length?(100*n/act.length).toFixed(1):0}%"></i></span></div>`;
   // good to know: this round's matchups for the proposed squad (±15% and more, as the Soft/Tough tags), best first
-  const ms=result.S.map(i=>byId[i]).filter(p=>p&&!p.out&&p.opp&&!(LR&&LR.score(p)!=null)).map(p=>({p,m:matchup(p)})).filter(x=>x.m!=null&&Math.abs(x.m)>=15).sort((a,b)=>b.m-a.m);
+  const ms=blMatchups(result.S.map(i=>byId[i]),p=>!!(LR&&LR.score(p)!=null),p=>matchup(p));
   const mRows=ms.map(({p,m})=>`<div class="bl-r"><span>${plink(p,p.short)} <span class="muted">${p.opp.ha==="H"?"vs":"at"} ${esc((TEAMS[p.opp.opp]||[p.opp.opp])[0])}</span></span><b class="${m>0?"up":"dn"}">${m>0?"+":"−"}${Math.abs(m)}%</b><small>${POSW[p.pos]}</small></div>`).join("");
   const G=blGainers(sum),byName=nm=>P.find(p=>p.name===nm);
   const gRows=G?G.rows.length?G.rows.map(g=>`<div class="bl-r"><span>${byName(g.name)?plink(byName(g.name),g.name):esc(g.name)} <span class="muted">${esc(g.team)}</span></span><b class="bl-cr">${g.price.toFixed(1)}</b><small>${esc(g.why)}</small></div>`).join(""):`<p class="bl-txt">${linkify(G.text)}</p>`:"";
