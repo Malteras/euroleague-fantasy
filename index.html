@@ -600,13 +600,16 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .pk-h h3{font-size:22px;font-weight:800}
 .pk-h .dr-x{position:static}
 .pk-tools{display:flex;gap:8px;padding:6px 16px 10px;flex-wrap:wrap}
+.pk-closed{margin:0;padding:6px 16px 10px}
 .pk-head,.pk{display:grid;grid-template-columns:minmax(0,1fr) 54px 48px;gap:10px;align-items:center}
 .pk-head{padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
 .pk-list{overflow-y:auto;padding:4px 8px 10px}
 .pk{width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:8px;border-radius:10px;cursor:pointer;grid-template-columns:34px minmax(0,1fr) 54px 48px}
 .pk:hover{background:var(--raise)}
 .pk .jersey{width:34px;height:34px;font-size:10.5px}
-.pk.dis{opacity:.4;cursor:not-allowed}
+.pk.dis{cursor:not-allowed}
+/* faded by opacity except Proj., which holds the TBC tooltip: greyed by colour so the tooltip keeps its colours */
+.pk.dis>*:not(.pk-x){opacity:.4}.pk.dis .pk-x{color:var(--faint)}
 .pk-n{min-width:0}.pk-n b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pk-n small{display:block;font-size:12px;color:var(--muted)}
 .pk-p,.pk-x{text-align:right;font-weight:700}.pk-x{font-family:var(--display);font-size:17px}
 button.pk[data-pk-coach]{grid-template-columns:minmax(0,1fr) 54px 48px}
@@ -1453,7 +1456,17 @@ function picker(){
   const others=teamIds().filter(i=>i!==cur);
   const cnt=posCount(others),club={};others.forEach(i=>{const t=byId[i].team;club[t]=(club[t]||0)+1;});
   let list;
-  if(isCoach){
+  // Trades closed (a round in progress): no player or coach comes in from outside the squad. Replace only swaps with his own
+  // players, and a player who has played never comes onto the court or in as 6th man (docs/rules.md, ADR 0002).
+  const closed=TRADES_CLOSED&&!!cur;
+  if(closed&&!isCoach){
+    const role=j=>j<5?"Court":j===5?"6th man":"Bench",up=(from,to)=>from>5&&to<=5;
+    list=team.slots.map((id,j)=>({p:byId[id],j})).filter(({p,j})=>p&&j!==pick.slot).map(({p,j})=>{
+      const why=up(j,pick.slot)&&shown(p).played?`${p.short} has played: not onto the court`:up(pick.slot,j)&&shown(byId[cur]).played?`${byId[cur].short} has played: not onto the court`:"";
+      return `<button type="button" class="pk${why?" dis":""}" data-pk-swap="${j}"${why?' aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${facts(role(j),why||TEAMS[p.team][0])}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
+  }else if(isCoach&&TRADES_CLOSED){
+    list=C.slice().sort(projSort).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>`<button type="button" class="pk dis" data-pk-coach="${c.team}" aria-disabled="true"><span class="pk-n"><b>${esc(c.name)}</b><small>${facts(TEAMS[c.team][0],"Trades closed")}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`).join("");
+  }else if(isCoach){
     list=C.slice().sort(projSort).filter(c=>!pick.q||(c.name+" "+TEAMS[c.team][0]).toLowerCase().includes(pick.q.toLowerCase())).map(c=>{const noT=overLimit(teamIds(),c.team);
       return `<button type="button" class="pk${noT?" dis":""}" data-pk-coach="${c.team}"${noT?' aria-disabled="true"':""}><span class="pk-n"><b>${esc(c.name)}</b><small>${facts(TEAMS[c.team][0],noT&&"No trades left")}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`;}).join("");
   }else{
@@ -1463,10 +1476,10 @@ function picker(){
       const full=cnt[p.pos]>=POSMAX[p.pos],clubFull=(club[p.team]||0)>=6,noT=!full&&!clubFull&&overLimit([...others,p.id],team.coach);const dis=full||clubFull||noT;
       return `<button type="button" class="pk${dis?" dis":""}" data-pk="${p.id}" ${dis?'aria-disabled="true"':""}>${jersey(p.team,p.pos)}<span class="pk-n"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],dis?(full?`${POSN[p.pos]}s full`:clubFull?"6 from this club":"No trades left"):["Next",(n=>n?`${n.ha==="H"?"vs ":"@ "}${n.opp} ${esc(nextShort(n))}`:"–")(nextG(p))])}</small></span><span class="pk-p">${p.price.toFixed(1)}</span><span class="pk-x">${projCell(p)}</span></button>`;}).join("");
   }
-  const posSeg=isCoach?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
+  const posSeg=isCoach||closed?"":`<div class="seg sm" id="pkpos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${pick.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>`;
   return `<div class="scrim" data-pk-close></div><div class="pickbox" role="dialog" aria-modal="true" aria-label="${isCoach?"Pick a coach":"Pick a player"}">
     <div class="pk-h"><h3>${isCoach?"Pick a coach":cur?"Replace "+esc(byId[cur].short):"Add a player"}</h3><button type="button" class="dr-x" data-pk-close aria-label="Close">✕</button></div>
-    <div class="pk-tools"><input id="pkq" class="search" type="search" placeholder="Search name or club" value="${esc(pick.q)}" aria-label="Search">${posSeg}</div>
+    ${closed&&!isCoach?`<p class="note pk-closed">${esc(D.roundLabel)} has started: trades are closed until the next round's deadline. Swap ${esc(byId[cur].short)} with one of your own players.</p>`:`${isCoach&&TRADES_CLOSED?`<p class="note pk-closed">${esc(D.roundLabel)} has started: trades are closed until the next round's deadline, so the coach stays.</p>`:""}<div class="pk-tools"><input id="pkq" class="search" type="search" placeholder="Search name or club" value="${esc(pick.q)}" aria-label="Search">${posSeg}</div>`}
     <div class="pk-head"><span>${isCoach?"Coach":"Player"}</span><span>Price</span><span>Proj.</span></div>
     <div class="pk-list" id="pklist">${list||'<p class="note" style="padding:12px">Nothing matches.</p>'}</div></div>`;
 }
@@ -3693,6 +3706,9 @@ function bindTeam(rerender){
     if(!team.cap&&pick.slot<5&&team.slots.slice(0,5).filter(Boolean).length===5){}
     pick=null;teamChanged();rerender();
   });
+  document.querySelectorAll("[data-pk-swap]").forEach(b=>b.onclick=()=>{
+    if(b.classList.contains("dis"))return;
+    swapSlots(pick.slot,+b.dataset.pkSwap);pick=null;teamChanged();rerender();});
   document.querySelectorAll("[data-pk-coach]").forEach(b=>b.onclick=()=>{if(b.classList.contains("dis"))return;team.coach=b.dataset.pkCoach;pick=null;teamChanged();rerender();});
   document.querySelectorAll("#pkpos button").forEach(b=>b.onclick=()=>{pick.pos=b.dataset.v;const q=$("#pkq");pick.q=q?q.value:pick.q;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);});
   const q=$("#pkq");let t;
