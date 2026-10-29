@@ -681,6 +681,8 @@ html.locked,html.locked body{overflow:hidden}
 .dr-tabs button{border:0;background:none;padding:10px 12px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .dr-tabs button.on{color:var(--fg);border-bottom-color:var(--accent)}
 .dr-body{padding:6px 14px 0}
+.dcmp .search{width:100%;margin:4px 0 0}.dcmp .pk-head{padding:6px 8px;margin-top:6px}.dcmp-list{padding:4px 0 10px}
+.dcmp-act{display:flex;justify-content:space-between;gap:10px}
 .dsec{padding:14px 0;border-bottom:1px solid var(--line-soft)}
 .dsec:last-child{border-bottom:0}
 .dsec h4{font-family:var(--display);font-size:18px;font-weight:800;text-transform:uppercase;margin:0}
@@ -940,7 +942,7 @@ const TEAMS={ASV:["ASVEL","#c8102e"],BAR:["Barcelona","#a50044"],BAY:["Bayern","
 const FORMS=[[2,2,1],[1,2,2],[2,1,2],[1,3,1],[3,1,1]];
 const POSN={G:"Guard",F:"Forward",C:"Center"};
 const LS="fazani-planner-v1";
-let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,start=null,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,tp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
+let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,start=null,team,savedTeam;let sel=null,pick=null,sug=null,sugCmp=null,tp=null,dcmp=null,justApplied=0;const capOpt=new Set();const MIN_GAIN=3;
 // "What matters more" stops: lam = how many points one credit of expected price rise is worth. Default (20) sits in the middle.
 const STOPS=[0,10,20,35,60];
 const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
@@ -1018,7 +1020,7 @@ function linkify(text){
 const inkOn=hex=>{let h=hex.replace("#","");if(h.length===3)h=h.replace(/./g,"$&$&");const L=[0,2,4].map(i=>{const v=parseInt(h.substr(i,2),16)/255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);return 1.05/(L+.05)>=4.5?"#fff":"#0f1a2d";};
 const jersey=(t,pos)=>{const c=(TEAMS[t]||["","#445"])[1];return `<span class="jersey" data-pos="${pos}" style="background:${c};color:${inkOn(c)}">${t}</span>`;};
 
-document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(tp&&!state.open){tp=null;render();}else if(sug!=null&&!state.open){if(sugCmp!=null)sugCmp=null;else sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open){state.open=null;save();render();}});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(tp&&!state.open){tp=null;render();}else if(sug!=null&&!state.open){if(sugCmp!=null)sugCmp=null;else sug=null;render();}else if(pick){pick=null;render();}else if(sel!=null){sel=null;render();}else if(state.open&&dcmp){if(dcmp.id!=null)dcmp.id=null;else dcmp=null;render();}else if(state.open){state.open=null;save();render();}});
 let SQUAD=null;
 // the commit this deployment was built from, shown in the footer so you can tell which code is live (#52)
 let BUILD=null;
@@ -1518,7 +1520,32 @@ function reasons(c,o){
   if(c.status)R.push(`Status: ${stHtml(c.status)}.`);
   return R;
 }
-function compareTable(o,c){
+// drawerCmp:begin
+// The player drawer's compare (#51). Who the search lists: everyone but himself, any position and price, matching the
+// search on name or club; his squad (mine) first, each part in sort order.
+function cmpCandidates(players,{self,mine,q,club,sort}){
+  const m=new Set(mine),s=(q||"").trim().toLowerCase();
+  const l=players.filter(p=>p.id!==self&&(!s||(p.name+" "+(club(p.team)||"")).toLowerCase().includes(s))).sort(sort);
+  return l.filter(p=>m.has(p.id)).concat(l.filter(p=>!m.has(p.id)));
+}
+// Rows the drawer's compare adds, in compareTable's shape [label, text A, text B, number A, number B, higher is better].
+// a, b: {played: this round, nx: next round's projection (null: no game), pir, status (HTML, "" when fit), games, gamesTxt}.
+// Next round's projection is TBC for a player who has played this round (CLAUDE.md rule 6), so it is never bold then.
+function cmpExtraRows(a,b){
+  const tbc=`<span class="tbc has-tip" tabindex="0">TBC${tipPick("Next round","TBC","He has played this round. Next round's projection is calculated after the current round is finished.")}</span>`;
+  const nxT=s=>s.played?tbc:s.nx==null?"–":`${s.nx} projected`,nxV=s=>s.played?null:s.nx;
+  const both=(va,vb)=>va!=null&&vb!=null?[va,vb]:[null,null];
+  return [
+    ["Next round",nxT(a),nxT(b),...both(nxV(a),nxV(b)),true],
+    ["PIR average",a.pir??"–",b.pir??"–",...both(a.pir,b.pir),true],
+    ["Status",a.status||"Fit",b.status||"Fit",null,null],
+    ["Games this round",a.gamesTxt,b.gamesTxt,a.games,b.games,true],
+  ];
+}
+// drawerCmp:end
+// The side-by-side table of two players (#51): the trade picker's compare and the player drawer's both use it.
+// oSub, cSub: the line under each name in the header.
+function cmpTable(o,c,oSub,cSub){
   // the game a row is about: this round's until he has played it, then next round's (nextG, CLAUDE.md rule 7)
   const opp=p=>{const n=nextG(p);if(!n)return "–";const when=n.round!=null&&n.round!==D.round?`R${n.round}, ${dayFmt(n.day)}`:turnOf2(n.day);
     return `${n.ha==="H"?"vs":"@"} ${esc(TEAMS[n.opp]?TEAMS[n.opp][0]:n.opp)}${n.ha==="H"?" (home)":""}, ${esc(when)}`;};
@@ -1526,26 +1553,41 @@ function compareTable(o,c){
   const dom=p=>{const g=(p.dom||[])[0];if(!g)return "–";return g.dnp||g.absent?`did not play (${esc(g.opp)})`:`PIR≈${g.pir} in ${Math.round(g.min)} min`;};
   const mtxt=v=>v==null?"–":`${v>0?"+":""}${v} ${v>=25?"(very easy)":v>=12?"(easy)":v<=-25?"(very hard)":v<=-12?"(hard)":"(average)"}`;
   const rnd=p=>({s:shown(p),xm:r1(p.x+mBonus(p)),exp:p.exp}),R=cmpRoundRows(rnd(o),rnd(c));
+  // next round's projection, injury news and this round's games (cmpExtraRows)
+  const ex=p=>{const g=D.fixtures.filter(f=>f[1]===p.team||f[2]===p.team),pl=shown(p).played;
+    return {played:pl,nx:p.opp2?nProj(p):null,pir:p.pir,status:p.status?stHtml(p.status):"",games:g.length,
+      gamesTxt:g.length===1?`1 (${esc(turnOf2(g[0][0]))}${pl?", played":""})`:`${g.length}`};};
+  const [xNext,xPir,xSt,xGames]=cmpExtraRows(ex(o),ex(c));
   // [label, valueA, valueB, numeric A, numeric B, higherIsBetter]
   const rows=[
     ["Price",o.price.toFixed(1),c.price.toFixed(1),o.price,c.price,false],
+    xSt,
+    xGames,
     ["Next game",opp(o),opp(c),null,null],
     // bold only when both games are in the same round
-    [`Opponent vs ${POSW[o.pos]}`,mtxt(m(o)),mtxt(m(c)),...((nextG(o)||{}).round===(nextG(c)||{}).round?[m(o),m(c)]:[null,null]),true],
+    // the drawer's compare can set two positions side by side: each matchup is for his own position
+    [o.pos===c.pos?`Opponent vs ${POSW[o.pos]}`:"Opponent vs his position",mtxt(m(o)),mtxt(m(c)),...((nextG(o)||{}).round===(nextG(c)||{}).round?[m(o),m(c)]:[null,null]),true],
     ...R.slice(0,-1),
+    xNext,
     ["Last 3 EuroLeague (FPT)",l3(o).join(", ")||"–",l3(c).join(", ")||"–",a3(o),a3(c),true],
     ["Season average",o.fpt??"–",c.fpt??"–",o.fpt,c.fpt,true],
+    xPir,
     ["Break-even",o.be,c.be,null,null],
     R[R.length-1],
     ["Minutes last game",o.log[0]?Math.round(o.log[0].min):"–",c.log[0]?Math.round(c.log[0].min):"–",o.log[0]?o.log[0].min:null,c.log[0]?c.log[0].min:null,true],
     ["Last domestic game",dom(o),dom(c),null,null],
   ];
   const cell=(txt,me,other,hib)=>{const win=me!=null&&other!=null&&hib!=null&&Math.abs(me-other)>1e-9&&(hib?me>other:me<other);return `<td class="${win?"win":""}">${win?`<b>${txt}</b>`:txt}</td>`;};
+  return `<table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${oSub}</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${cSub}</small></span></th></tr></thead>
+    <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>`;
+}
+// Bold = better, and why a score is never set against a projection
+const cmpBoldNote=(o,c)=>`Bold = better of the two${shown(o).played!==shown(c).played?", only where both numbers mean the same: a score is not set against a projection":""}.`;
+function compareTable(o,c){
   const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
   return `<div class="cmp"><button type="button" class="chip-toggle" data-sg-back>← Back to the list</button>
-    <table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${facts(esc(TEAMS[o.team][0]),"in your team")}</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${esc(TEAMS[c.team][0])}</small></span></th></tr></thead>
-    <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>
-    <p class="note" style="margin:8px 0 12px">Bold = better of the two${shown(o).played!==shown(c).played?", only where both numbers mean the same: a score is not set against a projection":""}. ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
+    ${cmpTable(o,c,facts(esc(TEAMS[o.team][0]),"in your team"),esc(TEAMS[c.team][0]))}
+    <p class="note" style="margin:8px 0 12px">${cmpBoldNote(o,c)} ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
     <div class="cmp-act"><button type="button" class="chip-toggle" data-sg-back>Keep ${esc(o.short)}</button><button type="button" class="btn-primary" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></div>`;
 }
 function suggestPanel(){
@@ -2291,6 +2333,23 @@ function playerGames(p){
   const dom=state.allGames?(p.dom||[]).map(g=>({...g,el:false})):[];
   return el.concat(dom).sort((a,b)=>a.d.localeCompare(b.d));
 }
+// The drawer's compare (#51): pick any player (search), then the side-by-side table. dcmp: {q, id}, id null while picking.
+function drawerCmp(p){
+  const mine=teamIds();
+  if(dcmp.id==null||!byId[dcmp.id]){
+    const l=cmpCandidates(P,{self:p.id,mine,q:dcmp.q,club:t=>(TEAMS[t]||[])[0],sort:projSort});
+    const row=c=>`<button type="button" class="pk" data-dcmp-pick="${c.id}">${jersey(c.team,c.pos)}<span class="pk-n"><b>${esc(c.name)}</b><small>${facts(esc(TEAMS[c.team][0]),POSN[c.pos],mine.includes(c.id)&&"in your team")}</small></span><span class="pk-p">${c.price.toFixed(1)}</span><span class="pk-x">${projCell(c)}</span></button>`;
+    return `<div class="dsec dcmp"><div class="dsec-h"><h4>Compare ${esc(p.short)} with</h4><button type="button" class="chip-toggle sm" data-dcmp-close>Close compare</button></div>
+      <input id="dcq" class="search" type="search" placeholder="Search name or club" value="${esc(dcmp.q)}" aria-label="Search a player to compare">
+      <p class="note">Any player, any position and price. ${mine.length?"Your team first.":""}</p>
+      <div class="pk-head"><span>Player</span><span>Price</span><span>Proj.</span></div>
+      <div class="dcmp-list">${l.slice(0,80).map(row).join("")||'<p class="note" style="padding:12px">Nothing matches.</p>'}</div></div>`;
+  }
+  const c=byId[dcmp.id],diff=r1(c.price-p.price),sub=x=>facts(esc(TEAMS[x.team][0]),mine.includes(x.id)&&"in your team");
+  return `<div class="dsec dcmp"><div class="dcmp-act"><button type="button" class="chip-toggle sm" data-dcmp-change>← Another player</button><button type="button" class="chip-toggle sm" data-dcmp-close>Close compare</button></div>
+    ${cmpTable(p,c,sub(p),sub(c))}
+    <p class="note" style="margin:8px 0 0">${cmpBoldNote(p,c)} ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} cr more`:diff<0?`${esc(c.short)} costs ${(-diff).toFixed(1)} cr less`:"Same price"}.</p></div>`;
+}
 function drawer(){
   const p=byId[state.open];if(!p)return "";
   const tabs=[["overview","Overview"],["games","Games"],["fixtures","Fixtures"]];
@@ -2315,7 +2374,7 @@ function drawer(){
   }
   // Must have / Leave out as icons beside the name; the tooltip says what each does
   const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
-  const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span>`;
+  const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span><button type="button" class="chip-toggle sm${dcmp?" on":""}" data-dcmp aria-pressed="${!!dcmp}">Compare</button>`;
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
   const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>${shown(p).played?"Played this round":"Next game"}</span><span>${facts(esc(dayLabel(p.day)),tipoff(p))}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${tname(p.opp.opp)}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
@@ -2331,8 +2390,8 @@ function drawer(){
     ${nextGame}
    </div>
    <div class="dr-stats">${stats.map(([k,v,s])=>`<div><small>${k}</small><b>${v}</b><span>${esc(s)}</span></div>`).join("")}</div>
-   <div class="dr-tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${state.dtab===k}" class="${state.dtab===k?"on":""}">${l}</button>`).join("")}</div>
-   <div class="dr-body">${body}</div>`;
+   ${dcmp?`<div class="dr-body">${drawerCmp(p)}</div>`:`<div class="dr-tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" aria-selected="${state.dtab===k}" class="${state.dtab===k?"on":""}">${l}</button>`).join("")}</div>
+   <div class="dr-body">${body}</div>`}`;
   return {inner,wrap:`<div class="scrim" data-close></div><aside class="drawer" data-id="${p.id}" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">${inner}</aside>`};
 }
 function shortOpp(n){return n.split(/\s+/).filter(w=>!/^(KK|BC|BK|CB|FC|SK|AS|CSP|B\.K\.|Basket|Basketball|Club|Baloncesto)$/i.test(w))[0]||n;}
@@ -3748,8 +3807,15 @@ function bind(){
     state.pins=state.pins.filter(x=>x!==i&&x!==o).concat(o);state.avoids=state.avoids.filter(x=>x!==o);rerender();});
   document.querySelectorAll("[data-coach-keep]").forEach(b=>b.onclick=()=>{state.coachPin=b.dataset.coachKeep;rerender();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=state.avoids.includes(id)?state.avoids.filter(i=>i!==id):[...state.avoids,id];rerender();});
-  document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
-  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;rerender();});
+  document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";dcmp=null;rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
+  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;dcmp=null;rerender();});
+  // the drawer's compare (#51)
+  const dcTop=()=>{const d=document.querySelector("#drawer-root .dcmp");if(d)d.scrollIntoView({block:"start"});};
+  document.querySelectorAll("[data-dcmp]").forEach(b=>b.onclick=()=>{dcmp=dcmp?null:{q:"",id:null};rerender();if(dcmp){const n=$("#dcq");if(n)n.focus();}});
+  document.querySelectorAll("[data-dcmp-close]").forEach(b=>b.onclick=()=>{dcmp=null;rerender();});
+  document.querySelectorAll("[data-dcmp-change]").forEach(b=>b.onclick=()=>{dcmp.id=null;rerender();dcTop();const n=$("#dcq");if(n)n.focus();});
+  document.querySelectorAll("[data-dcmp-pick]").forEach(b=>b.onclick=()=>{dcmp.id=+b.dataset.dcmpPick;rerender();dcTop();});
+  const dq=$("#dcq");let dt;if(dq)dq.addEventListener("input",e=>{clearTimeout(dt);dt=setTimeout(()=>{dcmp.q=e.target.value;const pos=dq.selectionStart;rerender();const n=$("#dcq");if(n){n.focus();n.setSelectionRange(pos,pos);}},250);});
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.dtab=b.dataset.tab;rerender();});
   document.querySelectorAll("#allg button").forEach(b=>b.onclick=()=>{state.allGames=b.dataset.v==="1";rerender();});
   const ct=$("#calToggle");if(ct)ct.onclick=()=>{state.calOpen=!state.calOpen;rerender();};
