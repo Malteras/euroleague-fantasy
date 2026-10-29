@@ -47,7 +47,7 @@
  "calOpen": true,
  "rf": "mine",
  "rg": "2026-10-22|MTA|RMB|",
- "pmode": "q",
+ "pmode": "m",
  "blTicks": [
   "8:live:cap:2026-10-28:73",
   "8:live:swap:165>73",
@@ -60,5 +60,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T13:00:38.039Z"
+ "savedAt": "2026-10-29T13:00:39.660Z"
 }
