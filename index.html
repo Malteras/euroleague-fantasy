@@ -1136,7 +1136,7 @@ function project(data){
 // still played counts as a 0 projection in every version, and a player without an xPTS uses his form in every version.
 const SC_VERSIONS=[["xpts","FantaSheet xPTS alone"],["form","Form alone"],["today","Today's projection"],
   ["m25","+ matchup, trust 0.25"],["m50","+ matchup, trust 0.5"],["m75","+ matchup, trust 0.75"],["pace","+ matchup + pace"],
-  ["look","Look-ahead"]];
+  ["band","+ price-band fix"],["look","Look-ahead"]];
 // Pace (#28): his usual game is about (his club's pace + the league's) ÷ 2 possessions a side, this one (his club's + the
 // opponent's) ÷ 2, so the projection moves by x × (opponent − average) ÷ (club + average). 0 when a pace is missing.
 const paceAdj=(x,club,opp,avg)=>club==null||opp==null||!avg?0:r1(x*(opp-avg)/(club+avg));
@@ -1154,7 +1154,7 @@ function scoreRounds(snaps,paceHist={}){
   const rounds=snaps.filter(done).map(s=>s.round).sort((a,b)=>a-b),last=rounds.length?rounds[rounds.length-1]:null;
   if(last==null)return {rounds,last};
   const got={coach:{}};SC_VERSIONS.forEach(([k])=>got[k]={}); // version → round → rows
-  const add=(k,rnd,x,y,price)=>(got[k][rnd]=got[k][rnd]||[]).push([x,y,price]);
+  const add=(k,rnd,x,y,price,out)=>(got[k][rnd]=got[k][rnd]||[]).push([x,y,price,out]);
   for(const s of snaps){
     const R=project(s),N=s.round,nx=byRound[N+1];
     // a version's base plus the same win adjustment today's projection gets
@@ -1168,7 +1168,7 @@ function scoreRounds(snaps,paceHist={}){
         const m=t=>p.mu==null||p.out?p.x:r1(p.x+r1(t*p.x*p.mu/100));
         add("xpts",N,won(p,p.xpts>0?p.xpts:p.own),a.fpt,p.price);
         add("form",N,won(p,p.own),a.fpt,p.price);
-        add("today",N,p.x,a.fpt,p.price);
+        add("today",N,p.x,a.fpt,p.price,p.out);
         add("m25",N,m(.25),a.fpt,p.price);add("m50",N,m(.5),a.fpt,p.price);add("m75",N,m(.75),a.fpt,p.price);
         const xm=m(MT);add("pace",N,p.out?xm:r1(xm+paceAdj(xm,pc(p.team),pc((R.oppOf[p.team]||{}).opp),pAvg)),a.fpt,p.price);
       }
@@ -1178,6 +1178,13 @@ function scoreRounds(snaps,paceHist={}){
     }
     const ac=done(s)&&s.actual.coaches;
     if(ac)R.coaches.filter(c=>c.opp&&ac[c.team]!=null).forEach(c=>add("coach",N,c.x,ac[c.team],c.price));
+  }
+  // + price-band fix (#124): today's projection less the bias its price band had in the finished rounds before this one,
+  // for a band with at least SC_LEAN_N players then. The first round has nothing before it, so it is today's projection.
+  for(const n of rounds){
+    const before=scStats(rounds.filter(m=>m<n).flatMap(m=>got.today[m]||[]));
+    const fix=pr=>{const b=Object.keys(SC_BAND_WHO).find(b=>SC_BANDS[b](pr)),s=before[b];return s.n>=SC_LEAN_N?s.bias:0;};
+    (got.today[n]||[]).forEach(([x,y,pr,out])=>add("band",n,out?x:r1(x-fix(pr)),y,pr));
   }
   const both=k=>({last:scStats(got[k][last]||[]),season:scStats(Object.values(got[k]).flat()),
     byRound:Object.fromEntries(Object.entries(got[k]).map(([n,q])=>[n,scStats(q)]))});
@@ -2962,9 +2969,9 @@ function loadHistory(){
       redrawScore();redrawReview();redrawRound();});
 }
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
-const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",look:"next round"};
+const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",band:"learned from earlier rounds",look:"next round"};
 // the column headers and their tooltips (#107)
-const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. “+ matchup + pace” adds the opponent's pace (possessions a game) against the league average; no proposal uses it yet. Look-ahead is the projection made one round early."],
+const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. “+ matchup + pace” adds the opponent's pace (possessions a game) against the league average; no proposal uses it yet. “+ price-band fix” is today's projection less the lean its price band (under 8, 8–14, 14+ cr) had in the rounds before, for a band with at least 30 players; the first round has nothing before it. No proposal uses it yet. Look-ahead is the projection made one round early."],
   ["Average miss (points)","How far the projection was from what he scored, high or low, averaged over the players who played. Lower is better."],
   ["Bias","Whether the misses lean one way. “Too low” means players scored more than projected. A fraction of a point means no real lean."]];
 function scoreCard(){
