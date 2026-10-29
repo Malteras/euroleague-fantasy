@@ -1,8 +1,5 @@
 {
- "pins": [
-  352,
-  279
- ],
+ "pins": [],
  "avoids": [],
  "coachPin": null,
  "budget": 100.8,
@@ -38,5 +35,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T08:41:28.773Z"
+ "savedAt": "2026-10-29T08:41:34.370Z"
 }
