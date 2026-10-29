@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Rise %",
+ "tag": null,
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T08:58:28.869Z"
+ "savedAt": "2026-10-29T08:58:31.467Z"
 }
