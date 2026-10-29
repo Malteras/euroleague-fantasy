@@ -405,7 +405,7 @@ def snapshot(data):
                     for p in data.get('players', [])],
         'defence': data.get('defence'), 'fixtures': data.get('fixtures'), 'coaches': data.get('coaches'),
         # each club's next two EuroLeague games: this round and the look-ahead round
-        'teamNext': {c: [{k: v for k, v in g.items() if k not in ('comp', 'el')} for g in gs if g.get('el')][:2]
+        'teamNext': {c: [{k: v for k, v in g.items() if k != 'comp'} for g in gs if g.get('el')][:2]
                      for c, gs in (data.get('teamNext') or {}).items()},
         'tradeWindow': data.get('tradeWindow'), 'injuries': data.get('injuries'),
         'squad': {**(data.get('squad') or {}), **{k: lineup.get(k) for k in ('slots', 'cap', 'bank')}},

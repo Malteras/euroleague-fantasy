@@ -1076,11 +1076,12 @@ function matchup(p,o=p.opp,def=D.defence){
    free-trade window, where any trade can be undone for free. */
 const LOOK=0.5;
 // Each club's first EuroLeague game after this round. Sofascore gives the opponent's full name; newer data has its code (oc),
-// older data is matched by the names this round's games use.
+// older data is matched by the names this round's games use. History snapshots before #123 keep only EuroLeague games
+// and have no el, so a game counts unless it says el: false.
 function nextRound(data,dayKeys){
   const TN=data.teamNext||{},last=dayKeys[dayKeys.length-1]||"",code={},next={};
-  data.fixtures.forEach(([d,h,a])=>[[h,a],[a,h]].forEach(([c,o])=>{const g=(TN[c]||[]).find(g=>g.el&&g.d===d);if(g)code[g.opp]=o;}));
-  for(const c in TN){const g=TN[c].find(g=>g.el&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])next[c]={opp:o,ha:g.ha,d:g.d};}
+  data.fixtures.forEach(([d,h,a])=>[[h,a],[a,h]].forEach(([c,o])=>{const g=(TN[c]||[]).find(g=>g.el!==false&&g.d===d);if(g)code[g.opp]=o;}));
+  for(const c in TN){const g=TN[c].find(g=>g.el!==false&&g.d>last),o=g&&(g.oc||code[g.opp]);if(o&&TEAMS[o])next[c]={opp:o,ha:g.ha,d:g.d};}
   return next;
 }
 // Chance to play by injury status. Doubtful = "unlikely to play, but there is still a chance" (BasketNews); Day to day = a
