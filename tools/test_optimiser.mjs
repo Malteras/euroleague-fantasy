@@ -264,3 +264,35 @@ test("with Chase rank also on, a gem it brought in stays: one step from the plan
   assert.deepEqual(on.gems.map(w => [w.from, w.to]), [[11, 15]]);
   assert.deepEqual(on.chase.swaps, []);
 });
+
+// Leave out + Must have together (29 Oct, Round 9): he left out Bryant, Maledon (guards), Ojeleye (forward) and Hayes
+// (centre) and pinned Vezenkov (forward) and Valančiūnas (centre): 4 trades. The planner first gave each left-out player
+// its own best replacement, spent the budget, then had to send out da Silva for a pin: 5 trades, "Valančiūnas only fits
+// if other moves free up credits". The pins go into the left-out slots first; the rest of the budget fills the others.
+function pinRound() {
+  const d = round();
+  nid = 14;
+  d.players.push(
+    pl("OLY", "F", 25, 15),  // 15: the pinned forward
+    pl("ZAL", "C", 20, 14),  // 16: the pinned centre
+    pl("PAO", "G", 30, 14),  // 17: a star guard the planner liked, too dear once the pins are in
+    pl("RMB", "G", 12, 6),   // 18
+    pl("OLY", "G", 11, 6),   // 19
+    pl("BAR", "F", 20, 12),  // 20: a forward the planner would have taken for the left-out forward
+    pl("KBA", "C", 18, 12),  // 21: likewise a centre
+  );
+  return d;
+}
+test("left-out players make room for the pinned ones first: 4 trades, not 5, and no warning", () => {
+  const m = load(), d = pinRound();
+  m.setLive(d, d.squad, budget(d));
+  // out: guards 1 and 2, forward 5, centre 9 (39 cr + 2 in the bank); in: 15 and 16 (29 cr), so 12 cr for two guards
+  m.setState({ maxT: 4, lam: 0, pins: [15, 16], avoids: [1, 2, 5, 9] });
+  const r = m.withMode("q", m.optimise);
+  assert.ok(has(r, 15) && has(r, 16), "both pins in");
+  for (const id of [1, 2, 5, 9]) assert.ok(!has(r, id), `${id} left out`);
+  assert.equal(r.used, 4);
+  assert.deepEqual(r.warnings, []);
+  // the best two guards 12 cr buys: the round's market guard 11 (form 14, 6 cr) and 18 (form 12, 6 cr); 17 (14 cr) is out of reach
+  assert.deepEqual(r.S.filter(i => [11, 17, 18, 19].includes(i)).sort((a, b) => a - b), [11, 18]);
+});
