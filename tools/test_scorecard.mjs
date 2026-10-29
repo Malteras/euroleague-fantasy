@@ -95,6 +95,24 @@ test("the look-ahead: round 7's next-round projection against round 8's actual",
   assert.equal(row(scoreRounds([round7()]), "look").last.all.n, 0);
 });
 
+test("the look-ahead from a history snapshot: teamNext without el or oc, opponents by name (#123)", () => {
+  // history/round-7.json keeps only EuroLeague games and drops el; it has no oc either, so the name comes from the fixtures
+  const snap = (opp, name, ha) => [{ d: "2026-10-21", opp: name, ha }, { d: "2026-10-28", opp: name, ha: ha === "H" ? "A" : "H" }];
+  const r7 = round7(); r7.teamNext = { PAO: snap("KBA", "Kauno Basket", "H"), KBA: snap("PAO", "Panathinaikos", "A") };
+  const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 25, min: 30 }, 2: null, 4: null };
+  const la = row(scoreRounds([r7, r8]), "look").last.all;
+  assert.equal(la.n, 1);
+  near(la.bias, 22.8 - 25);
+});
+
+test("a live domestic game (el: false) is never the look-ahead game", () => {
+  const r7 = round7();
+  r7.teamNext.PAO.splice(1, 0, { d: "2026-10-25", el: false, oc: "KBA", opp: "KBA", ha: "A" });
+  r7.teamNext.PAO[2].oc = r7.teamNext.PAO[2].opp = "PAO";
+  const { players } = project(r7);
+  assert.equal(players.find(p => p.id === 1).opp2.opp, "PAO");
+});
+
 test("the season adds up every finished round; last round is the latest one", () => {
   const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 20.7, min: 30 }, 2: null, 4: null };
   const S = scoreRounds([r8, round7()]);

@@ -204,3 +204,12 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   game day) in history/round-N.json; `turnReview()` counts it once the round is over. Rounds 7 and 8 were filled from the
   squad.json saves in git. Tests: tools/test_elbuild.py, tools/test_review.mjs. Player ids are the same in every data file;
   that was checked, not assumed.
+
+## 29 Oct 2026 · the Look-ahead row never scored a past round (#123)
+- **What:** with Rounds 7 and 8 finished, "How the projections did" showed Look-ahead "– / needs two rounds in a row".
+- **Why:** `snapshot()` kept only the EuroLeague games in `teamNext` and dropped their `el`; `nextRound()` in index.html
+  took only games with `el` set, so every history snapshot had no next-round opponent. Tests built their own `teamNext`
+  with `el` and never one shaped like a real snapshot.
+- **Guard:** `nextRound()` counts a game unless it says `el: false`; snapshots now keep `el`. Tests: tools/test_scorecard.mjs
+  (a look-ahead from `teamNext` without `el` or `oc`), tools/test_elbuild.py `SnapshotTest`. A reader of history files
+  works on the files as they are on disk: they are never rewritten.
