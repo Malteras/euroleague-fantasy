@@ -3,41 +3,41 @@
  "players": [
   38,
   245,
-  176,
-  361,
-  56,
   352,
+  176,
+  56,
+  160,
   7,
   118,
-  160,
-  185
+  185,
+  361
  ],
  "coach": "CZV",
  "bank": 0.8,
  "slots": [
   38,
   245,
-  176,
-  361,
-  56,
   352,
+  176,
+  56,
+  160,
   7,
   118,
-  160,
-  185
+  185,
+  361
  ],
  "cap": 245,
  "names": [
   "Andrés Feliz",
   "Yam Madar",
-  "Oscar da Silva",
-  "Dejan Davidovac",
-  "Jonas Valančiūnas",
   "Sebastian Herrera",
+  "Oscar da Silva",
+  "Jonas Valančiūnas",
+  "Tyson Carter",
   "Sasha Vezenkov",
   "Aliou Diarra",
-  "Tyson Carter",
-  "Edwin Jackson"
+  "Edwin Jackson",
+  "Dejan Davidovac"
  ],
  "coachName": "Ibon Navarro"
 }
