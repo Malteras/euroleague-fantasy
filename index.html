@@ -1518,7 +1518,9 @@ function reasons(c,o){
   if(c.status)R.push(`Status: ${stHtml(c.status)}.`);
   return R;
 }
-function compareTable(o,c){
+// The side-by-side table of two players (#51): the trade picker's compare and the player drawer's both use it.
+// oSub, cSub: the line under each name in the header.
+function cmpTable(o,c,oSub,cSub){
   // the game a row is about: this round's until he has played it, then next round's (nextG, CLAUDE.md rule 7)
   const opp=p=>{const n=nextG(p);if(!n)return "–";const when=n.round!=null&&n.round!==D.round?`R${n.round}, ${dayFmt(n.day)}`:turnOf2(n.day);
     return `${n.ha==="H"?"vs":"@"} ${esc(TEAMS[n.opp]?TEAMS[n.opp][0]:n.opp)}${n.ha==="H"?" (home)":""}, ${esc(when)}`;};
@@ -1541,11 +1543,16 @@ function compareTable(o,c){
     ["Last domestic game",dom(o),dom(c),null,null],
   ];
   const cell=(txt,me,other,hib)=>{const win=me!=null&&other!=null&&hib!=null&&Math.abs(me-other)>1e-9&&(hib?me>other:me<other);return `<td class="${win?"win":""}">${win?`<b>${txt}</b>`:txt}</td>`;};
+  return `<table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${oSub}</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${cSub}</small></span></th></tr></thead>
+    <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>`;
+}
+// Bold = better, and why a score is never set against a projection
+const cmpBoldNote=(o,c)=>`Bold = better of the two${shown(o).played!==shown(c).played?", only where both numbers mean the same: a score is not set against a projection":""}.`;
+function compareTable(o,c){
   const diff=r1(c.price-o.price),bankAfter=r1(team.bank-diff);
   return `<div class="cmp"><button type="button" class="chip-toggle" data-sg-back>← Back to the list</button>
-    <table class="cmp-t"><thead><tr><th></th><th>${jersey(o.team,o.pos)}<span>${plink(o)}<small>${facts(esc(TEAMS[o.team][0]),"in your team")}</small></span></th><th>${jersey(c.team,c.pos)}<span>${plink(c)}<small>${esc(TEAMS[c.team][0])}</small></span></th></tr></thead>
-    <tbody>${rows.map(([k,a,b,na,nb,h])=>`<tr><th scope="row">${k}</th>${cell(a,na,nb,h)}${cell(b,nb,na,h)}</tr>`).join("")}</tbody></table>
-    <p class="note" style="margin:8px 0 12px">Bold = better of the two${shown(o).played!==shown(c).played?", only where both numbers mean the same: a score is not set against a projection":""}. ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
+    ${cmpTable(o,c,facts(esc(TEAMS[o.team][0]),"in your team"),esc(TEAMS[c.team][0]))}
+    <p class="note" style="margin:8px 0 12px">${cmpBoldNote(o,c)} ${diff>0?`${esc(c.short)} costs ${diff.toFixed(1)} more`:diff<0?`${esc(c.short)} saves ${(-diff).toFixed(1)} cr`:"Same price"}, bank after the swap ${bankAfter.toFixed(1)}.</p>
     <div class="cmp-act"><button type="button" class="chip-toggle" data-sg-back>Keep ${esc(o.short)}</button><button type="button" class="btn-primary" data-sg-pick="${c.id}">Pick ${esc(c.short)}</button></div></div>`;
 }
 function suggestPanel(){
