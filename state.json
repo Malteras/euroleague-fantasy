@@ -3,7 +3,8 @@
  "avoids": [
   255,
   23,
-  73
+  73,
+  165
  ],
  "coachPin": null,
  "budget": 100.8,
@@ -56,5 +57,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T12:59:23.496Z"
+ "savedAt": "2026-10-29T12:59:28.686Z"
 }
