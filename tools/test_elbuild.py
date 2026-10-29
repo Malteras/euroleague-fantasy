@@ -476,5 +476,40 @@ class StatusAlertsTest(unittest.TestCase):
         self.assertEqual(got['updated'], '2026-10-21')
 
 
+class PaceTest(unittest.TestCase):
+    # Game 1 of 2026-27, the official box score's team totals: 44 + 29 two- and three-point tries, 19 free throws, 15 offensive
+    # rebounds, 14 turnovers.
+    def test_possessions_from_the_team_totals(self):
+        tot = {'FieldGoalsAttempted2': 44, 'FieldGoalsAttempted3': 29, 'FreeThrowsAttempted': 19, 'OffensiveRebounds': 15, 'Turnovers': 14}
+        self.assertAlmostEqual(elbuild.possessions(tot), 44 + 29 + 0.44 * 19 - 15 + 14)
+
+    def games(self):
+        # (date, club, possessions, opponent's possessions)
+        return [('2026-10-01', 'OLY', 70, 72), ('2026-10-01', 'BAR', 72, 70),
+                ('2026-10-08', 'OLY', 80, 78), ('2026-10-08', 'VIR', 78, 80),
+                ('2026-10-15', 'OLY', 90, 90), ('2026-10-15', 'BAR', 90, 90)]
+
+    def test_pace_is_the_average_game_both_ways(self):
+        got = elbuild.pace_table(self.games(), '2026-10-31')
+        self.assertEqual(got['OLY'], {'pace': 80.0, 'pace_for': 80.0, 'pace_allowed': 80.0, 'pace_gp': 3})
+        self.assertEqual(got['VIR'], {'pace': 79.0, 'pace_for': 78.0, 'pace_allowed': 80.0, 'pace_gp': 1})
+
+    def test_only_games_before_the_date_count(self):
+        # a round's deadline day: its own games are not known before it
+        got = elbuild.pace_table(self.games(), '2026-10-15')
+        self.assertEqual(got['OLY']['pace_gp'], 2)
+        self.assertEqual(got['BAR'], {'pace': 71.0, 'pace_for': 72.0, 'pace_allowed': 70.0, 'pace_gp': 1})
+
+    def test_pace_goes_into_the_defence_entry_and_past_rounds_get_their_own(self):
+        defence = {'OLY': {'pir_allowed': 82.0}}
+        elbuild.add_pace(defence, self.games(), '2026-10-31')
+        self.assertEqual(defence['OLY'], {'pir_allowed': 82.0, 'pace': 80.0, 'pace_for': 80.0, 'pace_allowed': 80.0, 'pace_gp': 3})
+        self.assertNotIn('VIR', defence)  # no PIR-allowed row: not a club the planner knows
+        hist = elbuild.pace_hist(self.games(), {7: '2026-10-08', 8: '2026-10-15', 9: '2026-10-29'})
+        self.assertEqual(hist[7], {'OLY': 71.0, 'BAR': 71.0})
+        self.assertEqual(hist[8]['OLY'], 75.0)
+        self.assertEqual(hist[9]['OLY'], 80.0)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -76,6 +76,10 @@ _Avoid_: writing "Day to day" out on the site
 How much the opponent lets a player's position score, as a percentage above or below an average team.
 _Avoid_: Score spread, fixture difficulty
 
+**Pace**:
+Possessions per game in a club's games (both teams' possessions over two), from the official box scores. Faster games give every player more chances to score.
+_Avoid_: tempo, speed
+
 **Ownership**:
 The share of all FantaSheet teams that own a player ("Owned by 4.3%", with the change since last round). Not his league's.
 _Avoid_: popularity, pop (the data's field name)

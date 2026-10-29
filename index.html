@@ -1130,7 +1130,11 @@ function project(data){
 // actuals are in. Measuring only: the live weights stay as they are. Only players who played are scored; an Out player who
 // still played counts as a 0 projection in every version, and a player without an xPTS uses his form in every version.
 const SC_VERSIONS=[["xpts","FantaSheet xPTS alone"],["form","Form alone"],["today","Today's projection"],
-  ["m25","+ matchup, trust 0.25"],["m50","+ matchup, trust 0.5"],["m75","+ matchup, trust 0.75"],["look","Look-ahead"]];
+  ["m25","+ matchup, trust 0.25"],["m50","+ matchup, trust 0.5"],["m75","+ matchup, trust 0.75"],["pace","+ matchup + pace"],
+  ["look","Look-ahead"]];
+// Pace (#28): his usual game is about (his club's pace + the league's) ÷ 2 possessions a side, this one (his club's + the
+// opponent's) ÷ 2, so the projection moves by x × (opponent − average) ÷ (club + average). 0 when a pace is missing.
+const paceAdj=(x,club,opp,avg)=>club==null||opp==null||!avg?0:r1(x*(opp-avg)/(club+avg));
 const SC_BANDS={all:()=>true,lo:pr=>pr<8,mid:pr=>pr>=8&&pr<14,hi:pr=>pr>=14};
 // rows: [projected, actual, price] → per price band: n, average miss (mae) and bias (+ = projected too high)
 function scStats(rows){
@@ -1139,7 +1143,8 @@ function scStats(rows){
     out[b]={n,mae:n?q.reduce((a,[x,y])=>a+Math.abs(x-y),0)/n:null,bias:n?q.reduce((a,[x,y])=>a+x-y,0)/n:null};}
   return out;
 }
-function scoreRounds(snaps){
+// paceHist: {round: {club: pace}} for snapshots taken before pace was in their defence (data.json paceHist)
+function scoreRounds(snaps,paceHist={}){
   const done=s=>!!(s&&s.actual&&s.actual.players),byRound={};snaps.forEach(s=>byRound[s.round]=s);
   const rounds=snaps.filter(done).map(s=>s.round).sort((a,b)=>a-b),last=rounds.length?rounds[rounds.length-1]:null;
   if(last==null)return {rounds,last};
@@ -1149,6 +1154,9 @@ function scoreRounds(snaps){
     const R=project(s),N=s.round,nx=byRound[N+1];
     // a version's base plus the same win adjustment today's projection gets
     const won=(p,b)=>p.out?0:r1(b+R.TM.winAdj(p.team,R.oppOf[p.team],b));
+    // each club's pace as the round's deadline saw it, and the league average of those
+    const pc=c=>{const d=(s.defence||{})[c];return d&&d.pace!=null?d.pace:((paceHist[N]||{})[c]??null);};
+    const pv=Object.keys({...(s.defence||{}),...(paceHist[N]||{})}).map(pc).filter(v=>v!=null),pAvg=pv.length?pv.reduce((a,b)=>a+b,0)/pv.length:null;
     for(const p of R.players){
       const a=done(s)?s.actual.players[p.id]:null;
       if(a){
@@ -1157,6 +1165,7 @@ function scoreRounds(snaps){
         add("form",N,won(p,p.own),a.fpt,p.price);
         add("today",N,p.x,a.fpt,p.price);
         add("m25",N,m(.25),a.fpt,p.price);add("m50",N,m(.5),a.fpt,p.price);add("m75",N,m(.75),a.fpt,p.price);
+        const xm=m(MT);add("pace",N,p.out?xm:r1(xm+paceAdj(xm,pc(p.team),pc((R.oppOf[p.team]||{}).opp),pAvg)),a.fpt,p.price);
       }
       // the look-ahead: his next-round projection (as nProj) against what he scored next round
       const a2=done(nx)?nx.actual.players[p.id]:null;
@@ -1627,7 +1636,9 @@ function teamInfo(t){
   const weak=pos.filter(x=>x.v!=null).sort((a,b)=>b.v-a.v)[0],strong=pos.filter(x=>x.v!=null).sort((a,b)=>a.v-b.v)[0];
   const opp=oppOf[t]||null;
   const players=P.filter(p=>p.team===t);
-  return {t,df,avgAllowed,games,w,l:games.length-w,pos,weak,strong,opp,players};
+  // pace (#28): possessions per game from the official box scores, and the league average of the clubs
+  const pv=Object.values(D.defence||{}).map(x=>x.pace).filter(v=>v!=null),paceAvg=pv.length?pv.reduce((a,b)=>a+b,0)/pv.length:null;
+  return {t,df,avgAllowed,paceAvg,games,w,l:games.length-w,pos,weak,strong,opp,players};
 }
 // How a defence treats a position, from the player's point of view: green easy, red hard, grey average.
 // The team cards and the team analysis drawer both use it, so they say the same thing.
@@ -1647,6 +1658,8 @@ function teamSummary(I){
   if(I.strong&&I.strong.v<=-12)L.push(`<b>Strong spot:</b> they allow ${POSW[I.strong.k]} ${-I.strong.v} PIR less than average. Avoid ${POSW[I.strong.k]} who play against ${n}.`);
   if(I.avgAllowed!=null){const d=Math.round(I.df.pir_allowed-I.avgAllowed);
     L.push(d>=5?`Overall they give away a lot: ${I.df.pir_allowed} team PIR per game, ${d} above the league average.`:d<=-5?`Overall a tough defence: ${I.df.pir_allowed} team PIR per game, ${-d} below the league average.`:`Overall an average defence (${I.df.pir_allowed} team PIR allowed per game).`);}
+  if(I.df.pace!=null&&I.paceAvg!=null){const d=r1(I.df.pace-I.paceAvg);
+    L.push(`<b>Pace:</b> ${I.df.pace.toFixed(1)} possessions a game, ${Math.abs(d)>=1?`${Math.abs(d).toFixed(1)} ${d>0?"more":"fewer"} than`:"about"} the league average of ${I.paceAvg.toFixed(1)}. They use ${I.df.pace_for.toFixed(1)}, their opponents ${I.df.pace_allowed.toFixed(1)}. ${d>=1?"Fast games give both teams' players more chances to score.":d<=-1?"Slow games give both teams' players fewer chances to score.":""} The projection does not use pace yet: the Round report's "How the projections did" card measures it first.`);}
   return L;
 }
 function teamPanel(){
@@ -1706,7 +1719,7 @@ function teamsPage(){
     // this round: the result once played (from the club's side), else when and where it plays; no projection either way
     const R=g?gameInfo(g,null):null,vs=f?`${f.ha==="H"?"vs":"@"} ${esc((TEAMS[f.opp]||[f.opp])[0])}`:"";
     const now=!f?"":R&&R.res?`<span class="tc-res ${R.win?"w":"l"}">${R.res[0]}</span> ${esc(R.res.slice(2))} ${vs}`:g?`Played ${vs}`:`${esc(dayShort(f.d))}${f.time?" "+esc(f.time):""} ${vs}`;
-    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${facts(I.games.length>0&&`${I.w}–${I.l}`,now)}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;};
+    return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${facts(I.games.length>0&&`${I.w}–${I.l}`,now,["Pace",I.df&&I.df.pace!=null?I.df.pace.toFixed(1):null])}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;};
   const played=rows.filter(r=>r.g),rest=rows.filter(r=>!r.g);
   const grid=played.length?`<h3 class="tg-h">Played in Round ${D.round}</h3>${played.map(card).join("")}<h3 class="tg-h">${rest.some(r=>r.f)?"Still to play":"No game this round"}</h3>${rest.map(card).join("")}`:rows.map(card).join("");
   return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">${facts("Defence by position","from the player's point of view")}</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${grid}</div></section>`;
@@ -2931,13 +2944,13 @@ function loadHistory(){
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",look:"next round"};
 // the column headers and their tooltips (#107)
-const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. Look-ahead is the projection made one round early."],
+const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. “+ matchup + pace” adds the opponent's pace (possessions a game) against the league average; no proposal uses it yet. Look-ahead is the projection made one round early."],
   ["Average miss (points)","How far the projection was from what he scored, high or low, averaged over the players who played. Lower is better."],
   ["Bias","Whether the misses lean one way. “Too low” means players scored more than projected. A fraction of a point means no real lean."]];
 function scoreCard(){
   const head=`<div class="card sc" id="scCard"><h3>How the projections did</h3>`;
   if(!HIST){loadHistory();return head+`<p class="note">Loading the past rounds…</p></div>`;}
-  const S=scoreRounds(HIST);
+  const S=scoreRounds(HIST,D.paceHist||{});
   if(S.last==null)return head+`<p class="note">Nothing to score yet: no round on record has finished.</p></div>`;
   const sp=scView.span,bd=scView.band,f=v=>v.toFixed(1);
   const bias=b=>Math.abs(b)<0.05?"spot on":`${f(Math.abs(b))} too ${b>0?"high":"low"}`;
