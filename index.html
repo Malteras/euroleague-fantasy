@@ -1986,22 +1986,30 @@ function searchPlan(lam){
   // A coach you pin yourself is your call.
   const oc=coachByTeam[orig.coach],coachOk=cc=>!oc||cc.pw>=oc.pw;
   const feasible=(ids,c,lim)=>cost(ids,c)<=B+1e-9&&clubOk(ids)&&trades(ids,c)<=lim;
-  // forced swaps: avoided players out, pinned players in
-  const force=(outId,inId)=>{S=S.map(i=>i===outId?inId:i);};
-  for(const id of S.slice()){
-    if(!avoids.has(id))continue;
-    const p=byId[id];
-    const cands=pool.filter(q=>q.pos===p.pos&&!S.includes(q.id)).map(q=>{const T=S.map(i=>i===id?q.id:i);return {q,T,e:obj(T,coach),ok:cost(T,coach)<=B&&clubOk(T)};}).filter(c=>c.ok).sort((a,b)=>b.e-a.e);
-    if(cands[0])force(id,cands[0].q.id);else warnings.push(`No affordable replacement for ${p.short}.`);
-  }
+  // forced swaps: pinned players in, avoided players out. Pins first, into the slot of an avoided player of the same
+  // position when there is one: he leaves anyway, so it costs no extra trade (29 Oct: avoids first spent the budget on
+  // their own picks and a pin then took a 5th trade). Then the avoided players left, each with the best player it can
+  // afford while the cheapest player for every slot still to fill stays affordable.
   for(const id of pins){
     if(S.includes(id)||!byId[id])continue;
     const p=byId[id];
-    const outs=S.filter(i=>byId[i].pos===p.pos&&!pins.includes(i)).map(i=>{const T=S.map(j=>j===i?id:j);return {i,T,e:obj(T,coach),c:cost(T,coach)};}).sort((a,b)=>(a.c<=B)-(b.c<=B)||b.e-a.e).reverse();
-    const ok=outs.filter(o=>o.c<=B&&clubOk(o.T)).sort((a,b)=>b.e-a.e);
+    const gone=S.filter(i=>avoids.has(i)&&byId[i].pos===p.pos);
+    const outs=(gone.length?gone:S.filter(i=>byId[i].pos===p.pos&&!pins.includes(i))).map(i=>{const T=S.map(j=>j===i?id:j);return {i,T,e:obj(T,coach),c:cost(T,coach)};});
+    // an avoided player's slot is judged on the cost and clubs once every slot is filled, so any of them is fine now
+    const ok=gone.length?outs.filter(o=>clubOk(o.T)):outs.filter(o=>o.c<=B&&clubOk(o.T)).sort((a,b)=>b.e-a.e);
     const pick=ok[0]||outs.sort((a,b)=>a.c-b.c)[0];
     if(pick){S=pick.T;if(!ok[0])warnings.push(`${p.short} only fits if other moves free up credits.`);}
     else warnings.push(`No ${POSN[p.pos].toLowerCase()} slot is free for ${p.short}; unpin another ${POSN[p.pos].toLowerCase()}.`);
+  }
+  const cheapest=pos=>Math.min(...pool.filter(q=>q.pos===pos&&!S.includes(q.id)).map(q=>q.price));
+  for(const id of S.slice()){
+    if(!avoids.has(id))continue;
+    const p=byId[id];
+    // credits kept back for the avoided players still to replace after him
+    const rest=S.filter(i=>i!==id&&avoids.has(i)),keep=rest.reduce((a,i)=>a+cheapest(byId[i].pos)-byId[i].price,0);
+    const cands=pool.filter(q=>q.pos===p.pos&&!S.includes(q.id)).map(q=>{const T=S.map(i=>i===id?q.id:i);return {q,T,e:obj(T,coach),c:cost(T,coach)};}).filter(c=>clubOk(c.T)).sort((a,b)=>b.e-a.e);
+    const pick=cands.find(c=>c.c+keep<=B+1e-9)||cands.find(c=>c.c<=B+1e-9);
+    if(pick)S=pick.T;else warnings.push(`No affordable replacement for ${p.short}.`);
   }
   if(!closed&&state.coachPin&&coachByTeam[state.coachPin])coach=state.coachPin;
   const forced=trades(S,coach);

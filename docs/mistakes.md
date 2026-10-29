@@ -121,6 +121,16 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   frees it. The Trades card lists the trades made and marks rows that change one. Tests: tools/test_optimiser.mjs (the two
   "made this round" tests) and tools/test_elbuild.py `TradeBaseTest`.
 
+## 29 Oct 2026 · Leave out + Must have asked for 5 trades when 4 fit
+- **What:** he left out Bryant, Maledon, Ojeleye and Hayes and pinned Vezenkov and Valančiūnas, 4 trades within budget
+  (13.8 cr left for two guards). The planner proposed 5 (da Silva → Frisch too) and warned "Valančiūnas only fits if other
+  moves free up credits. Your picks need 5 trades".
+- **Why:** `searchPlan()` replaced each left-out player first with its own best affordable pick, spending the budget, and
+  only then looked for a slot for each pin, so a pin pushed out a player he had not left out.
+- **Guard:** pins go first, into the slot of a left-out player of the same position; the left-out players still to
+  replace then get the best player the budget allows while keeping enough for the cheapest player for each slot after
+  them. Test: tools/test_optimiser.mjs "left-out players make room for the pinned ones first".
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
