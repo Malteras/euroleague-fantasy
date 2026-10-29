@@ -295,8 +295,8 @@ class SnapshotTest(unittest.TestCase):
 
     def test_team_next_keeps_two_euroleague_games(self):
         self.assertEqual(self.snap['teamNext']['EFS'],
-                         [{'d': '2026-10-22', 't': '19:30', 'opp': 'Besiktas', 'ha': 'H', 'oc': 'BJK'},
-                          {'d': '2026-10-27', 't': '20:00', 'opp': 'Bayern', 'ha': 'A', 'oc': 'BAY'}])
+                         [{'d': '2026-10-22', 't': '19:30', 'el': True, 'opp': 'Besiktas', 'ha': 'H', 'oc': 'BJK'},
+                          {'d': '2026-10-27', 't': '20:00', 'el': True, 'opp': 'Bayern', 'ha': 'A', 'oc': 'BAY'}])
 
     def test_squad_is_the_saved_team(self):
         self.assertEqual(self.snap['squad'], {'players': [654], 'coach': 'EFS', 'slots': [654], 'cap': 654, 'bank': 1.3})

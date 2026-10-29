@@ -95,6 +95,21 @@ test("the look-ahead: round 7's next-round projection against round 8's actual",
   assert.equal(row(scoreRounds([round7()]), "look").last.all.n, 0);
 });
 
+test("the look-ahead works on history snapshots, whose teamNext entries have no el key and no oc", () => {
+  // history/round-7.json: the builder kept only EuroLeague games and dropped el; the opponent is a name, mapped to its
+  // code through the round's fixtures
+  const r7 = round7();
+  r7.teamNext = { PAO: [{ d: "2026-10-21", opp: "Kaunas", ha: "H" }, { d: "2026-10-28", opp: "Kaunas", ha: "A" }],
+    KBA: [{ d: "2026-10-21", opp: "Athens", ha: "A" }, { d: "2026-10-28", opp: "Athens", ha: "H" }] };
+  const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 25, min: 30 }, 2: null, 4: null };
+  const la = row(scoreRounds([r7, r8]), "look").last.all;
+  assert.equal(la.n, 1);
+  near(la.bias, 22.8 - 25);
+  // a domestic game (el: false) is still never taken for next round's
+  r7.teamNext.PAO[1].el = false; r7.teamNext.KBA[1].el = false;
+  assert.equal(row(scoreRounds([r7, r8]), "look").last.all.n, 0);
+});
+
 test("the season adds up every finished round; last round is the latest one", () => {
   const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 20.7, min: 30 }, 2: null, 4: null };
   const S = scoreRounds([r8, round7()]);
