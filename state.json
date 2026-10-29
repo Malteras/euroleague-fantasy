@@ -21,7 +21,7 @@
   "slots": [
    23,
    38,
-   73,
+   null,
    185,
    null,
    118,
@@ -32,7 +32,7 @@
   ],
   "coach": "CZV",
   "bank": 1,
-  "cap": 73,
+  "cap": null,
   "base": "2026-10-28"
  },
  "budgetTouched": false,
@@ -52,5 +52,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T08:49:55.041Z"
+ "savedAt": "2026-10-29T08:49:56.475Z"
 }
