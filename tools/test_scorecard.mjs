@@ -9,7 +9,7 @@ const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
 const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
 const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;",
-  cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"),
+  cut("// teamModel:begin", "// teamModel:end"), html.slice(html.indexOf("// How much more (+) or less (-) PIR"), html.indexOf("// scorecard:begin")),
   line("const MT="), cut("// scorecard:begin", "// scorecard:end")].join("\n");
 const { scoreRounds, project, scSummary, scAt } = new Function(src + "\nreturn {scoreRounds,project,scSummary,scAt};")();
 
@@ -84,14 +84,23 @@ test("coaches: projected points against what they scored", () => {
   near(S.coaches.last.bias, ((x.PAO - 10) + (x.KBA + 5)) / 2);
 });
 
-test("the look-ahead: round 7's next-round projection against round 8's actual", () => {
+test("the look-ahead: round 7's next-round projection against round 8's actual without el", () => {
+  const r7 = round7();
+  r7.teamNext = { PAO: [{ d: "2026-10-21", opp: "KBA", ha: "H" }, { d: "2026-10-28", opp: "KBA", ha: "H" }],
+    KBA: [{ d: "2026-10-21", opp: "PAO", ha: "A" }, { d: "2026-10-28", opp: "PAO", ha: "A" }] };
+  assert.deepEqual(project(r7).nextOf, { PAO: { opp: "KBA", ha: "H", d: "2026-10-28" }, KBA: { opp: "PAO", ha: "A", d: "2026-10-28" } });
   const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 25, min: 30 }, 2: null, 4: null };
-  const S = scoreRounds([round7(), r8]);
+  const S = scoreRounds([r7, r8]);
   assert.equal(S.last, 8);
   const la = row(S, "look").last.all;
   // star: 20.7 with next round's +20% matchup at trust 0.5 = 22.8, against 25
   assert.equal(la.n, 1);
   near(la.bias, 22.8 - 25);
+  assert.equal(row(S, "look").season.all.n, 1);
+  near(row(S, "look").season.all.mae, Math.abs(22.8 - 25));
+  const round8View = scAt(S, 8);
+  assert.equal(row(round8View, "look").last.all.n, 1);
+  near(row(round8View, "look").last.all.mae, Math.abs(22.8 - 25));
   assert.equal(row(scoreRounds([round7()]), "look").last.all.n, 0);
 });
 
