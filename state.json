@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Buy low: back",
+ "tag": "Captain option",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T08:58:11.857Z"
+ "savedAt": "2026-10-29T08:58:15.088Z"
 }
