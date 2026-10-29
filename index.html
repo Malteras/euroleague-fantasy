@@ -725,6 +725,10 @@ html.locked,html.locked body{overflow:hidden}
 .sc{margin-bottom:16px}
 .sc-top{margin:0 0 10px;line-height:1.45}.sc-top p{margin:0}.sc-top p+p{margin-top:4px}
 .sc-ctl{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+/* each button as wide as its label, never squeezed ("Under 8" ran into "8–14") */
+.sc-ctl .seg{flex:none}.sc-ctl .seg button{flex:0 0 auto;padding:5px 14px}
+/* every view's summary in one cell, only the chosen one shown: the switches and the table never move */
+.sc-say{display:grid}.sc-say>.sc-top{grid-area:1/1}.sc-say>.sc-top.off{visibility:hidden}
 .sc-h,.sc-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.9fr);gap:10px;align-items:center}
 .sc-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);padding:0 8px 4px;border-bottom:1px solid var(--line-soft)}
 .sc-h>span{display:flex;align-items:center;gap:6px}
@@ -2971,8 +2975,10 @@ function scoreCard(){
   const rn=scView.span==="season"||!S0.rounds.includes(+scView.span)?null:+scView.span;
   const S=rn==null?S0:scAt(S0,rn),sp=rn==null?"season":"last",bd=scView.band,f=v=>v.toFixed(1);
   const bias=b=>Math.abs(b)<0.05?"spot on":`${f(Math.abs(b))} too ${b>0?"high":"low"}`;
-  const say=scSummary(S,sp,bd);
-  const top=say.length?`<div class="sc-top">${say.map(t=>`<p>${esc(t)}</p>`).join("")}</div>`:"";
+  // the summary of every round and band view, stacked in one cell (.sc-say), so the tallest sets the height
+  const views=[...S0.rounds.map(n=>[String(n),scAt(S0,n),"last"]),["season",S0,"season"]];
+  const top=`<div class="sc-say">${views.flatMap(([k,Sv,spv])=>["all","lo","mid","hi"].map(b=>{const on=k===(rn==null?"season":String(rn))&&b===bd;
+    return `<div class="sc-top${on?"":" off"}"${on?"":' aria-hidden="true"'}>${scSummary(Sv,spv,b).map(t=>`<p>${esc(t)}</p>`).join("")}</div>`;})).join("")}</div>`;
   const seg=(k,opts)=>`<div class="seg sm" role="group">${opts.map(([v,l])=>`<button type="button" data-sc-${k}="${v}" class="${scView[k]===v?"on":""}" aria-pressed="${scView[k]===v}">${l}</button>`).join("")}</div>`;
   const ctl=`<div class="sc-ctl">${seg("span",[...S0.rounds.map(n=>[String(n),`Round ${n}`]),["season","All rounds"]])}${seg("band",[["all","All"],["lo","Under 8"],["mid","8–14"],["hi","14+"]])}</div>`;
   const st=S.rows.map(r=>[r,r[sp][bd]]),max=Math.max(...st.map(([,s])=>s.mae||0),1);
