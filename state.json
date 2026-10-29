@@ -16,7 +16,7 @@
  "sort": "price",
  "only": false,
  "tag": null,
- "dtab": "fixtures",
+ "dtab": "overview",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -38,5 +38,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T08:41:00.524Z"
+ "savedAt": "2026-10-29T08:41:18.896Z"
 }
