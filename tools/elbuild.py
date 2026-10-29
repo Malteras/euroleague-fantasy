@@ -63,7 +63,17 @@ def parse_log(t, domestic=False):
         out.append({'d':date(g.group(1)),'opp':opp,'ha':'A' if g.group(7) else 'H','res':f'{g.group(3)} {g.group(4)}-{g.group(5)}',
                     'min':num(g.group(8)),'pts':int(num(g.group(9))),'fpt':num(g.group(10)),'pir':num(g.group(12)),'cr':cr,
                     'reb':num(g.group(16)),'stl':num(g.group(21)),'tov':num(g.group(22)),'ast':num(g.group(23)),'blk':num(g.group(24))})
-    return out
+    # Since 29 Oct 2026 FantaSheet fills the shooting and rebound columns with the same dummy cells for every game
+    # ("8/12 3 1/4 5 2 …"), so the row above no longer matches. Read the columns that are still real (minutes, points,
+    # FPT, credit change, PIR) and leave the box-score detail empty rather than take the dummy numbers.
+    short = []
+    for g in re.finditer(r'(\d{1,2} \w+) (.+?) \1 · ([WL]) (\d+)–(\d+) (.+?) (✈️ )?[WL] \d+–\d+ '+N+' '+N+' '+N+r' (\S+) '+N+r' .*?Full box score', gl):
+        opp = g.group(2) if domestic else SHORT.get(g.group(2), g.group(2))
+        cr = num(g.group(11)) if g.group(11) not in ('-', '—') else None
+        short.append({'d':date(g.group(1)),'opp':opp,'ha':'A' if g.group(7) else 'H','res':f'{g.group(3)} {g.group(4)}-{g.group(5)}',
+                      'min':num(g.group(8)),'pts':int(num(g.group(9))),'fpt':num(g.group(10)),'pir':num(g.group(12)),'cr':cr,
+                      'reb':None,'stl':None,'tov':None,'ast':None,'blk':None})
+    return short if len(short) > len(out) else out
 
 def parse_player(f, team_code):
     t = flat(txt(f))

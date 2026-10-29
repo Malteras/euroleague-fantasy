@@ -79,6 +79,22 @@ class OfficialNextTest(unittest.TestCase):
         self.assertEqual(times['2026-10-28|VIR'], '20:30')
 
 
+class ParseLogTest(unittest.TestCase):
+    # Blakeney's page on 29 Oct 2026: the shooting and rebound cells are the same dummy numbers in every row
+    ROW = ('PIR pub. Box 28 Oct Efes 28 Oct · W 118–88 Anadolu Efes Istanbul W 118–88 22.2 35 38.5 +1.2 35 '
+           '8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 Full box score 21 Oct Virtus 21 Oct · W 90–81 Virtus Segafredo Bologna '
+           'W 90–81 7.0 0 -3.6 −0.6 -4 8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 Full box score 16 Oct Panathinaikos 16 Oct · '
+           'W 81–91 Panathinaikos AKTOR Athens ✈️ W 81–91 21.6 9 9.9 −0.1 9 8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 '
+           'Full box score Totals (8 GP)')
+
+    def test_reads_every_game_when_the_detail_cells_are_dummies(self):
+        got = elbuild.parse_log(self.ROW)
+        self.assertEqual([(g['d'], g['ha'], g['min'], g['pts'], g['fpt'], g['cr'], g['pir']) for g in got],
+                         [('2026-10-28', 'H', 22.2, 35, 38.5, 1.2, 35.0), ('2026-10-21', 'H', 7.0, 0, -3.6, -0.6, -4.0),
+                          ('2026-10-16', 'A', 21.6, 9, 9.9, -0.1, 9.0)])
+        self.assertIsNone(got[0]['reb'])
+
+
 class ParsePlayerTest(unittest.TestCase):
     def parse(self, header):
         with tempfile.TemporaryDirectory() as d:
