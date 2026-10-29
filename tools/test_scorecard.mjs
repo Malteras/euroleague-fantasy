@@ -159,3 +159,25 @@ test("summary for round 7's real numbers", () => {
   assert.match(say[0], /^All versions are within 0\.\d points of each other\./);
   for (const t of say) assert.doesNotMatch(t, / · /);
 });
+
+// Pace (#28): PAO plays 70 possessions a game, KBA 80, league average 75. A player's projection moves by
+// x × (opponent's pace − average) ÷ (his club's pace + average), on top of the matchup at the live trust (0.5).
+// star (PAO vs fast KBA): 22.8 + 22.8 × 5/145 = 23.6; bench (KBA vs slow PAO): 6.1 − 6.1 × 5/155 = 5.9; noXpts: 8 − 0.3 = 7.7
+test("+ matchup + pace: the matchup at trust 0.5 plus the opponent's pace against the average", () => {
+  const S = scoreRounds([round7()], { 7: { PAO: 70, KBA: 80 } });
+  near(row(S, "m50").last.all.mae, (7.2 + 4.1 + 2) / 3);
+  near(row(S, "pace").last.all.mae, (6.4 + 3.9 + 2.3) / 3);
+  near(row(S, "pace").last.all.bias, (-6.4 + 3.9 - 2.3) / 3);
+  assert.equal(row(S, "pace").label, "+ matchup + pace");
+});
+
+test("pace: the round's own snapshot comes before the pace worked out later", () => {
+  const s = round7();
+  s.defence.PAO.pace = 70; s.defence.KBA.pace = 80;
+  near(row(scoreRounds([s], { 7: { PAO: 80, KBA: 70 } }), "pace").last.all.mae, (6.4 + 3.9 + 2.3) / 3);
+});
+
+test("pace: with no pace for the round the row is the matchup at trust 0.5", () => {
+  const S = scoreRounds([round7()]);
+  near(row(S, "pace").last.all.mae, row(S, "m50").last.all.mae);
+});

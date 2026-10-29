@@ -174,6 +174,49 @@ EL_CODE = {'BAS':'KBA','BES':'BJK','IST':'EFS','MAD':'RMB','MUN':'BAY','PAM':'VA
 def el_name(s):
     return [w for w in norm(s.replace(',', ' ').replace('-', ' ')) if w not in ('jr', 'ii', 'iii', 'iv')]
 
+# Pace (#28): possessions per game, from the official box scores' team totals. Fast games make more PIR for everyone.
+def possessions(tot):
+    """A team's possessions in one game: shots + 0.44 x free throws - offensive rebounds + turnovers."""
+    return (tot['FieldGoalsAttempted2'] + tot['FieldGoalsAttempted3'] + 0.44 * tot['FreeThrowsAttempted']
+            - tot['OffensiveRebounds'] + tot['Turnovers'])
+
+def pace_games(pages):
+    """[(date, club, possessions, opponent's possessions)] for every finished EuroLeague game of the season."""
+    f = get(EL_API, os.path.join(pages, 'el_games.json'))
+    try: games = [g for g in json.load(open(f))['data'] if g.get('played')]
+    except Exception: return []
+    def box(g):
+        return g, get(EL_BOX + str(g['gameCode']), os.path.join(pages, f"el_box{g['gameCode']}.json"))
+    with ThreadPoolExecutor(8) as ex: boxes = list(ex.map(box, games))
+    out = []
+    for g, bf in boxes:
+        try: a, b = (possessions(s['totr']) for s in json.load(open(bf))['Stats'])
+        except Exception: continue
+        loc, road = (EL_CODE.get(g[s]['club']['code'], g[s]['club']['code']) for s in ('local', 'road'))
+        d = g['date'][:10]
+        out += [(d, loc, a, b), (d, road, b, a)]
+    return out
+
+def pace_table(games, before):
+    """{club: {pace, pace_for, pace_allowed, pace_gp}} from the games played before the date. pace is the average game
+    (both teams' possessions over two); pace_for and pace_allowed are the club's own and its opponents' possessions."""
+    by = {}
+    for d, club, own, opp in games:
+        if d < before: by.setdefault(club, []).append((own, opp))
+    r = lambda v: round(v, 1)
+    return {c: {'pace': r(sum(a + b for a, b in g) / 2 / len(g)), 'pace_for': r(sum(a for a, _ in g) / len(g)),
+                'pace_allowed': r(sum(b for _, b in g) / len(g)), 'pace_gp': len(g)} for c, g in by.items()}
+
+def add_pace(defence, games, before):
+    """Pace into each club's defence entry, so the history snapshot of the round carries it too."""
+    for c, v in pace_table(games, before).items():
+        if c in defence: defence[c].update(v)
+
+def pace_hist(games, deadlines):
+    """{round: {club: pace}} as it stood before each round's deadline, for the rounds whose snapshot has no pace
+    (history files are never rewritten, so the scorecard reads these instead)."""
+    return {n: {c: v['pace'] for c, v in pace_table(games, d).items()} for n, d in deadlines.items()}
+
 def official_games(pages):
     """{(date, club): [(name words, line)]} for the finished games of the current round (the latest round with a game played).
     Older games do not change, so they stay as FantaSheet's game log has them."""
@@ -527,6 +570,17 @@ def main():
     # team defence
     sf = get(f'{BASE}/teams/stats', os.path.join(pages, 'teamstats.html'))
     defence = parse_team_stats(sf) if sf else {}
+    # pace from every finished game; and as each past round's deadline saw it, for snapshots taken before pace existed
+    pgames = pace_games(pages)
+    add_pace(defence, pgames, '9999')
+    hdir = os.path.join(os.path.dirname(os.path.abspath(oldp)) if oldp != '-' else '.', 'history')
+    deadlines = {}
+    for name in sorted(os.listdir(hdir)) if os.path.isdir(hdir) else []:
+        m = re.fullmatch(r'round-(\d+)\.json', name)
+        if not m: continue
+        h = json.load(open(os.path.join(hdir, name), encoding='utf-8'))
+        if h.get('deadline') and not any('pace' in v for v in (h.get('defence') or {}).values()): deadlines[int(m.group(1))] = h['deadline']
+    print(f'pace: {len(pgames) // 2} games, {sum("pace" in v for v in defence.values())} clubs; past rounds {sorted(deadlines)}')
     # coaches from latest price-changes page
     rf = get(f'{BASE}/fantasy-rounds', os.path.join(pages, 'rounds.html'))
     rnums = sorted({int(x) for x in re.findall(r'/round-(\d+)/price-changes', open(rf, encoding='utf-8').read())}) if rf else []
@@ -609,7 +663,7 @@ def main():
         'deadline': deadline or old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
-        'tradeBase': trade_base(old, nxt_round),
+        'tradeBase': trade_base(old, nxt_round), 'paceHist': pace_hist(pgames, deadlines),
         'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
         **carried(old),
     }
