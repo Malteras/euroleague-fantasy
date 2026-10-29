@@ -11,7 +11,7 @@ const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)
 const src = [line("const TEAMS="), "const r1=v=>Math.round(v*10)/10;",
   cut("// teamModel:begin", "// teamModel:end"), cut("// project:begin", "// project:end"),
   line("const MT="), cut("// scorecard:begin", "// scorecard:end")].join("\n");
-const { scoreRounds, project, scSummary } = new Function(src + "\nreturn {scoreRounds,project,scSummary};")();
+const { scoreRounds, project, scSummary, scAt } = new Function(src + "\nreturn {scoreRounds,project,scSummary,scAt};")();
 
 const near = (a, b, tol = 0.01) => assert.ok(Math.abs(a - b) < tol, `${a} vs ${b}`);
 const log = (...f) => f.map((fpt, i) => ({ d: `2026-10-0${i + 1}`, fpt, min: 25, opp: "X", ha: "H", res: "" }));
@@ -180,4 +180,25 @@ test("pace: the round's own snapshot comes before the pace worked out later", ()
 test("pace: with no pace for the round the row is the matchup at trust 0.5", () => {
   const S = scoreRounds([round7()]);
   near(row(S, "pace").last.all.mae, row(S, "m50").last.all.mae);
+});
+
+// The round picker (Round 7 | Round 8 | All rounds): any finished round can be shown, not only the last one.
+test("one round's view: every version, the coaches and the plain line show that round", () => {
+  const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 20.7, min: 30 }, 2: null, 4: null };
+  const S = scoreRounds([r8, round7()]);
+  const v7 = scAt(S, 7);
+  assert.equal(v7.last, 7);
+  assert.equal(row(v7, "today").last.all.n, 3);
+  near(row(v7, "today").last.all.mae, (9.3 + 3.8 + 2) / 3);
+  assert.equal(v7.coaches.last.n, 2);
+  assert.match(scSummary(v7, "last", "all").join(" "), /round 7|within/);
+  // the season and the latest round are left as they were
+  assert.equal(row(v7, "today").season.all.n, 4);
+  assert.equal(row(scAt(S, 8), "today").last.all.n, 1);
+  assert.equal(row(S, "today").last.all.n, 1);
+});
+
+test("one round's view: a version with no players that round shows none", () => {
+  const S = scoreRounds([round7()]);
+  assert.equal(row(scAt(S, 7), "look").last.all.n, 0);
 });

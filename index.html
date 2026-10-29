@@ -1179,7 +1179,14 @@ function scoreRounds(snaps,paceHist={}){
   const rows=SC_VERSIONS.map(([key,label])=>({key,label,...both(key)}));
   const best=rows.filter(r=>r.key!=="look"&&r.season.all.n).sort((a,b)=>a.season.all.mae-b.season.all.mae)[0]||null;
   const co=both("coach");
-  return {rounds,last,rows,best,coaches:{last:co.last.all,season:co.season.all}};
+  return {rounds,last,rows,best,coaches:{last:co.last.all,season:co.season.all,
+    byRound:Object.fromEntries(Object.entries(co.byRound).map(([n,q])=>[n,q.all]))}};
+}
+// The scorecard as round n's view: "last" holds round n for every version and the coaches, so the card and scSummary
+// show any finished round the way they show the latest one. The season numbers stay as they are.
+function scAt(S,n){
+  const none=scStats([]);
+  return {...S,last:n,rows:S.rows.map(r=>({...r,last:r.byRound[n]||none})),coaches:{...S.coaches,last:S.coaches.byRound[n]||none.all}};
 }
 // The plain line under "How the projections did" (#107), from the numbers shown for span sp ("last" or "season") and price
 // band bd. Look-ahead is left out: it scores a different set of players. The cut-offs, agreed with Ognjen:
@@ -2958,14 +2965,16 @@ const SC_HEAD=[["Version","Each way of building a projection. Today's projection
 function scoreCard(){
   const head=`<div class="card sc" id="scCard"><h3>How the projections did</h3>`;
   if(!HIST){loadHistory();return head+`<p class="note">Loading the past rounds…</p></div>`;}
-  const S=scoreRounds(HIST,D.paceHist||{});
-  if(S.last==null)return head+`<p class="note">Nothing to score yet: no round on record has finished.</p></div>`;
-  const sp=scView.span,bd=scView.band,f=v=>v.toFixed(1);
+  const S0=scoreRounds(HIST,D.paceHist||{});
+  if(S0.last==null)return head+`<p class="note">Nothing to score yet: no round on record has finished.</p></div>`;
+  // the round picker: one finished round (shown as "last" through scAt), or all of them
+  const rn=scView.span==="season"||!S0.rounds.includes(+scView.span)?null:+scView.span;
+  const S=rn==null?S0:scAt(S0,rn),sp=rn==null?"season":"last",bd=scView.band,f=v=>v.toFixed(1);
   const bias=b=>Math.abs(b)<0.05?"spot on":`${f(Math.abs(b))} too ${b>0?"high":"low"}`;
   const say=scSummary(S,sp,bd);
   const top=say.length?`<div class="sc-top">${say.map(t=>`<p>${esc(t)}</p>`).join("")}</div>`:"";
   const seg=(k,opts)=>`<div class="seg sm" role="group">${opts.map(([v,l])=>`<button type="button" data-sc-${k}="${v}" class="${scView[k]===v?"on":""}" aria-pressed="${scView[k]===v}">${l}</button>`).join("")}</div>`;
-  const ctl=`<div class="sc-ctl">${seg("span",[["last",`Round ${S.last}`],["season","Season"]])}${seg("band",[["all","All"],["lo","Under 8"],["mid","8–14"],["hi","14+"]])}</div>`;
+  const ctl=`<div class="sc-ctl">${seg("span",[...S0.rounds.map(n=>[String(n),`Round ${n}`]),["season","All rounds"]])}${seg("band",[["all","All"],["lo","Under 8"],["mid","8–14"],["hi","14+"]])}</div>`;
   const st=S.rows.map(r=>[r,r[sp][bd]]),max=Math.max(...st.map(([,s])=>s.mae||0),1);
   const rows=st.map(([r,s])=>`<div class="sc-row${S.best&&r.key===S.best.key?" best":""}"><span class="sc-v">${esc(r.label)}${SC_NOTE[r.key]?`<small>${SC_NOTE[r.key]}</small>`:""}</span>`+
     (s.n?`<span class="sc-m"><b>${f(s.mae)}</b><span class="sc-bar"><i style="width:${(100*s.mae/max).toFixed(1)}%"></i></span></span><span class="sc-b">${bias(s.bias)}<small>${s.n} player${s.n>1?"s":""}</small></span>`
