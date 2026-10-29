@@ -32,16 +32,12 @@
  "rg": "2026-10-22|MTA|RMB|",
  "pmode": "q",
  "blTicks": [
-  "8:live:cap:2026-10-28:73",
-  "8:live:swap:165>73",
-  "8:live:swap:245>118",
-  "8:live:swap:176>185",
-  "8:live:lineup:2026-10-28:73,185,255"
+  "9:none"
  ],
  "rgt": {
   "k": "2026-10-23|ZAL|ASV|",
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T13:11:21.046Z"
+ "savedAt": "2026-10-29T13:11:28.900Z"
 }
