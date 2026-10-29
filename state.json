@@ -4,7 +4,7 @@
  "coachPin": null,
  "budget": 100.8,
  "maxT": 4,
- "lam": 10,
+ "lam": 20,
  "noInj": true,
  "chase": true,
  "gems": true,
@@ -35,5 +35,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T09:51:45.880Z"
+ "savedAt": "2026-10-29T09:51:50.033Z"
 }
