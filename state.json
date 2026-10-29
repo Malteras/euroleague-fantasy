@@ -5,7 +5,7 @@
  ],
  "avoids": [],
  "coachPin": null,
- "budget": 99.5,
+ "budget": 100.8,
  "maxT": 4,
  "lam": 20,
  "noInj": true,
@@ -37,6 +37,6 @@
   "k": "2026-10-23|ZAL|ASV|",
   "t": "ZAL"
  },
- "maxTAuto": "8:false",
- "savedAt": "2026-10-28T08:51:24.814Z"
+ "maxTAuto": "9:false",
+ "savedAt": "2026-10-29T08:41:00.524Z"
 }
