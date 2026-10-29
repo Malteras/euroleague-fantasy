@@ -12,7 +12,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Consider for next round",
+ "tag": "Keep: price steady",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -35,5 +35,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-29T08:57:40.649Z"
+ "savedAt": "2026-10-29T08:57:46.026Z"
 }
