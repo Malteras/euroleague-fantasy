@@ -200,6 +200,41 @@ test("pace: with no pace for the round the row is the matchup at trust 0.5", () 
   near(row(S, "pace").last.all.mae, row(S, "m50").last.all.mae);
 });
 
+// The price-band fix (#124): today's projection moved by the bias each price band had in the rounds before, never the round
+// being scored. 30 cheap players like Bench (5 cr, projected 5.8) score 8.8 in round 7, so round 8 adds 3.0 to them.
+const cheap = (r, fpt) => {
+  for (let i = 0; i < 30; i++) {
+    r.players.push({ id: 100 + i, name: `Cheap ${i}`, team: "KBA", pos: "F", price: 5, xpts: 6, fpt: 5, log: log(4, 6, 8) });
+    r.actual.players[100 + i] = fpt == null ? null : { fpt, min: 15 };
+  }
+  r.actual.players[2] = null; // Bench sits out, so the band is only the 30
+  return r;
+};
+test("+ price-band fix: round 7 has no earlier round, so it is today's projection", () => {
+  const S = scoreRounds([cheap(round7(), 8.8)]);
+  assert.equal(row(S, "band").label, "+ price-band fix");
+  near(row(S, "band").last.all.mae, row(S, "today").last.all.mae);
+  near(row(S, "band").last.all.bias, row(S, "today").last.all.bias);
+});
+
+test("+ price-band fix: learned from the rounds before, never the round it scores", () => {
+  const r8 = cheap(round7(), 10.8); r8.round = 8; r8.actual.players[1] = { fpt: 25, min: 30 };
+  r8.players.find(p => p.id === 100).status = "Out"; // Cheap 0 is Out but plays: 0 in every version
+  const S = scoreRounds([cheap(round7(), 8.8), r8]);
+  const lo = row(S, "band").last.lo;
+  // 29 at 5.8 + 3.0 = 8.8 against 10.8, and Cheap 0 at 0 against 10.8
+  assert.equal(lo.n, 30);
+  near(lo.bias, (29 * -2 - 10.8) / 30);
+  near(row(S, "today").last.lo.bias, (29 * -5 - 10.8) / 30);
+  // under 30 players in a band: no fix (Star is the only 14+ player)
+  near(row(S, "band").last.hi.bias, row(S, "today").last.hi.bias);
+});
+
+test("+ price-band fix is never the look-ahead and goes beside pace", () => {
+  const keys = scoreRounds([round7()]).rows.map(r => r.key);
+  assert.equal(keys.indexOf("band"), keys.indexOf("pace") + 1);
+});
+
 // The round picker (Round 7 | Round 8 | All rounds): any finished round can be shown, not only the last one.
 test("one round's view: every version, the coaches and the plain line show that round", () => {
   const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 20.7, min: 30 }, 2: null, 4: null };
