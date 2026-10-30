@@ -31,7 +31,7 @@
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
- "rg": "2026-10-22|MTA|RMB|",
+ "rg": "2026-10-28|BJK|OLY|",
  "pmode": "q",
  "blTicks": [
   "9:none",
@@ -47,5 +47,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-30T00:32:16.213Z"
+ "savedAt": "2026-10-30T00:32:21.902Z"
 }
