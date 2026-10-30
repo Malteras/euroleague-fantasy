@@ -27,7 +27,24 @@
  "allGames": true,
  "collapsed": [],
  "form": null,
- "team": null,
+ "team": {
+  "slots": [
+   7,
+   245,
+   352,
+   118,
+   56,
+   160,
+   38,
+   176,
+   185,
+   361
+  ],
+  "coach": "CZV",
+  "bank": 0.8,
+  "cap": 7,
+  "base": "2026-10-29"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "mine",
@@ -36,12 +53,16 @@
  "blTicks": [
   "9:none",
   "9:captain:245",
-  "9:lineup:38,245,352,176,56"
+  "9:lineup:38,245,352,176,56",
+  "9:live:cap:2026-10-30:7",
+  "9:live:swap:38>7",
+  "9:live:swap:176>118",
+  "9:live:lineup:2026-10-30:7,118,56"
  ],
  "rgt": {
   "k": "2026-10-23|ZAL|ASV|",
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-30T00:29:41.195Z"
+ "savedAt": "2026-10-30T00:29:54.445Z"
 }
