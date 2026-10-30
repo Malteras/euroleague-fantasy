@@ -22,7 +22,7 @@
  "day": "2026-10-30",
  "sort": "price",
  "only": false,
- "tag": null,
+ "tag": "Buy low: back",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -47,5 +47,5 @@
   "t": "ZAL"
  },
  "maxTAuto": "9:false",
- "savedAt": "2026-10-30T00:30:18.153Z"
+ "savedAt": "2026-10-30T00:31:56.203Z"
 }
