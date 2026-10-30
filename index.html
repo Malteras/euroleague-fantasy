@@ -1272,7 +1272,14 @@ function turnReview(snap,logs,saved){
   }
   if(!turns.length)return null;
   // the captain plan from the snapshot's projections: keep the first captain if he scores keepAt+, else move it on
-  const path=capPath(ps.map(({p})=>({...p,sd:spreadOf(p)})),R.dayKeys).path,f=path[0];
+  // The walk starts at his real first captain, the armband at the first tip-off: the builder records it (played.firstCap,
+  // from his save on deadline day); without one, the snapshot's squad is his last save before deadline day. Never the
+  // plan's pick: the plan's first captain is not who he played. The keep mark is his, from the snapshot's projections.
+  const sx=ps.map(({p})=>({...p,sd:spreadOf(p)})),ix=p=>R.dayKeys.indexOf(p.day);
+  const fc=[snap.played&&snap.played.firstCap,(snap.squad||{}).cap,cap].find(id=>id!=null&&sx.some(p=>p.id===id));
+  let path=capPath(sx,R.dayKeys).path,f=path[0];
+  if(fc!=null){const p0=sx.find(p=>p.id===fc),rest=capPath(sx.filter(p=>ix(p)>ix(p0)),R.dayKeys.slice(ix(p0)+1));
+    f={p:p0,keepAt:rest.path.length?rest.v:null};path=[f,...rest.path];}
   const who=p=>p&&{id:p.id,short:short(p),x:p.x,day:p.day};
   let capCall=null;
   if(f){const done=played.has(f.p.day),g=game(f.p),scored=done?(g?g.fpt:0):undefined;
@@ -2759,7 +2766,11 @@ function liveRound(){
   if(snap){const V=turnReview(snap,Object.fromEntries(P.map(p=>[p.id,p.log])),savedTeam),f=V&&V.cap&&V.cap.first&&sl.find(p=>p.id===V.cap.first.id);
     if(f&&playedDay(f.day))first=f;
     if(V&&V.cap&&V.cap.first&&V.cap.first.id===first.id&&V.cap.keepAt!=null)firstKeep=V.cap.keepAt;}
-  return {sl,st:sl.slice(0,5),six:sl[5],bench:sl.slice(6),cap,playedDay,score,next,tip,
+  // a played turn's roles: the lineup he played the round with (played), which the builder keeps from his save after
+  // the deadline; his lineup now when there is none, or for a player not in it
+  const pl=snap&&snap.played&&Array.isArray(snap.played.slots)?snap.played.slots:null;
+  const playedRole=p=>{const i=pl?pl.indexOf(p.id):-1,k=i>=0?i:sl.indexOf(p);return k<5?"start":k===5?"six":"bench";};
+  return {sl,st:sl.slice(0,5),six:sl[5],bench:sl.slice(6),cap,playedDay,score,next,tip,playedRole,
     walk:(name,turn)=>liveCapPlan(sl,first,dayKeys,score,name,turn,firstKeep)};
 }
 function planView(R,L,{tr,noTrades,pairs,coachChanged}){
@@ -2767,7 +2778,8 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   // after the first tip-off: his own lineup and captain, real scores for the turns played (nothing is re-picked for them)
   const LR=liveRound(),live=!!LR,playedDay=LR?LR.playedDay:()=>false,score=LR?LR.score:()=>null;
   let liveCap=null;
-  if(live){init={st:LR.st,six:LR.six};reserves=LR.bench;cap0=LR.cap;}
+  // the turn lists, the coach and the minutes watch are his team's, never the proposal's: he can no longer get it
+  if(live){init={st:LR.st,six:LR.six};reserves=LR.bench;cap0=LR.cap;ps=LR.sl;}
   const isNew=p=>!orig.players.includes(p.id);
   const T=d=>turnOf2(d).replace("Turn ","T");
   const name=p=>`<b>${plink(p,p.short)}</b>`;
@@ -2796,7 +2808,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const capActs=live?liveCap.steps:capSteps(capPath,name,turnOf2).map(a=>({...a,day:nextDay(a.day)}));
   const lateRes=reserves.filter(p=>p.day===finalDay);
   const secondLast=dayKeys[dayKeys.length-2];
-  const coach=coachByTeam[R.coach];
+  const coach=coachByTeam[live?team.coach:R.coach];
   const risky=ps.filter(p=>p.log&&p.log[0]&&p.log[0].min<12);
   const turns=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).length;
@@ -2804,7 +2816,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     const mine=ps.filter(p=>p.day===d).sort((a,b)=>done?score(b)-score(a):b.x-a.x);
     // a played turn keeps the captain it had; a coming one shows where the armband is now
     const capOf=done?liveCap.held.find(h=>h&&h.day===d):capNow;
-    const role=p=>p===capOf?"cap":st.includes(p)?"start":p===six?"six":"bench";
+    const role=p=>p===capOf?"cap":done?LR.playedRole(p):st.includes(p)?"start":p===six?"six":"bench";
     const who=mine.map(p=>`<span class="tl-p r-${role(p)}">${plink(p,p.short)} <small>${facts(done?`${score(p)} pts`:p.x,{cap:"C",bench:"bench",six:"6th"}[role(p)])}</small></span>`).join("");
     const acts=[];
     capActs.filter(a=>a.day===d).forEach(a=>acts.push(a.txt));
@@ -2818,7 +2830,8 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     its.filter(i=>i.kind==="wait"&&/^Lineup changes/.test(i.title)).forEach(i=>acts.push(`<span class="muted">${esc(i.title)}: ${i.ps.map(p=>`${name(p)} (proj ${p.x})`).join(", ")} can come in for anyone who scores under that, in any position the formation allows.</span>`));
     const changes=its.filter(i=>i.apply&&(i.apply.out!=null||(i.apply.cap!=null&&i.apply.cap!==team.cap)));
     if(changes.length)acts.push(`<span class="tl-act"><button type="button" class="btn-primary" data-apply-turn="${d}">Apply to My team</button><span class="note">Then press <b>Save for daily report</b> on My team. The Bottom line ticks these off.</span></span>`);
-    if(coach&&coach.day===d)acts.push(`<span class="muted">Coach ${esc(coach.name)} plays ${coach.opp?(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):""} (${projOf(coach)}).</span>`);
+    if(coach&&coach.day===d){const cs=shown(coach),vs=coach.opp?" "+(coach.opp.ha==="H"?"vs ":"@ ")+esc(coach.opp.opp):"";
+      acts.push(`<span class="muted">${cs.played?`Coach ${esc(coach.name)} played${vs}: ${cs.pts!=null?`${cs.pts} pts`:"played"}${cs.x!=null?` vs ${cs.x} projected`:""}.`:`Coach ${esc(coach.name)} plays${vs} (proj ${cs.x}).`}</span>`);}
     const rk=risky.filter(p=>p.day===d);
     const warn=rk.length?`<div class="tl-warn">Minutes watch: ${rk.map(p=>`${name(p)} played ${p.log[0].min} min last game`).join("; ")}.</div>`:"";
     const lbl=done?`${esc(dayShort(d))}: played`:`Before ${esc(dayShort(d))}'s games`;

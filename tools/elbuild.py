@@ -434,6 +434,9 @@ def fill_played(snap, data):
     """The team he played the round with (#109): his last save from the site between the round's deadline and its last game
     day. The snapshot is taken on the first run of deadline day, often before his trades are saved, so its squad can be the
     team before them. A newer save in the round replaces an older one; a save outside the round is another round's team.
+    firstCap is the round's first captain, the armband at the first tip-off: the captain of a save made on deadline
+    day (the first game day). A later save keeps it, because its cap is where the armband has moved to since. Without a
+    deadline-day save there is no firstCap and the site takes the snapshot's squad, his last save before deadline day.
     Returns True when played changed."""
     fixtures, lineup, squad = snap.get('fixtures') or [], data.get('lineup') or {}, data.get('squad') or {}
     saved = lineup.get('updated')
@@ -442,6 +445,8 @@ def fill_played(snap, data):
     if (snap.get('played') or {}).get('updated', '') > saved: return False
     played = {'players': list(squad['players']), 'coach': squad.get('coach'),
               **{k: lineup.get(k) for k in ('slots', 'cap', 'bank', 'updated')}}
+    first = lineup.get('cap') if saved == snap['deadline'] else (snap.get('played') or {}).get('firstCap')
+    if first is not None: played['firstCap'] = first
     if snap.get('played') == played: return False
     snap['played'] = played
     return True

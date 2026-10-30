@@ -213,3 +213,16 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Guard:** `nextRound()` counts a game unless it says `el: false`; snapshots now keep `el`. Tests: tools/test_scorecard.mjs
   (a look-ahead from `teamNext` without `el` or `oc`), tools/test_elbuild.py `SnapshotTest`. A reader of history files
   works on the files as they are on disk: they are never rewritten.
+
+## 30 Oct 2026 · "Plan for the round" walked from Feliz and listed players he did not have
+- **What:** on Friday of Round 9 the card said "Feliz scored 6.6, below 26: move the armband to Vezenkov". Madar was his
+  captain. Turn 1 listed Maledon and Turn 2 Strazel, Hayes and Martin, none of them in his squad.
+- **Why:** `turnReview()` gave `cap.first` as the plan's first captain (the best walk from the snapshot's projections), not the
+  captain he played, and `liveRound()` started the walk there. `planView()` built the turn lists from the proposal (`R.S`),
+  and the coach line from the proposal's coach. `played.cap` could not stand in: the builder replaces `played` with each later
+  save of the round, so its cap is where the armband has moved to (Etienne in Round 7, Vezenkov in Round 9).
+- **Guard:** the builder records `played.firstCap`, the captain of his deadline-day save, and keeps it when later saves come
+  (`fill_played()`; Rounds 7 to 9 filled from the squad.json saves in git and the Round 7 entry above). `turnReview()`
+  starts the walk at `played.firstCap`, else the snapshot's captain, else the squad's, whichever is in his team, with that
+  captain's own keep mark. During the round `planView()` lists his team; a played turn shows the roles from `played`.
+  Tests: tools/test_liveplan.mjs (the real Round 9 files), tools/test_elbuild.py.
