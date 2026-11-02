@@ -32,7 +32,7 @@
  "sort": "price",
  "only": false,
  "tag": "Soft matchup",
- "dtab": "overview",
+ "dtab": "fixtures",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -73,5 +73,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-02T13:05:12.462Z"
+ "savedAt": "2026-11-02T13:05:14.659Z"
 }
