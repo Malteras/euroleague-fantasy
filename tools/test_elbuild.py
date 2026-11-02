@@ -374,7 +374,8 @@ class WriteHistoryTest(unittest.TestCase):
     def test_a_save_during_the_round_is_the_team_he_played(self):
         elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
         self.assertEqual(self.run_with_save('2026-10-22', '2026-10-21'),
-                         {'players': [654, 655], 'coach': 'RMB', 'slots': [655, 654], 'cap': 655, 'bank': 0.4, 'updated': '2026-10-21'})
+                         {'players': [654, 655], 'coach': 'RMB', 'slots': [655, 654], 'cap': 655, 'bank': 0.4, 'updated': '2026-10-21',
+                          'firstCap': 655})
         self.assertEqual(self.read()['squad']['players'], [654])  # the snapshot itself is never rewritten
 
     def test_a_save_before_the_deadline_or_after_the_round_is_not_the_team_he_played(self):
@@ -387,6 +388,17 @@ class WriteHistoryTest(unittest.TestCase):
         self.run_with_save('2026-10-21', '2026-10-21')
         self.assertEqual(self.run_with_save('2026-10-22', '2026-10-22', cap=654)['cap'], 654)
         self.assertEqual(self.run_with_save('2026-10-23', '2026-10-21')['updated'], '2026-10-22')
+
+    def test_the_first_captain_is_the_deadline_day_saves_and_stays_when_the_armband_moves(self):
+        # Round 9: Madar captain on deadline day; the next day's save has the armband on Vezenkov
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.run_with_save('2026-10-21', '2026-10-21', cap=655)
+        moved = self.run_with_save('2026-10-22', '2026-10-22', cap=654)
+        self.assertEqual((moved['cap'], moved['firstCap']), (654, 655))
+
+    def test_no_first_captain_without_a_deadline_day_save(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.assertNotIn('firstCap', self.run_with_save('2026-10-22', '2026-10-22', cap=654))
 
 
     def test_command_line_reads_a_data_file(self):
