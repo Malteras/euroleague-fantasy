@@ -234,7 +234,14 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   (`fill_played()`; Rounds 7 to 9 filled from the squad.json saves in git and the Round 7 entry above). `turnReview()`
   starts the walk at `played.firstCap`, else the snapshot's captain, else the squad's, whichever is in his team, with that
   captain's own keep mark. During the round `planView()` lists his team; a played turn shows the roles from `played`.
-  Tests: tools/test_liveplan.mjs (the real Round 9 files), tools/test_elbuild.py.
+  Tests: tools/test_liveplan.mjs (the real Round 9 files, frozen in tools/fixtures/round9-friday.json), tools/test_elbuild.py.
+
+## 2 Nov 2026 · tools/test_liveplan.mjs failed once Round 9 was over
+- **What:** after Round 10's data came, the Round 9 captain-walk test said `'played' !== 'saved'`.
+- **Why:** the test read today's data.json, squad.json and history/round-9.json. His Round 10 save is after Round 9's last
+  day, so `turnReview()` rightly took his team from `played`: the test's world had changed, not the page.
+- **Guard:** the test reads tools/fixtures/round9-friday.json, Round 9 as it was on Friday 30 Oct. A test of one day's case
+  pins that day's files in tools/fixtures/; it never reads the live data files.
 
 ## 2 Nov 2026 · the Player market showed no players once Round 10's data came
 - **What:** the market said "No players match these filters" and no day button was on. His saved day filter was
