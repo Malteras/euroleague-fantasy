@@ -32,7 +32,7 @@
  "day": "2026-10-30",
  "sort": "price",
  "only": false,
- "tag": "Soft matchup",
+ "tag": null,
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -74,5 +74,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-02T13:07:43.430Z"
+ "savedAt": "2026-11-02T13:07:45.956Z"
 }
