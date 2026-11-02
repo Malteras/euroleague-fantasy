@@ -51,7 +51,7 @@
   ],
   "coach": "PAR",
   "bank": 1,
-  "cap": 7,
+  "cap": 38,
   "base": "2026-11-02"
  },
  "budgetTouched": false,
@@ -73,5 +73,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-02T13:23:21.935Z"
+ "savedAt": "2026-11-02T13:23:26.561Z"
 }
