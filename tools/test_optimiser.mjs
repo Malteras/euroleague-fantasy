@@ -296,3 +296,18 @@ test("left-out players make room for the pinned ones first: 4 trades, not 5, and
   // the best two guards 12 cr buys: the round's market guard 11 (form 14, 6 cr) and 18 (form 12, 6 cr); 17 (14 cr) is out of reach
   assert.deepEqual(r.S.filter(i => [11, 17, 18, 19].includes(i)).sort((a, b) => a - b), [11, 18]);
 });
+
+// #131: the shortlist (☆) only remembers players. The plan is the same with or without it: same trades, lineup, captain
+// and numbers. Two fresh pages, so the second plan is computed, not taken from the first one's cache.
+test("a shortlist never changes the plan", () => {
+  const plan = stars => {
+    const m = load(), d = round();
+    m.setLive(d, d.squad, budget(d));
+    m.setState({ stars, pins: [11] });
+    return JSON.stringify(m.withMode("q", m.optimise));
+  };
+  const A = plan([]);
+  assert.ok(A.length > 50, "a real plan");
+  assert.equal(plan([11, 12, 13, 1, 4]), A, "shortlisting incoming and squad players changes nothing");
+  assert.equal(plan(undefined), A, "an older save without stars plans the same");
+});

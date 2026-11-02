@@ -54,6 +54,10 @@ _Avoid_: Pin, lock, favourite
 Your pick that a player is not in the proposal. For one of your players: remove him from your team this round, and the planner picks the best replacement it can afford. For a player not in your squad: don't include him in this round's trades.
 _Avoid_: Ban, block, exclude
 
+**Shortlist** (☆):
+Players you want to remember, with no effect on the proposal. The planner never reads it: trades, lineup, captain and every number are the same with or without it. A player can be on the shortlist and a Must have at the same time. It lasts across rounds until you remove him; Clear picks keeps it. The Player market's Shortlist filter shows only these players.
+_Avoid_: Watchlist (the site already has "Watch before the deadline" and "Minutes watch"), favourites, saved
+
 ## Projections
 
 **Projection**:

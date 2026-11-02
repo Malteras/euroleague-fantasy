@@ -324,7 +324,7 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .mkt{background:var(--surface);border:1px solid var(--line);border-radius:16px}
 /* rounded by its first and last rows, not overflow:hidden, so the tooltips in a row are not cut off */
 .mkt>:first-child{border-radius:15px 15px 0 0}.mkt>:last-child{border-radius:0 0 15px 15px}
-.mrow{display:grid;grid-template-columns:40px minmax(150px,1.6fr) 62px 62px 70px 64px 64px 150px minmax(110px,1fr) 40px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line-soft)}
+.mrow{display:grid;grid-template-columns:40px minmax(150px,1.6fr) 62px 62px 70px 64px 64px 150px minmax(110px,1fr) 40px 40px;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line-soft)}
 .mrow.head{border-top:0;background:var(--raise);font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding-block:9px}
 .mrow.head .sortable{cursor:pointer}
 .mrow.head .sortable.on{color:var(--accent)}
@@ -348,8 +348,9 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .ico{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--raise);cursor:pointer;display:grid;place-items:center;color:var(--muted);font-weight:800;font-size:15px;padding:0}
 .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.ico.star.on{background:var(--warn);border-color:var(--warn);color:var(--warn-ink)}
 .ico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ico.pin.on svg{fill:currentColor}
+.ico.pin.on svg,.ico.star.on svg{fill:currentColor}
 .ico.has-tip{cursor:pointer}
 .spark{display:block;width:150px;height:36px}
 .spark .bar{fill:var(--accent)}
@@ -640,6 +641,7 @@ html.locked,html.locked body{overflow:hidden}
 .dr-icos .ico:hover,.dr-icos .ico:focus-visible{color:var(--fg);border-color:var(--faint)}
 .dr-icos .ico.pin.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .dr-icos .ico.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.dr-icos .ico.star.on{background:var(--warn);border-color:var(--warn);color:var(--warn-ink)}
 /* the "i" in the trade table keeps its own tooltip; Must have / Leave out use the site's (.has-tip, placeTip()) */
 .ico:not(.has-tip) .tip{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);width:max-content;max-width:220px;background:var(--fg);color:var(--bg);font:500 12px/1.35 var(--body);padding:6px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:5;text-align:left}
 .ico .tip b{display:block}
@@ -847,7 +849,7 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   .side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
 }
 @media (max-width:980px){
-  .mrow{grid-template-columns:36px minmax(0,1fr) 58px 64px 36px}
+  .mrow{grid-template-columns:36px minmax(0,1fr) 58px 64px 36px 36px}
   .mrow .h-be,.mrow .h-ch,.mrow .h-ow,.mrow .h-sp,.mrow .h-op{display:none}
   .mrow.head .h-be,.mrow.head .h-ch,.mrow.head .h-ow,.mrow.head .h-sp,.mrow.head .h-op{display:none}
   .mobile-only{display:block}
@@ -860,21 +862,22 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
   #market .tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   #market .tools>*{width:100%;min-width:0}
   #market .search{grid-column:1/-1}
-  #market #sort,#market #tagf{order:1}#market #only,#market #clear{order:2}
+  #market #sort,#market #tagf{order:1}#market #only,#market #starOnly,#market #clear{order:2}
   #market .tools .seg{flex-wrap:nowrap}
   #market .tools .seg button{padding-inline:4px;min-width:0}
   #market .tools .chip-toggle{padding-inline:8px}
   .mrow{grid-template-columns:minmax(0,1fr) 44px 46px 32px;column-gap:8px;row-gap:6px;padding:10px 10px 10px 12px;align-items:start}
   .mrow>.ico.pin,.mrow.head>:first-child{grid-column:4;grid-row:1}
   .mrow>.ico.no{grid-column:4;grid-row:2}
-  .mrow.head>:last-child{display:none}
+  .mrow>.ico.star{grid-column:3;grid-row:2;justify-self:end}
+  .mrow.head>:nth-last-child(-n+2){display:none}
   .mrow.head{align-items:center}
   .mrow .c-pr{grid-column:2;grid-row:1}.mrow .c-pj{grid-column:3;grid-row:1}
   .mrow:not(.head)>.who-c>.who,.mrow:not(.head)>.c-pr,.mrow:not(.head)>.c-pj{align-self:baseline}
   .mrow.head>:nth-child(2){grid-column:1;grid-row:1}
   .who-c{display:contents}
   .who-c>.who{grid-column:1;grid-row:1;align-items:flex-start}
-  .who-c>.ptags{grid-column:1/4;grid-row:2;padding-left:0;margin-top:0;align-self:center}
+  .who-c>.ptags{grid-column:1/3;grid-row:2;padding-left:0;margin-top:0;align-self:center}
   .mrow .who .jersey{width:28px;height:28px;font-size:9.5px}
   .mrow .who b,.mrow .who small{white-space:normal;overflow:visible}
   .mrow .who b{line-height:1.25}
@@ -951,20 +954,23 @@ let D,P,byId,C,coachByTeam,turnOf={},oppOf={},dayKeys=[],orig,start=null,team,sa
 const STOPS=[0,10,20,35,60];
 const STOP_NAMES=["All-in on points","Mostly points","Balanced","Mostly team value","All-in on team value"];
 const STOP_DESC=["Picks whoever should score most. Price changes are ignored.","Points come first. A likely price rise only settles a close call.","Weighs points and price rises evenly. This is the default.","Takes a few fewer points for players likely to go up in price.","Buys players likely to go up in price, even if they score less."];
-// Must have = heart, Leave out = ban sign, so neither looks like the drawer's close ✕
+// Must have = heart, Leave out = ban sign, so neither looks like the drawer's close ✕. Shortlist = star (#131): only remembers him
 const ICO_HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.7 7.8 3.9 4.5 7.3 4.5c2 0 3.6 1.1 4.7 2.8 1.1-1.7 2.7-2.8 4.7-2.8 3.4 0 5.6 3.3 4.5 6.6-1.7 4.8-9.2 9.4-9.2 9.4z"/></svg>';
 const ICO_BAN='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg>';
+const ICO_STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.85 6.75 19.6l1-5.8L3.5 9.7l5.9-.9z"/></svg>';
 // What each does depends on whether he is already in your squad. Same words as GLOSSARY.md.
 const PICKS={
   pin:{name:"Must have",ico:ICO_HEART,mine:"Keep him. No trade sends him out.",other:"Bring him in. The other trades are rebuilt around him to make room and find the credits."},
-  no:{name:"Leave out",ico:ICO_BAN,mine:"Remove him from your team this round. The planner picks the best replacement it can afford.",other:"Don't include him in this round's trades."}};
+  no:{name:"Leave out",ico:ICO_BAN,mine:"Remove him from your team this round. The planner picks the best replacement it can afford.",other:"Don't include him in this round's trades."},
+  // the planner never reads state.stars: not in optimise()'s key, not in any of its inputs
+  star:{name:"Shortlist",ico:ICO_STAR,mine:"Remember him. The planner ignores the shortlist.",other:"Remember him for later. He is not brought in; use ♥ for that."}};
 function pickBtn(k,p,on){
   const P_=PICKS[k],mine=orig.players.includes(p.id),txt=mine?P_.mine:P_.other;
   return `<button type="button" class="ico ${k} has-tip${on?" on":""}" data-${k}="${p.id}" aria-pressed="${on}" aria-label="${P_.name}: ${esc(txt)}">${P_.ico}<span class="tip tip-pick" aria-hidden="true"><small>${mine?"In your squad":"Not in your squad"}</small><b>${P_.name}</b><span>${esc(txt)}</span>${on?"<i>On. Tap again to undo.</i>":""}</span></button>`;
 }
 // add the id to a pick list, or take it out if it is there
 const toggleId=(a,id)=>a.includes(id)?a.filter(i=>i!==id):[...a,id];
-let state={pins:[],avoids:[],coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
+let state={pins:[],avoids:[],stars:[],starOnly:false,coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -2427,9 +2433,9 @@ function drawer(){
     const rows=nx.map(x=>{const inRound=x.el&&dayKeys.includes(x.d);return `<li class="fx${x.el?" el":""}"><div class="fx-d"><b>${esc(fmtShort(x.d))}</b><span>${esc(x.t)}</span></div><div class="fx-m"><b>${x.ha==="H"?"vs":"@"} ${x.el?tname(x.oc,x.opp):esc(x.opp)}</b><span>${facts(esc(x.comp),inRound&&esc(D.roundLabel))}</span></div>${x.el?'<span class="ptag accent">Scores</span>':'<span class="ptag">Domestic</span>'}</li>`}).join("");
     body=`<div class="dsec"><h4>Next matches for ${TEAMS[p.team][0]}</h4>${nx.length?`<ul class="fxl">${rows}</ul>`:'<p class="note">No upcoming fixtures found.</p>'}<p class="note">Times are Banja Luka time. Only EuroLeague games score; domestic games right before a EuroLeague game can mean rest.</p></div>`;
   }
-  // Must have / Leave out as icons beside the name; the tooltip says what each does
+  // Must have / Leave out / Shortlist as icons beside the name; the tooltip says what each does
   const pinOn=state.pins.includes(p.id),noOn=state.avoids.includes(p.id);
-  const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}</span><button type="button" class="chip-toggle sm${dcmp?" on":""}" data-dcmp aria-pressed="${!!dcmp}">Compare</button>`;
+  const icos=`<span class="dr-icos">${pickBtn("pin",p,pinOn)}${pickBtn("no",p,noOn)}${pickBtn("star",p,state.stars.includes(p.id))}</span><button type="button" class="chip-toggle sm${dcmp?" on":""}" data-dcmp aria-pressed="${!!dcmp}">Compare</button>`;
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
   const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>${shown(p).played?"Played this round":"Next game"}</span><span>${facts(esc(dayLabel(p.day)),tipoff(p))}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${tname(p.opp.opp)}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
@@ -2624,7 +2630,7 @@ function proposalParts(R){
     ${TRADES_CLOSED?`<div class="tile"><div class="v">Closed</div><div class="k">Trades (round started)</div></div>`:`<div class="tile"><div class="v">${R.used}<small> / ${state.maxT>=99?"∞":state.maxT}</small></div><div class="k">Trades used${made.n?`<br>${made.n} already made`:""}</div></div>`}`;
   const warn=R.warnings.length?`<div class="warnbox" style="margin-top:12px">${R.warnings.map(linkify).join(" ")}</div>`:"";
   const near=(R.near||[]).length?`<div class="near"><div class="near-h">Just missed <span>A trade needs to add ${R.bar}+ to your team score at this setting (${LA?"round points, half of next round's points and price rise":"round points plus price rise"}; bench players count half)</span></div>${R.near.map(n=>{const a=byId[n.o],b=byId[n.i],on=state.pins.includes(b.id);
-    return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?facts(["Now",fmt(r1(b.x-a.x),1)],["Next",fmt(r1(b.nx-a.nx),1)]):`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">★ ${on?"Pinned":"Pin "+esc(b.short)}</button></div>`;}).join("")}</div>`:"";
+    return `<div class="near-r"><span class="nm"><b class="o">${plink(a,a.short)}</b> <span class="ar" aria-label="for">→</span> <b class="i">${plink(b,b.short)}</b></span><span class="tp">${LA?facts(["Now",fmt(r1(b.x-a.x),1)],["Next",fmt(r1(b.nx-a.nx),1)]):`${fmt(r1(b.x-a.x),1)} proj`}</span><span class="tc">${fmt(b.exp-a.exp,2)} cr</span><span class="muted">adds ${n.g.toFixed(1)} of ${R.bar}</span><button type="button" class="chip-toggle sm${on?" on":""}" data-pin="${b.id}" aria-pressed="${on}">♥ ${on?"Pinned":"Pin "+esc(b.short)}</button>${pickBtn("star",b,state.stars.includes(b.id))}</div>`;}).join("")}</div>`:"";
   const trades=TRADES_CLOSED?`<div class="card ptrades"><h3>Trades</h3><div class="warnbox">${esc(D.roundLabel)} has started (first tip-off ${esc(dayShort(D.deadline))}). Trades are closed until the next round's deadline. You can only swap court and bench players, change the formation and move the captain. Only players who have not played yet come in or take the armband.</div></div>`
     :`<div class="card ptrades"><h3>Trades</h3>${noTrades?'<div class="note">Keep your squad. No trade beats what you have under these settings.</div>':tr}${picks}${madeBox}${near}</div>`;
   const body=planView(R,L,{tr:'<p class="note" style="margin:0">They are listed under Trades, below the settings.</p>',noTrades,pairs,coachChanged});
@@ -2945,11 +2951,11 @@ function detail(p){
 }
 function market(){
   if(state.tag)state.tag=tagKey(state.tag);
-  const pins=new Set(state.pins),av=new Set(state.avoids),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
-  let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
+  const pins=new Set(state.pins),av=new Set(state.avoids),stars=new Set(state.stars),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
+  let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.starOnly||stars.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>projKey(shown(p)),exp:crShown,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];
   rows.sort((a,b)=>key(b)-key(a));
-  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num c-pr sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num c-pj sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span></div>`;
+  const head=`<div class="mrow head"><span></span><span>Player</span><span class="cell-num c-pr sortable ${state.sort==="price"?"on":""}" data-sort="price">Price</span><span class="cell-num h-be">B-even</span><span class="cell-num c-pj sortable ${state.sort==="x"?"on":""}" data-sort="x">Proj.</span><span class="cell-num sortable h-ch ${state.sort==="exp"?"on":""}" data-sort="exp">± cr</span><span class="cell-num sortable h-ow ${state.sort==="pop"?"on":""}" data-sort="pop">Owned</span><span class="h-sp">Last 5</span><span class="h-op">Next game</span><span></span><span></span></div>`;
   const body=rows.map(p=>`<div class="mrow${mine.has(p.id)?" mine":""}${av.has(p.id)?" avoid":""}">
     ${pickBtn("pin",p,pins.has(p.id))}
     <div class="who-c"><button type="button" class="who" data-open="${p.id}" aria-haspopup="dialog">${jersey(p.team,p.pos)}<span class="t"><b>${esc(p.name)}</b><small>${facts(TEAMS[p.team][0],POSN[p.pos],mine.has(p.id)&&"your squad",sq.has(p.id)&&!mine.has(p.id)&&"in proposal")}</small><span class="mfacts mobile-only">${facts(["Next",(n=>n?`${n.ha==="H"?"vs":"@"} ${n.opp} ${esc(nextShort(n))}${n.round!=null&&n.round!==D.round?` (R${n.round})`:""}`:null)(nextG(p))],[shown(p).played&&shown(p).cr!=null?"Value":"Exp. change",`<span class="${crShown(p)>0?"pos":crShown(p)<0?"neg":""}">${fmt(crShown(p))} cr</span>`],["Owned",p.pop!=null?`${p.pop}%`:null])}</span></span></button><span class="ptags">${tagTipHtml(p,3)}</span></div>
@@ -2961,17 +2967,19 @@ function market(){
     <span class="h-sp">${spark(p)}</span>
     ${(n=>`<span class="opp h-op"><b>${n?(n.ha==="H"?"vs ":"@ ")+(TEAMS[n.opp]||[n.opp])[0]:"—"}</b><small>${n?facts(n.round!=null&&`R${n.round}`,esc(nextWhen(n))):""}</small></span>`)(nextG(p))}
     ${pickBtn("no",p,av.has(p.id))}
+    ${pickBtn("star",p,stars.has(p.id))}
   </div>`).join("");
-  return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">♥ brings a player in and the other trades are rebuilt around him; on one of yours it keeps him. ⊘ does the opposite. Tap a name for his last five games against break-even.</p></div>
+  return `<section id="market"><div class="sec-head"><div><div class="eyebrow">${P.length} players tracked</div><h2>Player market</h2></div><p class="note" style="max-width:52ch;margin:0">♥ brings a player in and the other trades are rebuilt around him; on one of yours it keeps him. ⊘ does the opposite. ☆ only remembers him for later. Tap a name for his last five games against break-even.</p></div>
   <div class="tools"><input id="q" class="search" type="search" placeholder="Search player or team" value="${esc(state.q)}" aria-label="Search players">
   <div class="seg" id="pos">${["ALL","G","F","C"].map(v=>`<button type="button" data-v="${v}" class="${state.pos===v?"on":""}">${v==="ALL"?"All":v}</button>`).join("")}</div>
   <div class="seg" id="day">${["ALL",...dayKeys].map(v=>`<button type="button" data-v="${v}" class="${state.day===v?"on":""}">${v==="ALL"?"Any day":esc(dayShort(v))}</button>`).join("")}</div>
   <select id="sort" aria-label="Sort by">${[["x","Projection"],["exp","Expected price change"],["val","Points per credit"],["price","Price"],["min","Minutes"],["pop","Ownership"]].map(([v,l])=>`<option value="${v}" ${state.sort===v?"selected":""}>Sort: ${l}</option>`).join("")}</select>
   <button type="button" class="chip-toggle${state.only?" on":""}" id="only" aria-pressed="${state.only}">My squad &amp; picks</button>
+  <button type="button" class="chip-toggle${state.starOnly?" on":""}" id="starOnly" aria-pressed="${!!state.starOnly}">Shortlist</button>
   <select id="tagf" aria-label="Filter by tag"><option value="">Any tag</option>${(()=>{const tc=tagCounts(P);if(state.tag&&!tc.some(([k])=>k===state.tag))tc.push([state.tag,0]);
     return tc.map(([k,n])=>`<option value="${esc(k)}" ${state.tag===k?"selected":""}>${esc(k==="DTD"?"DTD, may play":k)} (${n})</option>`).join("");})()}</select>
   ${(state.pins.length||state.avoids.length||state.coachPin)?'<button type="button" class="chip-toggle" id="clear">Clear picks</button>':""}</div>
-  <div class="mkt">${head}${body||'<div class="lrow"><span class="note">No players match these filters.</span></div>'}</div></section>`;
+  <div class="mkt">${head}${body||`<div class="lrow"><span class="note">${state.starOnly&&!stars.size?"No players on your shortlist: tap ☆ on a player to add him.":"No players match these filters."}</span></div>`}</div></section>`;
 }
 function coaches(){
   const list=C.slice().sort(projSort).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${facts(`${c.price.toFixed(1)} cr`,c.opp&&(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0],esc(dayShort(c.day)),`win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""}`,["Last two",c.last.join(", ")])}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
@@ -3864,6 +3872,7 @@ function bind(){
   const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
   document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{state.sort=b.dataset.sort;rerender();});
   const on1=$("#only");if(on1)on1.onclick=()=>{state.only=!state.only;rerender();};
+  const so1=$("#starOnly");if(so1)so1.onclick=()=>{state.starOnly=!state.starOnly;rerender();};
   const tf=$("#tagf");if(tf)tf.onchange=e=>{state.tag=e.target.value||null;rerender();};
   const cl=$("#clear");if(cl)cl.onclick=()=>{state.pins=[];state.avoids=[];state.coachPin=null;rerender();};
   const q=$("#q");let t;if(q)q.addEventListener("input",e=>{clearTimeout(t);t=setTimeout(()=>{state.q=e.target.value;const pos=q.selectionStart;rerender();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);},250);});
@@ -3872,6 +3881,8 @@ function bind(){
     state.pins=state.pins.filter(x=>x!==i&&x!==o).concat(o);state.avoids=state.avoids.filter(x=>x!==o);rerender();});
   document.querySelectorAll("[data-coach-keep]").forEach(b=>b.onclick=()=>{state.coachPin=b.dataset.coachKeep;rerender();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=toggleId(state.avoids,id);rerender();});
+  // ☆ only remembers him (#131): it never touches ♥ or ⊘
+  document.querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{state.stars=toggleId(state.stars,+b.dataset.star);rerender();});
   document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";dcmp=null;rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;dcmp=null;rerender();});
   // the drawer's compare (#51)
