@@ -30,7 +30,7 @@
  "gems": true,
  "pos": "ALL",
  "day": "2026-10-30",
- "sort": "price",
+ "sort": "pop",
  "only": false,
  "tag": null,
  "dtab": "overview",
@@ -74,5 +74,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-02T13:07:51.573Z"
+ "savedAt": "2026-11-02T13:08:00.775Z"
 }
