@@ -2951,6 +2951,8 @@ function detail(p){
 }
 function market(){
   if(state.tag)state.tag=tagKey(state.tag);
+  // a day saved in an earlier round is no day of this one: it would hide every player and has no button to undo it
+  if(state.day!=="ALL"&&!dayKeys.includes(state.day))state.day="ALL";
   const pins=new Set(state.pins),av=new Set(state.avoids),stars=new Set(state.stars),sq=new Set(result?result.S:[]),mine=new Set(orig.players);
   let rows=P.filter(p=>(state.pos==="ALL"||p.pos===state.pos)&&(state.day==="ALL"||p.day===state.day)&&(!state.only||pins.has(p.id)||av.has(p.id)||mine.has(p.id))&&(!state.starOnly||stars.has(p.id))&&hasTag(p,state.tag)&&(!state.q||(p.name+" "+(TEAMS[p.team]||[""])[0]+" "+p.team).toLowerCase().includes(state.q.toLowerCase())));
   const key={x:p=>projKey(shown(p)),exp:crShown,val:p=>p.val,price:p=>p.price,min:p=>p.min||0,pop:p=>p.pop??-1}[state.sort];

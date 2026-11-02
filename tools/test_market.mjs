@@ -29,3 +29,15 @@ test("phone facts under the name are labelled facts(), with no dot separators", 
   assert.match(f, /crShown\(p\)/, "the credit change goes through crShown (CLAUDE.md rule 7)");
   assert.match(f, /nextG\(p\)/, "the next game goes through nextG (CLAUDE.md rule 7)");
 });
+
+// A saved day filter from a past round matched nobody once the next round's data came: the market showed no players
+// and no day button was on, so there was no way to see why (2 Nov 2026: day "2026-10-30" with Round 10 on 4-6 Nov).
+test("a saved day that is not a day of this round falls back to Any day", () => {
+  const fix = line => new Function("state", "dayKeys", line + "\nreturn state.day;");
+  const l = src.split("\n").find(s => s.includes("state.day") && s.includes("dayKeys.includes"));
+  assert.ok(l, "market() checks the saved day against this round's days");
+  const keys = ["2026-11-04", "2026-11-05", "2026-11-06"];
+  assert.equal(fix(l)({ day: "2026-10-30" }, keys), "ALL");
+  assert.equal(fix(l)({ day: "2026-11-05" }, keys), "2026-11-05");
+  assert.equal(fix(l)({ day: "ALL" }, keys), "ALL");
+});
