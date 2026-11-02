@@ -20,17 +20,18 @@ const next = (opp, ha) => [{ d: "2026-10-21", el: true, oc: opp, opp, ha }, { d:
 // Round 7: PAO vs KBA. No results in the logs, so the win adjustment is 0 and the numbers can be worked by hand.
 // star: own = .6×21 + .4×22 = 21.4, projection = (20 + 21.4)/2 = 20.7, KBA lets guards score +20%
 // bench: own = .6×6 + .4×5 = 5.6, projection = (6 + 5.6)/2 = 5.8, PAO lets forwards score +10%
-// out: did not play, so he is not scored
+// out: Out and did not play, so he is not scored (an Out player who did not play is left out, as before #130)
+// gp: EuroLeague games played before the round; a club's games so far are the most any of its players has (#130)
 // noXpts: no FantaSheet xPTS, so every version uses his form, 8
 const round7 = () => ({
   round: 7, fixtures: [["2026-10-21", "PAO", "KBA"]],
   defence: { KBA: { vs_g: 20, vs_f: 0, vs_c: -10 }, PAO: { vs_g: 0, vs_f: 10, vs_c: 0 } },
   teamNext: { PAO: next("KBA", "H"), KBA: next("PAO", "A") },
   players: [
-    { id: 1, name: "Star", team: "PAO", pos: "G", price: 16, xpts: 20, fpt: 22, log: log(24, 18, 21) },
-    { id: 2, name: "Bench", team: "KBA", pos: "F", price: 5, xpts: 6, fpt: 5, log: log(4, 6, 8) },
-    { id: 3, name: "Out", team: "PAO", pos: "C", price: 10, xpts: 9, fpt: 10, status: "Out", log: log(10, 10, 10) },
-    { id: 4, name: "NoXpts", team: "KBA", pos: "C", price: 9, xpts: 0, fpt: 8, log: log(8) },
+    { id: 1, name: "Star", team: "PAO", pos: "G", price: 16, xpts: 20, fpt: 22, gp: 3, log: log(24, 18, 21) },
+    { id: 2, name: "Bench", team: "KBA", pos: "F", price: 5, xpts: 6, fpt: 5, gp: 4, log: log(4, 6, 8) },
+    { id: 3, name: "Out", team: "PAO", pos: "C", price: 10, xpts: 9, fpt: 10, gp: 3, status: "Out", log: log(10, 10, 10) },
+    { id: 4, name: "NoXpts", team: "KBA", pos: "C", price: 9, xpts: 0, fpt: 8, gp: 1, log: log(8) },
   ],
   coaches: [{ team: "PAO", price: 10 }, { team: "KBA", price: 5 }],
   actual: { players: { 1: { fpt: 30, min: 30 }, 2: { fpt: 2, min: 10 }, 3: null, 4: { fpt: 10, min: 20 } }, coaches: { PAO: 10, KBA: -5 } },
@@ -77,6 +78,54 @@ test("an Out player who still played counts as a 0 projection", () => {
   near(t.bias, (-2 - 6) / 2);
 });
 
+// #130: a fit player whose club played but who did not play scored 0 for your team, so he is scored as 0
+test("a fit player who did not play counts as a 0 score, in every version", () => {
+  const r = round7(); r.actual.players[4] = null; // NoXpts (8 in every version but chance to play) sat out
+  const S = scoreRounds([r]);
+  const t = row(S, "today").last.all;
+  assert.equal(t.n, 3);
+  near(t.bias, (-9.3 + 3.8 + 8) / 3);
+  near(row(S, "form").last.mid.bias, 8);
+  near(row(S, "pace").last.mid.bias, 8);
+  assert.equal(row(S, "xpts").last.all.n, 3);
+});
+
+test("an Out player who did not play is not scored, as before", () => {
+  const S = scoreRounds([round7()]);
+  // Out (10 cr) would be the only other 8–14 player besides NoXpts
+  for (const r of S.rows.filter(r => r.key !== "look")) assert.equal(r.last.mid.n, 1, r.key);
+});
+
+test("a player whose club did not play this round is not scored", () => {
+  const r = round7();
+  r.players.push({ id: 5, name: "Idle", team: "MAD", pos: "G", price: 12, xpts: 10, fpt: 10, gp: 3, log: log(10) });
+  r.actual.players[5] = null; // even if the actual had him, MAD is not in the round's fixtures
+  const S = scoreRounds([r]);
+  for (const k of ["today", "form", "play"]) assert.equal(row(S, k).last.all.n, 3, k);
+});
+
+test("× chance to play: today's projection × his games played over his club's games so far", () => {
+  const r = round7(); r.actual.players[4] = null;
+  const S = scoreRounds([r]);
+  const p = row(S, "play");
+  assert.equal(p.label, "× chance to play");
+  // KBA's most games is Bench's 4: NoXpts played 1 of 4, so 8 × 0.25 = 2 against 0; Star 3 of 3 and Bench 4 of 4 stay
+  near(p.last.mid.bias, 2);
+  near(p.last.all.bias, (-9.3 + 3.8 + 2) / 3);
+  // no gp: chance 1
+  const q = round7(); q.players.forEach(p => delete p.gp);
+  near(row(scoreRounds([q]), "play").last.all.mae, row(scoreRounds([q]), "today").last.all.mae);
+});
+
+test("× chance to play goes beside the price-band fix and learns nothing from the round it scores", () => {
+  const keys = scoreRounds([round7()]).rows.map(r => r.key);
+  assert.equal(keys.indexOf("play"), keys.indexOf("band") + 1);
+  // the chance comes from the snapshot's gp alone: whether he played this round does not move it
+  const r = round7(); r.actual.players[4] = null;
+  const x = S => row(S, "play").last.mid;
+  near(x(scoreRounds([r])).bias - x(scoreRounds([round7()])).bias, 10); // 2 vs 0 against 2 vs 10
+});
+
 test("coaches: projected points against what they scored", () => {
   const r = round7(), S = scoreRounds([r]);
   const x = Object.fromEntries(project(r).coaches.map(c => [c.team, c.x]));
@@ -89,9 +138,10 @@ test("the look-ahead: round 7's next-round projection against round 8's actual",
   const S = scoreRounds([round7(), r8]);
   assert.equal(S.last, 8);
   const la = row(S, "look").last.all;
-  // star: 20.7 with next round's +20% matchup at trust 0.5 = 22.8, against 25
-  assert.equal(la.n, 1);
-  near(la.bias, 22.8 - 25);
+  // star: 20.7 with next round's +20% matchup at trust 0.5 = 22.8, against 25; Bench (5.8 + 0.3 = 6.1) and NoXpts (8)
+  // sat out round 8 while their club played: 0 each (#130)
+  assert.equal(la.n, 3);
+  near(la.bias, (22.8 - 25 + 6.1 + 8) / 3);
   assert.equal(row(scoreRounds([round7()]), "look").last.all.n, 0);
 });
 
@@ -101,8 +151,8 @@ test("the look-ahead from a history snapshot: teamNext without el or oc, opponen
   const r7 = round7(); r7.teamNext = { PAO: snap("KBA", "Kauno Basket", "H"), KBA: snap("PAO", "Panathinaikos", "A") };
   const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 25, min: 30 }, 2: null, 4: null };
   const la = row(scoreRounds([r7, r8]), "look").last.all;
-  assert.equal(la.n, 1);
-  near(la.bias, 22.8 - 25);
+  assert.equal(la.n, 3);
+  near(la.bias, (22.8 - 25 + 6.1 + 8) / 3);
 });
 
 test("a live domestic game (el: false) is never the look-ahead game", () => {
@@ -117,9 +167,10 @@ test("the season adds up every finished round; last round is the latest one", ()
   const r8 = round7(); r8.round = 8; r8.actual.players = { 1: { fpt: 20.7, min: 30 }, 2: null, 4: null };
   const S = scoreRounds([r8, round7()]);
   const t = row(S, "today");
-  assert.equal(t.last.all.n, 1); near(t.last.all.mae, 0);
-  assert.equal(t.season.all.n, 4);
-  near(t.season.all.mae, (9.3 + 3.8 + 2 + 0) / 4);
+  // round 8: Star spot on, Bench (5.8) and NoXpts (8) sat out: 0 each
+  assert.equal(t.last.all.n, 3); near(t.last.all.mae, (0 + 5.8 + 8) / 3);
+  assert.equal(t.season.all.n, 6);
+  near(t.season.all.mae, (9.3 + 3.8 + 2 + 0 + 5.8 + 8) / 6);
 });
 
 test("the best version is the one with the smallest season miss, look-ahead aside", () => {
@@ -207,7 +258,7 @@ const cheap = (r, fpt) => {
     r.players.push({ id: 100 + i, name: `Cheap ${i}`, team: "KBA", pos: "F", price: 5, xpts: 6, fpt: 5, log: log(4, 6, 8) });
     r.actual.players[100 + i] = fpt == null ? null : { fpt, min: 15 };
   }
-  r.actual.players[2] = null; // Bench sits out, so the band is only the 30
+  r.players.find(p => p.id === 2).status = "Out"; r.actual.players[2] = null; // Bench is Out, so the band is only the 30
   return r;
 };
 test("+ price-band fix: round 7 has no earlier round, so it is today's projection", () => {
@@ -246,9 +297,9 @@ test("one round's view: every version, the coaches and the plain line show that 
   assert.equal(v7.coaches.last.n, 2);
   assert.match(scSummary(v7, "last", "all").join(" "), /round 7|within/);
   // the season and the latest round are left as they were
-  assert.equal(row(v7, "today").season.all.n, 4);
-  assert.equal(row(scAt(S, 8), "today").last.all.n, 1);
-  assert.equal(row(S, "today").last.all.n, 1);
+  assert.equal(row(v7, "today").season.all.n, 6);
+  assert.equal(row(scAt(S, 8), "today").last.all.n, 3);
+  assert.equal(row(S, "today").last.all.n, 3);
 });
 
 test("one round's view: a version with no players that round shows none", () => {

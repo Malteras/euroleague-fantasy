@@ -1140,11 +1140,12 @@ function project(data){
 
 // scorecard:begin
 // How each version of the projection did against what really happened, from the history/round-N.json files once their
-// actuals are in. Measuring only: the live weights stay as they are. Only players who played are scored; an Out player who
-// still played counts as a 0 projection in every version, and a player without an xPTS uses his form in every version.
+// actuals are in. Measuring only: the live weights stay as they are. Every player whose club played is scored, and one who
+// did not play counts as a 0 score: he scores 0 in your team (#130). An Out player is scored only if he played, then as a
+// 0 projection in every version; a player without an xPTS uses his form in every version.
 const SC_VERSIONS=[["xpts","FantaSheet xPTS alone"],["form","Form alone"],["today","Today's projection"],
   ["m25","+ matchup, trust 0.25"],["m50","+ matchup, trust 0.5"],["m75","+ matchup, trust 0.75"],["pace","+ matchup + pace"],
-  ["band","+ price-band fix"],["look","Look-ahead"]];
+  ["band","+ price-band fix"],["play","× chance to play"],["look","Look-ahead"]];
 // Pace (#28): his usual game is about (his club's pace + the league's) ÷ 2 possessions a side, this one (his club's + the
 // opponent's) ÷ 2, so the projection moves by x × (opponent − average) ÷ (club + average). 0 when a pace is missing.
 const paceAdj=(x,club,opp,avg)=>club==null||opp==null||!avg?0:r1(x*(opp-avg)/(club+avg));
@@ -1170,19 +1171,29 @@ function scoreRounds(snaps,paceHist={}){
     // each club's pace as the round's deadline saw it, and the league average of those
     const pc=c=>{const d=(s.defence||{})[c];return d&&d.pace!=null?d.pace:((paceHist[N]||{})[c]??null);};
     const pv=Object.keys({...(s.defence||{}),...(paceHist[N]||{})}).map(pc).filter(v=>v!=null),pAvg=pv.length?pv.reduce((a,b)=>a+b,0)/pv.length:null;
+    // × chance to play (#130): his EuroLeague games played (gp) over his club's games so far, the most gp any of its players
+    // has. Both are from the snapshot, before the round, so nothing is learned from the round being scored.
+    const cg={};s.players.forEach(p=>{if(p.gp!=null)cg[p.team]=Math.max(cg[p.team]||0,p.gp);});
+    const chance=p=>p.gp!=null&&cg[p.team]>0?Math.min(1,p.gp/cg[p.team]):1;
+    // what he scored: null when he is not scored (his club did not play, or he is Out and did not play), 0 when he was fit
+    // and sat out while his club played
+    const scored=(snap,p,inRound)=>{if(!done(snap)||!inRound)return null;const a=snap.actual.players[p.id];
+      return a?a.fpt:a===null&&!p.out?0:null;};
+    const nxIn=nx?new Set((nx.fixtures||[]).flatMap(f=>[f[1],f[2]])):null;
     for(const p of R.players){
-      const a=done(s)?s.actual.players[p.id]:null;
-      if(a){
+      const y=scored(s,p,!!R.oppOf[p.team]);
+      if(y!=null){
         const m=t=>p.mu==null||p.out?p.x:r1(p.x+r1(t*p.x*p.mu/100));
-        add("xpts",N,won(p,p.xpts>0?p.xpts:p.own),a.fpt,p.price);
-        add("form",N,won(p,p.own),a.fpt,p.price);
-        add("today",N,p.x,a.fpt,p.price,p.out);
-        add("m25",N,m(.25),a.fpt,p.price);add("m50",N,m(.5),a.fpt,p.price);add("m75",N,m(.75),a.fpt,p.price);
-        const xm=m(MT);add("pace",N,p.out?xm:r1(xm+paceAdj(xm,pc(p.team),pc((R.oppOf[p.team]||{}).opp),pAvg)),a.fpt,p.price);
+        add("xpts",N,won(p,p.xpts>0?p.xpts:p.own),y,p.price);
+        add("form",N,won(p,p.own),y,p.price);
+        add("today",N,p.x,y,p.price,p.out);
+        add("m25",N,m(.25),y,p.price);add("m50",N,m(.5),y,p.price);add("m75",N,m(.75),y,p.price);
+        const xm=m(MT);add("pace",N,p.out?xm:r1(xm+paceAdj(xm,pc(p.team),pc((R.oppOf[p.team]||{}).opp),pAvg)),y,p.price);
+        add("play",N,r1(p.x*chance(p)),y,p.price);
       }
       // the look-ahead: his next-round projection (as nProj) against what he scored next round
-      const a2=done(nx)?nx.actual.players[p.id]:null;
-      if(a2&&p.opp2){const x=p.x-p.wa+p.wa2,mm=matchup(p,p.opp2,s.defence);add("look",N+1,p.out?0:r1(x+(mm==null?0:MT*x*mm/100)),a2.fpt,p.price);}
+      const y2=nx?scored(nx,p,nxIn.has(p.team)):null;
+      if(y2!=null&&p.opp2){const x=p.x-p.wa+p.wa2,mm=matchup(p,p.opp2,s.defence);add("look",N+1,p.out?0:r1(x+(mm==null?0:MT*x*mm/100)),y2,p.price);}
     }
     const ac=done(s)&&s.actual.coaches;
     if(ac)R.coaches.filter(c=>c.opp&&ac[c.team]!=null).forEach(c=>add("coach",N,c.x,ac[c.team],c.price));
@@ -3002,8 +3013,8 @@ function loadHistory(){
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",band:"learned from earlier rounds",look:"next round"};
 // the column headers and their tooltips (#107)
-const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. “+ matchup + pace” adds the opponent's pace (possessions a game) against the league average; no proposal uses it yet. “+ price-band fix” is today's projection less the lean its price band (under 8, 8–14, 14+ cr) had in the rounds before, for a band with at least 30 players; the first round has nothing before it. No proposal uses it yet. Look-ahead is the projection made one round early."],
-  ["Average miss (points)","How far the projection was from what he scored, high or low, averaged over the players who played. Lower is better."],
+const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. “+ matchup + pace” adds the opponent's pace (possessions a game) against the league average; no proposal uses it yet. “+ price-band fix” is today's projection less the lean its price band (under 8, 8–14, 14+ cr) had in the rounds before, for a band with at least 30 players; the first round has nothing before it. No proposal uses it yet. “× chance to play” is today's projection times his EuroLeague games played over his club's games so far; no proposal uses it yet. Look-ahead is the projection made one round early."],
+  ["Average miss (points)","How far the projection was from what he scored, high or low, averaged over every player whose club played. One who sat out scored 0. Lower is better."],
   ["Bias","Whether the misses lean one way. “Too low” means players scored more than projected. A fraction of a point means no real lean."]];
 function scoreCard(){
   const head=`<div class="card sc" id="scCard"><h3>How the projections did</h3>`;
@@ -3027,7 +3038,7 @@ function scoreCard(){
   const c=S.coaches[sp];
   const co=c.n?`<p class="note sc-co">Coaches: off by ${f(c.mae)} points a club on average, ${bias(c.bias)} (${c.n} club${c.n>1?"s":""}).</p>`:"";
   return head+top+ctl+`<div class="sc-h">${SC_HEAD.map(([h,t])=>`<span>${h}<span class="ico sc-info has-tip" tabindex="0" role="button" aria-label="${h}: what it means">i${tipPick("How the projections did",h,t)}</span></span>`).join("")}</div>${rows}${co}
-    <p class="note sc-foot">Only players who played. An Out player counts as 0; a player without an xPTS uses his form in every version.</p></div>`;
+    <p class="note sc-foot">Every player whose club played. A player who sat out scored 0, as he does in your team. An Out player counts only if he played, then as a 0 projection. A player without an xPTS uses his form in every version.</p></div>`;
 }
 /* ---------- end of round: his score against the deadline proposal and the best team in hindsight (#30) ---------- */
 function redrawRound(){const el=document.getElementById("rrCard");if(el)el.outerHTML=roundCard();}
