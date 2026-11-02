@@ -28,7 +28,7 @@
  "chase": true,
  "gems": true,
  "pos": "ALL",
- "day": "2026-10-30",
+ "day": "ALL",
  "sort": "pop",
  "only": false,
  "tag": null,
@@ -56,5 +56,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-02T13:17:27.381Z"
+ "savedAt": "2026-11-02T13:23:04.610Z"
 }
