@@ -3,11 +3,11 @@
  "players": [
   56,
   291,
-  152,
+  38,
   118,
   7,
   352,
-  38,
+  152,
   176,
   12,
   361
@@ -17,24 +17,24 @@
  "slots": [
   56,
   291,
-  152,
+  38,
   118,
   7,
   352,
-  38,
+  152,
   176,
   12,
   361
  ],
- "cap": 7,
+ "cap": 38,
  "names": [
   "Jonas Valančiūnas",
   "Armoni Brooks",
-  "Luka Vildoza",
+  "Andrés Feliz",
   "Aliou Diarra",
   "Sasha Vezenkov",
   "Sebastian Herrera",
-  "Andrés Feliz",
+  "Luka Vildoza",
   "Oscar da Silva",
   "Kostas Papanikolaou",
   "Dejan Davidovac"
