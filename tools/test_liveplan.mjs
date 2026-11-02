@@ -17,8 +17,9 @@ const json = f => JSON.parse(readFileSync(new URL(f, import.meta.url), "utf8"));
 
 // Round 9 as it was on 30 Oct 2026: Thursday played, Friday to play. The snapshot's squad is an older save (captain
 // Bryant, 73); he played Feliz, Madar and the rest with Madar (245) as captain, and moved the armband to Vezenkov (7).
-const snap = json("../history/round-9.json"), data = json("../data.json"), saved = json("../squad.json");
-const logs = Object.fromEntries(data.players.map(p => [p.id, p.log]));
+// His save and the game logs are frozen as they were that day (tools/fixtures/round-9-thursday.json): the live
+// squad.json and data.json move on every round, and once he saved Round 10's team this test read a finished round.
+const snap = json("../history/round-9.json"), { saved, logs } = json("fixtures/round-9-thursday.json");
 const [THU, FRI] = ["2026-10-29", "2026-10-30"];
 
 test("Round 9: the walk starts at Madar, his captain, with his own keep mark; not at the plan's Feliz", () => {
