@@ -34,7 +34,24 @@
  "allGames": true,
  "collapsed": [],
  "form": null,
- "team": null,
+ "team": {
+  "slots": [
+   56,
+   245,
+   160,
+   118,
+   7,
+   352,
+   38,
+   176,
+   185,
+   361
+  ],
+  "coach": "CZV",
+  "bank": 0.8,
+  "cap": 7,
+  "base": "2026-11-02"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -54,5 +71,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-02T13:03:48.884Z"
+ "savedAt": "2026-11-02T13:04:13.215Z"
 }
