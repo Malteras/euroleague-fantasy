@@ -7,9 +7,9 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const cut = (a, b) => html.slice(html.indexOf(a), html.indexOf(b));
 const line = s => html.slice(html.indexOf(s), html.indexOf("\n", html.indexOf(s)));
-const { differential, lessOwned, diffHtml } = new Function([line("const esc="), line("const r1="), cut("// facts:begin", "// facts:end"),
+const { differential, lessOwned, diffHtml, capSentence } = new Function([line("const esc="), line("const r1="), cut("// facts:begin", "// facts:end"),
   line("const tipTxt="), line("const tipPick="), cut("// differential:begin", "// differential:end")].join("\n")
-  + "\nreturn {differential,lessOwned,diffHtml};")();
+  + "\nreturn {differential,lessOwned,diffHtml,capSentence};")();
 
 const pl = (short, x, pop, more = {}) => ({ short, x, pop, ...more });
 
@@ -75,4 +75,21 @@ test("Chase rank's line says what it took and over whom, with the site's tooltip
   assert.match(h, /<small>Chase rank<\/small><b>Hayes instead of Moore<\/b>/);
   assert.match(h, /Chase rank is on, so the planner took him\./);
   assert.doesNotMatch(h, /A hint only|title=| · /);
+});
+
+// QA on 2 Nov 2026: "why would you captain the guy with the smaller projection?" Abalde (11, 8.4%) over Feliz (12.5, 31.7%).
+// The reason sat in a grey line under the sentence; now the captain sentence says it.
+test("the captain sentence says why when Chase rank took a less owned captain", () => {
+  const name = p => `<b>${p.short}</b>`;
+  const feliz = pl("Feliz", 12.5, 31.7), abalde = pl("Abalde", 11, 8.4);
+  const h = capSentence(abalde, "Turn 1", name, { from: feliz, d: differential(feliz, [abalde]) });
+  assert.match(h, /^Captain <b>Abalde<\/b> \(Turn 1, proj 11\), not <b>Feliz<\/b> \(proj 12\.5\): <span class="diff has-tip" tabindex="0">Chase rank<span class="tip tip-pick"/);
+  assert.match(h, /<\/span><\/span> takes the far less owned player, 8\.4% of teams against 31\.7%\. He plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband\.$/);
+  assert.match(h, /Chase rank is on, so the planner took him\./, "the tooltip says how to get the best projection back");
+  assert.doesNotMatch(h, /·|\stitle=/);
+});
+
+test("without Chase rank the captain sentence is the plan's reason only", () => {
+  const h = capSentence(pl("Feliz", 12.5, 31.7), "Turn 1", p => `<b>${p.short}</b>`, null);
+  assert.equal(h, "Captain <b>Feliz</b> (Turn 1, proj 12.5): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.");
 });

@@ -2816,7 +2816,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
   const nT=pairs.filter(p=>p[1]).length+(coachChanged?1:0);
   const applyBtn=`<button type="button" class="btn-primary" data-apply>${noTrades?"Apply lineup & captain to My team":"Apply plan to My team"}</button>`;
   const nowBody=(noTrades?(justApplied?`<div class="appliedbox">✓ ${justApplied} trade${justApplied===1?"":"s"} applied to <a href="#myteam">My team</a>. Check the lineup there, then press <b>Save for daily report</b>.</div>`:`<p class="tl-lbl">No trade needed</p><p class="note" style="margin:0 0 10px">Nothing beats your squad under these settings.</p>`):`<p class="tl-lbl">Make ${nT} trade${nT===1?"":"s"}</p><div class="tl-trades">${tr}</div>`)
-    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. Captain ${name(cap0)} (${esc(turnOf2(cap0.day))}, proj ${cap0.x}): he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.</p>${capDiff(cap0,ps,R.chase&&R.chase.cap)}
+    +`<p class="tl-warn" style="margin:10px 0 0">Last chance to trade: no trades between the turns of this round. After the deadline you can only swap bench and court players and move the captain.</p><p class="tl-lbl">${facts("Set the lineup",["Formation",form])}</p><p class="tl-txt">Start the five on the court${six?`, 6th man ${name(six)}`:""}. ${capSentence(cap0,turnOf2(cap0.day),name,R.chase&&R.chase.cap)}</p>${capDiff(cap0,ps,R.chase&&R.chase.cap)}
     <div class="tl-act">${applyBtn}<span class="note">Changes My team only. Nothing changes in the game or the daily report until you press Save there.</span></div>`;
   const nextDay=d=>dayKeys[dayKeys.indexOf(d)+1];
   const capActs=live?liveCap.steps:capSteps(capPath,name,turnOf2).map(a=>({...a,day:nextDay(a.day)}));
@@ -2860,7 +2860,7 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
 // Only at the deadline: once the round has started the captain is his own, moved by the turn-by-turn plan.
 // chased: Chase rank's swap ({from, d}), said instead of a hint
 function capDiff(cap,ps,chased){
-  if(chased)return `<p class="note tl-diff">${diffHtml(chased.from,chased.d,"Captain",true)}</p>`;
+  if(chased)return ""; // capSentence() says it in the captain sentence
   const d=differential(cap,capDiffPool(cap,ps));
   return d?`<p class="note tl-diff">${diffHtml(cap,d,"Captain")}</p>`:"";
 }
@@ -3580,6 +3580,17 @@ function diffHtml(pick,d,what,chosen){
   return `<span class="diff has-tip" tabindex="0">${chosen?`Chase rank: ${esc(d.p.short)} over ${esc(pick.short)}`:`Differential: ${esc(d.p.short)}`}, ${by}, owned by ${d.p.pop}% vs ${pick.pop}%`
     +tipPick(ctx,`${d.p.short} instead of ${pick.short}`,`${what}: projected ${v.toFixed(1)} against ${v0.toFixed(1)}. Owned by ${d.p.pop}% of teams against ${pick.pop}%. Points few teams get are what climbs the ranking.`,
       chosen?"Chase rank is on, so the planner took him. Turn it off in the settings above to get the best projection back.":"A hint only: the plan does not change.")+`</span>`;
+}
+// The plan's captain sentence. chased: {from, d} when Chase rank took him instead of the best projection; the sentence
+// then says whom he was taken over and why, with the setting's tooltip on its name (QA, 2 Nov 2026: Abalde over Feliz)
+function capSentence(cap,turn,name,chased){
+  const why="he plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.";
+  if(!chased)return `Captain ${name(cap)} (${esc(turn)}, proj ${cap.x}): ${why}`;
+  const f=chased.from;
+  return `Captain ${name(cap)} (${esc(turn)}, proj ${cap.x}), not ${name(f)} (proj ${f.x}): <span class="diff has-tip" tabindex="0">Chase rank`
+    +tipPick("Chase rank",`${cap.short} instead of ${f.short}`,`Captain: projected ${r1(chased.d.v).toFixed(1)} against ${r1(chased.d.v0).toFixed(1)}. Owned by ${cap.pop}% of teams against ${f.pop}%. Points few teams get are what climbs the ranking.`,
+      "Chase rank is on, so the planner took him. Turn it off in the settings above to get the best projection back.")
+    +`</span> takes the far less owned player, ${cap.pop}% of teams against ${f.pop}%. He plays first, so a big game is doubled and a quiet one costs nothing, because you can still move the armband.`;
 }
 // differential:end
 // gems:begin
