@@ -739,6 +739,7 @@ html.locked,html.locked body{overflow:hidden}
 .sc-row{padding:7px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
 .sc-row.best{background:var(--accent-soft);border-radius:8px}
 .sc-row.best .sc-v{font-weight:700}
+.sc-v .sc-info{display:inline-grid;vertical-align:-3px;margin-left:6px;font-weight:800}
 .sc-v small,.sc-b small{display:block;font-size:12px;color:var(--muted)}
 .sc-m{display:flex;align-items:center;gap:8px}
 .sc-bar{flex:1;height:8px;border-radius:4px;background:var(--line-soft);overflow:hidden;min-width:24px}
@@ -3012,8 +3013,22 @@ function loadHistory(){
 }
 function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",band:"learned from earlier rounds",look:"next round"};
+// what each version is, in plain words, for the i beside its name: [text, who uses it]
+const SC_MT=t=>`Today's projection plus ${t} of the matchup: how much more or less this opponent lets players of his position score than an average defence.`;
+const SC_TIP={
+  xpts:["FantaSheet's expected points (xPTS) for this game, and nothing else. It shows whether FantaSheet alone does better than mixing in his form.","No proposal uses it."],
+  form:["His own recent EuroLeague scores and nothing from FantaSheet: 60% his last 3 games, 40% his season average.","No proposal uses it."],
+  today:["Half FantaSheet xPTS, half his form, then moved a little by how likely his club is to win this game. A Doubtful player counts 30% of it, a Day to day player 75%.","Proposal 1 uses it."],
+  m25:[SC_MT("a quarter"),"No proposal uses it."],
+  m50:[SC_MT("half"),"Proposal 2 uses it."],
+  m75:[SC_MT("three quarters"),"No proposal uses it."],
+  pace:["Proposal 2's projection, then moved by pace. Against a fast opponent (more possessions a game than the league average) he gets more chances to score; against a slow one, fewer.","No proposal uses it."],
+  band:["Today's projection, corrected by how far off it was for his price band (under 8, 8–14, 14+ cr) in the earlier rounds. If cheap players scored 2 points more than projected before, cheap players get 2 more. Only for a band with at least 30 players; the first round has nothing before it.","No proposal uses it."],
+  play:["Today's projection times how often he has played. A player who played 3 of his club's 6 EuroLeague games counts 50%. A player who sits out scores 0 in your team, so this tests whether lowering players who often sit out makes the projection miss less.","No proposal uses it. If it misses least in most rounds, it can become the live projection."],
+  look:["The projection for this round made one round early, before last round's games. It shows how far planning a round ahead can be trusted. It scores a different set of players (two rounds in a row), so it is never named the best.","Proposal 2 counts half of it for a trade, which stays next round."]};
+const scTip=r=>SC_TIP[r.key]?`<span class="ico sc-info has-tip" tabindex="0" role="button" aria-label="${esc(r.label)}: what it means">i${tipPick("How the projections did",r.label,...SC_TIP[r.key])}</span>`:"";
 // the column headers and their tooltips (#107)
-const SC_HEAD=[["Version","Each way of building a projection. Today's projection (half xPTS, half form) is what Proposal 1 uses. “+ matchup, trust 0.5” is today's projection nudged by half of the opponent's matchup number; Proposal 2 uses it. “+ matchup + pace” adds the opponent's pace (possessions a game) against the league average; no proposal uses it yet. “+ price-band fix” is today's projection less the lean its price band (under 8, 8–14, 14+ cr) had in the rounds before, for a band with at least 30 players; the first round has nothing before it. No proposal uses it yet. “× chance to play” is today's projection times his EuroLeague games played over his club's games so far; no proposal uses it yet. Look-ahead is the projection made one round early."],
+const SC_HEAD=[["Version","Each way of building a projection, scored against what the players really did. The i beside each one says what it is and which proposal uses it."],
   ["Average miss (points)","How far the projection was from what he scored, high or low, averaged over every player whose club played. One who sat out scored 0. Lower is better."],
   ["Bias","Whether the misses lean one way. “Too low” means players scored more than projected. A fraction of a point means no real lean."]];
 function scoreCard(){
@@ -3032,7 +3047,7 @@ function scoreCard(){
   const seg=(k,opts)=>`<div class="seg sm" role="group">${opts.map(([v,l])=>`<button type="button" data-sc-${k}="${v}" class="${scView[k]===v?"on":""}" aria-pressed="${scView[k]===v}">${l}</button>`).join("")}</div>`;
   const ctl=`<div class="sc-ctl">${seg("span",[...S0.rounds.map(n=>[String(n),`Round ${n}`]),["season","All rounds"]])}${seg("band",[["all","All"],["lo","Under 8"],["mid","8–14"],["hi","14+"]])}</div>`;
   const st=S.rows.map(r=>[r,r[sp][bd]]),max=Math.max(...st.map(([,s])=>s.mae||0),1);
-  const rows=st.map(([r,s])=>`<div class="sc-row${S.best&&r.key===S.best.key?" best":""}"><span class="sc-v">${esc(r.label)}${SC_NOTE[r.key]?`<small>${SC_NOTE[r.key]}</small>`:""}</span>`+
+  const rows=st.map(([r,s])=>`<div class="sc-row${S.best&&r.key===S.best.key?" best":""}"><span class="sc-v">${esc(r.label)}${scTip(r)}${SC_NOTE[r.key]?`<small>${SC_NOTE[r.key]}</small>`:""}</span>`+
     (s.n?`<span class="sc-m"><b>${f(s.mae)}</b><span class="sc-bar"><i style="width:${(100*s.mae/max).toFixed(1)}%"></i></span></span><span class="sc-b">${bias(s.bias)}<small>${s.n} player${s.n>1?"s":""}</small></span>`
       :`<span class="sc-m muted">–</span><span class="sc-b muted">${r.key==="look"?"needs two rounds in a row":"no players"}</span>`)+`</div>`).join("");
   const c=S.coaches[sp];

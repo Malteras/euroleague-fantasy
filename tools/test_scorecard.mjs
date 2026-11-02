@@ -306,3 +306,12 @@ test("one round's view: a version with no players that round shows none", () => 
   const S = scoreRounds([round7()]);
   assert.equal(row(scAt(S, 7), "look").last.all.n, 0);
 });
+
+// Every version carries an i with the site's tooltip saying what it is and who uses it
+test("every version has a tooltip of its own", () => {
+  const tips = html.slice(html.indexOf("const SC_TIP={"), html.indexOf("const scTip="));
+  const keys = [...html.slice(html.indexOf("const SC_VERSIONS="), html.indexOf("// Pace (#28)")).matchAll(/\["(\w+)","/g)].map(m => m[1]);
+  assert.ok(keys.length >= 10);
+  for (const k of keys) assert.match(tips, new RegExp(`\\b${k}:\\[`), k);
+  assert.match(html, /<span class="sc-v">\$\{esc\(r\.label\)\}\$\{scTip\(r\)\}/);
+});
