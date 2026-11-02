@@ -102,6 +102,35 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Dates from the browser (#67):** Chromium wrote "Wed, 28 Oct" and "29 Sept"; Node wrote "Wed 28 Oct", so tests passed
   and the page differed. **Guard:** `dayFmt()` in index.html for every date shown; check dates in the browser, not in Node.
 
+## 23 Oct 2026 · the builder moved the deadline to the last game day: "Trades close Today" and 4 trades on Friday
+- **What:** the Friday build of Round 7 wrote `deadline: "2026-10-23"`, only Friday's 3 games in `fixtures` and only Friday
+  in `turns`. The site said "Trades close Today" and proposed 4 trades in a round that had started on Wednesday. The daily
+  run put the three fields back by hand.
+- **Why:** the builder made the round's fixtures from each player's next game. Once a club has played, its next game is
+  next round's, so every played game of the round dropped out, and the deadline became the first day still to play.
+- **Guard:** `round_schedule()` in tools/elbuild.py keeps the round's games from the previous data.json and the history
+  snapshot (history/round-N.json) when the round is the same; the deadline is the round's first game day. A game of today
+  that comes without its tip-off time keeps the time it had. Tests: tools/test_elbuild.py `RoundScheduleTest`.
+
+## 26 Oct 2026 · 3 more trades proposed after he had made his 4
+- **What:** he saved 4 Round 8 trades on My team (Faye → Nebo, Etienne → Madar, Ndiaye → Ricci, coach Masiulis → Navarro).
+  The site still showed "3 / 4 trades used" and proposed Nebo → Hayes, Davidovac → da Silva and Ricci → Frisch on top: 7 trades.
+- **Why:** the planner counted trades from My team, so every save started the count again at 0.
+- **Guard:** the builder writes `tradeBase` (the squad that played the round before, `trade_base()` in tools/elbuild.py);
+  `trades()` in index.html counts from it, so a re-trade of a player bought this round is still one trade and undoing a trade
+  frees it. The Trades card lists the trades made and marks rows that change one. Tests: tools/test_optimiser.mjs (the two
+  "made this round" tests) and tools/test_elbuild.py `TradeBaseTest`.
+
+## 29 Oct 2026 · Leave out + Must have asked for 5 trades when 4 fit
+- **What:** he left out Bryant, Maledon, Ojeleye and Hayes and pinned Vezenkov and Valančiūnas, 4 trades within budget
+  (13.8 cr left for two guards). The planner proposed 5 (da Silva → Frisch too) and warned "Valančiūnas only fits if other
+  moves free up credits. Your picks need 5 trades".
+- **Why:** `searchPlan()` replaced each left-out player first with its own best affordable pick, spending the budget, and
+  only then looked for a slot for each pin, so a pin pushed out a player he had not left out.
+- **Guard:** pins go first, into the slot of a left-out player of the same position; the left-out players still to
+  replace then get the best player the budget allows while keeping enough for the cheapest player for each slot after
+  them. Test: tools/test_optimiser.mjs "left-out players make room for the pinned ones first".
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
@@ -156,3 +185,40 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   for played players (#66) but the tags beside it were not.
 - **Guard:** `capOptions()` in index.html leaves out players who have played; `tagsFor()` shows none of Captain option,
   Must have, Consider for next round or Rise for him. tools/test_tags.mjs has a played and an unplayed player.
+
+## 22 Oct 2026 · "not merged" said without checking, twice (#86, #87)
+- **What:** I told him PR #87 was not merged and asked him to merge it before the next ticket. It had been merged 18
+  minutes before. Earlier the same day I said the orange tags were "on main" and called a branch preview "the live site",
+  without checking either. He went looking for changes that were not where I said they were.
+- **Why:** I spoke from what I remembered of the session, not from the repository. He merges PRs while I work.
+- **Guard:** CLAUDE.md Part A: never say merged / not merged / live / deployed before checking right then
+  (`git fetch origin main` and `git log origin/main..<branch>`, or the PR's state on GitHub). A
+  `…-git-<branch>-….vercel.app` address is the branch preview, not main.
+
+## 28 Oct 2026 · "Your players' matchups" listed players who were not his (#106)
+- **What:** during Round 8 the Bottom line listed Ndiaye and Vezenkov at Beşiktaş under "Your players' matchups". Ndiaye
+  had been sold and Vezenkov was never bought.
+- **Why:** the card read the planner's proposal (`result.S`). Before the deadline that is the team he is about to make;
+  once trades close it is a squad he can no longer get.
+- **Guard:** `blMatchSquad()` in index.html: his saved team during a round, the proposal before the deadline, and the
+  heading says "proposed squad" when the two differ; tools/test_bottomline.mjs covers both.
+
+## 28 Oct 2026 · "Round 7, turn by turn" showed Ndiaye as the Turn 3 captain; Etienne was (#109)
+- **What:** once Round 7 was over, the card counted a squad he never played: Madar instead of Etienne, Ndiaye on the
+  bench. Its captain walk then gave Turn 3 to Ndiaye, where the site had told him Etienne during the round.
+- **Why:** the history snapshot is taken on the first run of deadline day (13:18 UTC). He saved his trades from the site at
+  17:08, so the snapshot kept his team from before them. During the round the card used his saved team; once he saved
+  next round's team, it fell back to the stale snapshot. Round 8's snapshot had the same problem.
+- **Guard:** `fill_played()` in tools/elbuild.py records `played` (his last save between the deadline and the round's last
+  game day) in history/round-N.json; `turnReview()` counts it once the round is over. Rounds 7 and 8 were filled from the
+  squad.json saves in git. Tests: tools/test_elbuild.py, tools/test_review.mjs. Player ids are the same in every data file;
+  that was checked, not assumed.
+
+## 29 Oct 2026 · the Look-ahead row never scored a past round (#123)
+- **What:** with Rounds 7 and 8 finished, "How the projections did" showed Look-ahead "– / needs two rounds in a row".
+- **Why:** `snapshot()` kept only the EuroLeague games in `teamNext` and dropped their `el`; `nextRound()` in index.html
+  took only games with `el` set, so every history snapshot had no next-round opponent. Tests built their own `teamNext`
+  with `el` and never one shaped like a real snapshot.
+- **Guard:** `nextRound()` counts a game unless it says `el: false`; snapshots now keep `el`. Tests: tools/test_scorecard.mjs
+  (a look-ahead from `teamNext` without `el` or `oc`), tools/test_elbuild.py `SnapshotTest`. A reader of history files
+  works on the files as they are on disk: they are never rewritten.

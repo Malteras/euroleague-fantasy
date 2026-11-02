@@ -1,43 +1,43 @@
 {
- "updated": "2026-10-22",
+ "updated": "2026-10-30",
  "players": [
-  73,
-  23,
-  38,
-  165,
+  7,
+  245,
+  160,
   118,
-  361,
-  91,
+  56,
+  352,
+  38,
+  176,
   185,
-  236,
-  8
+  361
  ],
- "coach": "ZAL",
- "bank": 0.3,
+ "coach": "CZV",
+ "bank": 0.8,
  "slots": [
-  73,
-  23,
-  38,
-  165,
+  7,
+  245,
+  160,
   118,
-  361,
-  91,
+  56,
+  352,
+  38,
+  176,
   185,
-  236,
-  8
+  361
  ],
- "cap": 23,
+ "cap": 7,
  "names": [
-  "Elijah Bryant",
-  "Théo Maledon",
-  "Andrés Feliz",
-  "Semi Ojeleye",
+  "Sasha Vezenkov",
+  "Yam Madar",
+  "Tyson Carter",
   "Aliou Diarra",
-  "Dejan Davidovac",
-  "Tyson Etienne",
+  "Jonas Valančiūnas",
+  "Sebastian Herrera",
+  "Andrés Feliz",
+  "Oscar da Silva",
   "Edwin Jackson",
-  "Mouhamed Faye",
-  "Mbaye Ndiaye"
+  "Dejan Davidovac"
  ],
- "coachName": "Tomas Masiulis"
+ "coachName": "Ibon Navarro"
 }

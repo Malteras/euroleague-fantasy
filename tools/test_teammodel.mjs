@@ -7,7 +7,22 @@ import { readFileSync } from "node:fs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const src = html.slice(html.indexOf("// teamModel:begin"), html.indexOf("// teamModel:end"));
 const teamModel = new Function(src + "\nreturn teamModel;")();
-const D = JSON.parse(readFileSync(new URL("../data.json", import.meta.url), "utf8"));
+
+// A fixed season, not the live data.json (which changes every round): each club's final scores from its own side.
+// PAO 5-1, +15.0 a game; KBA 1-5, -10.0 a game; HTA and VIR one point a game either side of even.
+const games = {
+  PAO: ["W 90-70", "W 85-65", "W 100-80", "W 77-57", "W 95-75", "L 70-80"],
+  KBA: ["W 80-75", "L 70-83", "L 60-73", "L 77-90", "L 67-80", "L 75-88"],
+  HTA: ["W 82-80", "L 79-80"],
+  VIR: ["W 80-79", "L 80-82"],
+};
+const day = i => `2026-10-${String(1 + 3 * i).padStart(2, "0")}`;
+const log = res => res.map((r, i) => ({ d: day(i), res: r }));
+const D = { players: [
+  ...Object.entries(games).map(([team, res]) => ({ team, log: log(res) })),
+  { team: "PAO", log: log(games.PAO) },                       // a teammate's log holds the same games: counted once
+  { team: "KBA", log: [{ d: "2026-09-28", res: "" }, { d: "2026-09-29" }] }, // no final score (DNP, not played): skipped
+] };
 
 test("records come from the player logs, one game per club and date", () => {
   const M = teamModel(D);

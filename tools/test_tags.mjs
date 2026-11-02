@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const src = html.slice(html.indexOf("// tagsFor:begin"), html.indexOf("// tagsFor:end"));
-const DEPS = ["orig", "capOpt", "shown", "avg", "domRecent", "alertOf", "buyLow", "matchup"];
+const DEPS = ["orig", "capOpt", "shown", "avg", "domRecent", "alertOf", "buyLow", "matchup", "gemOf", "domGood"];
 const make = (deps) => new Function(...DEPS, src + "\nreturn {capOptions,tagsFor};")(...DEPS.map((k) => deps[k]));
 
 // Round 7 after Wednesday: LeDay (Hapoel) played Hapoel–Virtus on Wed 21 Oct; Maledon plays Thursday.
@@ -20,7 +20,7 @@ const played = (p) => p.day === W;
 const deps = (capOpt) => ({
   orig: { players: [] }, capOpt, shown: (p) => ({ played: played(p) }),
   avg: (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : null),
-  domRecent: () => [], alertOf: () => null, buyLow: () => false, matchup: () => null,
+  domRecent: () => [], alertOf: () => null, buyLow: () => false, matchup: () => null, gemOf: () => null, domGood: () => false,
 });
 const names = (T) => T.map((t) => t[0]);
 

@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const src = html.slice(html.indexOf("// bottomLine:begin"), html.indexOf("// bottomLine:end"));
-const { blItems, blGainers, blTicks } = new Function(src + "\nreturn {blItems,blGainers,blTicks};")();
+const { blItems, blGainers, blTicks, blMatchups, blMatchSquad } = new Function(src + "\nreturn {blItems,blGainers,blTicks,blMatchups,blMatchSquad};")();
 
 const pl = (id, short, x, price, day = "2026-10-21") => ({ id, short, x, price, day });
 const Bryant = pl(73, "Bryant", 23.4, 17.4), Maledon = pl(23, "Maledon", 19.8, 15, "2026-10-22"), Madar = pl(91, "Madar", 18.1, 14, "2026-10-22");
@@ -70,7 +70,7 @@ test("lineup: the five starters, their projected total, formation and 6th man", 
 });
 
 test("check: the player, the points at risk, why, and who to swap in", () => {
-  const items = blItems({ ...base, checks: [{ p: Madar, why: "missed Maccabi's Sunday game", swap: pl(38, "Ojeleye", 8, 5) }] });
+  const items = blItems({ ...base, checks: [{ p: Madar, why: [["", "missed Maccabi's Sunday game"]], swap: pl(38, "Ojeleye", 8, 5) }] });
   const t = items.find(i => i.kind === "check");
   assert.equal(t.title, "Check Madar before Wed 18:00");
   assert.equal(text(t), "18.1 pts at risk: missed Maccabi's Sunday game\nIf he is out, start Ojeleye");
@@ -79,8 +79,13 @@ test("check: the player, the points at risk, why, and who to swap in", () => {
 });
 
 test("check with nobody to swap in", () => {
-  const t = blItems({ ...base, checks: [{ p: Madar, why: "Doubtful", swap: null }] }).find(i => i.kind === "check");
+  const t = blItems({ ...base, checks: [{ p: Madar, why: [["st", "Doubtful"]], swap: null }] }).find(i => i.kind === "check");
   assert.equal(text(t), "18.1 pts at risk: Doubtful");
+});
+
+test("a check's status is its own part, so the card can show Day to day as DTD with its tooltip (#59)", () => {
+  const t = blItems({ ...base, checks: [{ p: Madar, why: [["st", "Day to day"], ["", " (hamstring)"]], swap: null }] }).find(i => i.kind === "check");
+  assert.deepEqual(t.detail, [["pts", "18.1 pts"], ["", " at risk: "], ["st", "Day to day"], ["", " (hamstring)"]]);
 });
 
 test("credit gainers from the routine's line: name, club, price and why", () => {
@@ -133,4 +138,26 @@ test("no to-do separates its pieces with dots: one piece of information per line
     ...blItems({ ...base, near: { g: 1.4 } }),
   ];
   for (const it of all) assert.ok(!text(it).includes("·") && !it.title.includes("·"), `${it.title}: ${text(it)}`);
+});
+
+// The matchups card (#106)
+const mp = (id, short, m, extra = {}) => ({ id, short, m, opp: { opp: "BES", ha: "A" }, ...extra });
+const mOf = p => p.m;
+
+test("matchups: ±15% and more, best first; out, no game and played are left out", () => {
+  const sq = [mp(1, "A", 10), mp(2, "B", -20), mp(3, "C", 15), mp(4, "D", 30, { out: true }), mp(5, "E", 25, { opp: null }), mp(6, "F", 40), mp(7, "G", null), undefined];
+  const rows = blMatchups(sq, p => p.id === 6, mOf);
+  assert.deepEqual(rows.map(r => [r.p.short, r.m]), [["C", 15], ["B", -20]]);
+});
+
+test("matchups during a round: his saved team, never the proposal, so every row is his player", () => {
+  const S = blMatchSquad({ live: true, team: [1, 2, 3], mine: [1, 2, 9], proposal: [4, 5, 3] });
+  assert.deepEqual(S, { ids: [1, 2, 3], title: "Your players' matchups" });
+});
+
+test("matchups at the deadline: the proposal, and the heading says so unless it is his team", () => {
+  assert.deepEqual(blMatchSquad({ live: false, team: null, mine: [1, 2, 3], proposal: [4, 2, 3] }),
+    { ids: [4, 2, 3], title: "Matchups in the proposed squad" });
+  assert.deepEqual(blMatchSquad({ live: false, team: null, mine: [1, 2, 3], proposal: [3, 1, 2] }),
+    { ids: [3, 1, 2], title: "Your players' matchups" });
 });

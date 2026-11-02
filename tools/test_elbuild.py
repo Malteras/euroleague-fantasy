@@ -47,6 +47,54 @@ class OfficialScoresTest(unittest.TestCase):
         self.assertEqual(p['log'], [])
 
 
+class OfficialNextTest(unittest.TestCase):
+    # 27 Oct 2026: Sofascore refused every request, so no club had a next game and Round 9 read "no game found" for all
+    def games(self):
+        g = lambda rnd, utc, loc, road, played=False: {'round': rnd, 'utcDate': utc, 'played': played,
+            'local': {'club': {'code': loc, 'name': {'VIR': 'Virtus Bologna', 'BES': 'Besiktas', 'DUB': 'Dubai Basketball',
+                                                     'PRS': 'Paris Basketball', 'ZAL': 'Zalgiris Kaunas'}[loc]}},
+            'road': {'club': {'code': road, 'name': {'BES': 'Besiktas', 'PRS': 'Paris Basketball', 'ZAL': 'Zalgiris Kaunas',
+                                                     'VIR': 'Virtus Bologna'}[road]}}}
+        return [g(9, '2026-10-30T19:30:00Z', 'VIR', 'BES'), g(8, '2026-10-27T16:00:00Z', 'DUB', 'PRS'),
+                g(8, '2026-10-28T19:30:00Z', 'VIR', 'ZAL'), g(7, '2026-10-21T18:00:00Z', 'ZAL', 'VIR', True)]
+
+    def test_unplayed_games_in_order_in_banja_luka_time_with_club_codes(self):
+        nxt = elbuild.official_next(self.games())
+        self.assertEqual(nxt['VIR'], [
+            {'d': '2026-10-28', 't': '20:30', 'comp': 'EuroLeague R8', 'el': True, 'opp': 'Zalgiris Kaunas', 'ha': 'H', 'oc': 'ZAL'},
+            {'d': '2026-10-30', 't': '20:30', 'comp': 'EuroLeague R9', 'el': True, 'opp': 'Besiktas', 'ha': 'H', 'oc': 'BJK'}])
+        self.assertEqual(nxt['PBB'], [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague R8', 'el': True,
+                                       'opp': 'Dubai Basketball', 'ha': 'A', 'oc': 'DUB'}])
+
+    def test_fills_only_clubs_without_a_euroleague_game_and_gives_tip_off_times(self):
+        team_next = {'VIR': [], 'DUB': [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague', 'el': True, 'opp': 'Paris', 'ha': 'H'}],
+                     'ZAL': [{'d': '2026-10-25', 't': '18:00', 'comp': 'LKL', 'el': False, 'opp': 'Rytas', 'ha': 'A'}]}
+        times = {}
+        filled = elbuild.fill_next(team_next, times, elbuild.official_next(self.games()))
+        self.assertEqual(sorted(filled), ['BJK', 'PBB', 'VIR', 'ZAL'])
+        self.assertEqual([g['oc'] for g in team_next['VIR']], ['ZAL', 'BJK'])
+        self.assertEqual(team_next['DUB'][0]['opp'], 'Paris')  # Sofascore's list is kept when it has a EuroLeague game
+        self.assertEqual([g['d'] for g in team_next['ZAL']], ['2026-10-28'])
+        self.assertEqual(times['2026-10-27|DUB'], '17:00')
+        self.assertEqual(times['2026-10-28|VIR'], '20:30')
+
+
+class ParseLogTest(unittest.TestCase):
+    # Blakeney's page on 29 Oct 2026: the shooting and rebound cells are the same dummy numbers in every row
+    ROW = ('PIR pub. Box 28 Oct Efes 28 Oct · W 118–88 Anadolu Efes Istanbul W 118–88 22.2 35 38.5 +1.2 35 '
+           '8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 Full box score 21 Oct Virtus 21 Oct · W 90–81 Virtus Segafredo Bologna '
+           'W 90–81 7.0 0 -3.6 −0.6 -4 8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 Full box score 16 Oct Panathinaikos 16 Oct · '
+           'W 81–91 Panathinaikos AKTOR Athens ✈️ W 81–91 21.6 9 9.9 −0.1 9 8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 '
+           'Full box score Totals (8 GP)')
+
+    def test_reads_every_game_when_the_detail_cells_are_dummies(self):
+        got = elbuild.parse_log(self.ROW)
+        self.assertEqual([(g['d'], g['ha'], g['min'], g['pts'], g['fpt'], g['cr'], g['pir']) for g in got],
+                         [('2026-10-28', 'H', 22.2, 35, 38.5, 1.2, 35.0), ('2026-10-21', 'H', 7.0, 0, -3.6, -0.6, -4.0),
+                          ('2026-10-16', 'A', 21.6, 9, 9.9, -0.1, 9.0)])
+        self.assertIsNone(got[0]['reb'])
+
+
 class ParsePlayerTest(unittest.TestCase):
     def parse(self, header):
         with tempfile.TemporaryDirectory() as d:
@@ -99,6 +147,70 @@ class ParseTeamTest(unittest.TestCase):
     def test_a_player_who_has_played_reads_xpts_not_the_rise_chance(self):
         self.assertEqual(self.parse(self.PLAYED, self.NOT_PLAYED),
                          {'Elijah Bryant': {'rise': 53.0, 'xpts': 21.1}, 'Carsen Edwards': {'rise': 49.0, 'xpts': 13.6}})
+
+
+class RoundScheduleTest(unittest.TestCase):
+    """Fri 23 Oct 2026, last game day of Round 7: players' next games gave only Friday's 3 games, so the build wrote
+    deadline 2026-10-23 and the site said "Trades close Today" and proposed 4 trades."""
+    ROUND7 = [['2026-10-21', 'HTA', 'VIR', '18:00'], ['2026-10-22', 'BAY', 'DUB', '20:00'], ['2026-10-22', 'EFS', 'BJK', '19:30'],
+              ['2026-10-22', 'MIL', 'BAR', '20:30'], ['2026-10-22', 'MTA', 'RMB', '20:05'], ['2026-10-22', 'PAO', 'KBA', '20:15'],
+              ['2026-10-22', 'PAR', 'CZV', '20:45'], ['2026-10-23', 'OLY', 'FBT', '20:15'], ['2026-10-23', 'PBB', 'VAL', '20:45'],
+              ['2026-10-23', 'ZAL', 'ASV', '19:00']]
+    FRIDAY = [['2026-10-23', 'OLY', 'FBT'], ['2026-10-23', 'PBB', 'VAL'], ['2026-10-23', 'ZAL', 'ASV']]
+    TURNS = {'2026-10-21': 'Wed 21 Oct', '2026-10-22': 'Thu 22 Oct', '2026-10-23': 'Fri 23 Oct'}
+
+    def test_mid_round_keeps_the_played_games_and_the_first_tip_off(self):
+        old = {'round': 7, 'deadline': '2026-10-21', 'fixtures': self.ROUND7}
+        fixtures, deadline, turns = elbuild.round_schedule([list(f) for f in self.FRIDAY], 7, old, {})
+        self.assertEqual(deadline, '2026-10-21')
+        self.assertEqual(turns, self.TURNS)
+        # Friday's games came without tip-off times (the game is today): they keep the ones they had
+        self.assertEqual(fixtures, sorted(self.ROUND7))
+
+    def test_the_history_snapshot_fills_in_when_the_old_data_lost_them(self):
+        broken = {'round': 7, 'deadline': '2026-10-23', 'fixtures': self.FRIDAY}
+        snap = {'round': 7, 'deadline': '2026-10-21', 'fixtures': self.ROUND7}
+        fixtures, deadline, turns = elbuild.round_schedule([list(f) for f in self.FRIDAY], 7, broken, snap)
+        self.assertEqual((len(fixtures), deadline, turns), (10, '2026-10-21', self.TURNS))
+
+    def test_before_the_round_only_the_new_fixtures(self):
+        old = {'round': 6, 'deadline': '2026-10-14', 'fixtures': [['2026-10-14', 'HTA', 'OLY', '18:00']]}
+        new = [list(f[:3]) for f in self.ROUND7]
+        fixtures, deadline, turns = elbuild.round_schedule(new, 7, old, {})
+        self.assertEqual((fixtures, deadline, turns), (sorted(new), '2026-10-21', self.TURNS))
+
+    def test_a_moved_game_takes_its_new_date(self):
+        old = {'round': 7, 'fixtures': self.ROUND7}
+        fixtures, _, turns = elbuild.round_schedule([['2026-10-24', 'OLY', 'FBT']], 7, old, {})
+        self.assertEqual([f for f in fixtures if 'OLY' in f], [['2026-10-24', 'OLY', 'FBT']])
+        self.assertEqual(len(fixtures), 10)
+        self.assertIn('2026-10-24', turns)
+
+
+class TradeBaseTest(unittest.TestCase):
+    """Mon 26 Oct 2026, before Round 8's deadline: he had saved 4 trades and the planner proposed 3 more on top."""
+    PLAYED_R7 = {'players': [73, 91, 38, 165, 118, 8, 23, 185, 236, 361], 'coach': 'ZAL'}
+
+    def test_first_build_of_a_round_takes_the_squad_that_played_the_round_before(self):
+        old = {'round': 7, 'deadline': '2026-10-21', 'updated': '2026-10-23', 'squad': self.PLAYED_R7}
+        self.assertEqual(elbuild.trade_base(old, 8), {'round': 8, **self.PLAYED_R7, 'from': '2026-10-23'})
+
+    def test_the_bank_when_the_market_opened_is_kept_too(self):
+        # 27 Oct: a bank 0.1 too high on My team let the proposal spend credits he did not have; with the bank of the
+        # squad that played Round 7, the team value during the market is known (prices do not move then)
+        old = {'round': 7, 'deadline': '2026-10-21', 'updated': '2026-10-23', 'squad': self.PLAYED_R7, 'lineup': {'bank': 0.3}}
+        self.assertEqual(elbuild.trade_base(old, 8), {'round': 8, **self.PLAYED_R7, 'bank': 0.3, 'from': '2026-10-23'})
+
+    def test_kept_for_the_rest_of_the_round_whatever_he_saves(self):
+        base = {'round': 8, **self.PLAYED_R7, 'from': '2026-10-23'}
+        old = {'round': 8, 'updated': '2026-10-26', 'tradeBase': base,
+               'squad': {'players': [23, 38, 245, 165, 285, 361, 73, 118, 358, 185], 'coach': 'CZV'}}
+        self.assertEqual(elbuild.trade_base(old, 8), base)
+
+    def test_unknown_when_the_old_data_is_not_the_round_before(self):
+        self.assertIsNone(elbuild.trade_base({'round': 8, 'squad': self.PLAYED_R7}, 8))
+        self.assertIsNone(elbuild.trade_base({'round': 6, 'squad': self.PLAYED_R7}, 8))
+        self.assertIsNone(elbuild.trade_base({}, 8))
 
 
 class XptsJumpTest(unittest.TestCase):
@@ -183,8 +295,8 @@ class SnapshotTest(unittest.TestCase):
 
     def test_team_next_keeps_two_euroleague_games(self):
         self.assertEqual(self.snap['teamNext']['EFS'],
-                         [{'d': '2026-10-22', 't': '19:30', 'opp': 'Besiktas', 'ha': 'H', 'oc': 'BJK'},
-                          {'d': '2026-10-27', 't': '20:00', 'opp': 'Bayern', 'ha': 'A', 'oc': 'BAY'}])
+                         [{'d': '2026-10-22', 't': '19:30', 'opp': 'Besiktas', 'ha': 'H', 'oc': 'BJK', 'el': True},
+                          {'d': '2026-10-27', 't': '20:00', 'opp': 'Bayern', 'ha': 'A', 'oc': 'BAY', 'el': True}])
 
     def test_squad_is_the_saved_team(self):
         self.assertEqual(self.snap['squad'], {'players': [654], 'coach': 'EFS', 'slots': [654], 'cap': 654, 'bank': 1.3})
@@ -250,6 +362,31 @@ class WriteHistoryTest(unittest.TestCase):
         actual = self.read()['actual']
         self.assertEqual(actual['players']['654'], {'fpt': 17.5, 'min': 28.3, 'cr': 0.1})
         self.assertEqual(actual['coaches'], {'EFS': 20})
+
+    # played: the team he played the round with, saved from the site after the snapshot was taken (#109)
+    def run_with_save(self, updated, saved, slots=(655, 654), cap=655):
+        d = data_for(updated)
+        d['squad'] = {'players': [654, 655], 'coach': 'RMB'}
+        d['lineup'] = {'slots': list(slots), 'cap': cap, 'bank': 0.4, 'updated': saved}
+        elbuild.write_history(d, self.dir)
+        return self.read().get('played')
+
+    def test_a_save_during_the_round_is_the_team_he_played(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.assertEqual(self.run_with_save('2026-10-22', '2026-10-21'),
+                         {'players': [654, 655], 'coach': 'RMB', 'slots': [655, 654], 'cap': 655, 'bank': 0.4, 'updated': '2026-10-21'})
+        self.assertEqual(self.read()['squad']['players'], [654])  # the snapshot itself is never rewritten
+
+    def test_a_save_before_the_deadline_or_after_the_round_is_not_the_team_he_played(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.assertIsNone(self.run_with_save('2026-10-20', '2026-10-20'))
+        self.assertIsNone(self.run_with_save('2026-10-24', '2026-10-23'))
+
+    def test_the_latest_save_of_the_round_wins_and_an_older_one_never_comes_back(self):
+        elbuild.write_history(data_for('2026-10-20', [player(654, 'EFS', [])]), self.dir)
+        self.run_with_save('2026-10-21', '2026-10-21')
+        self.assertEqual(self.run_with_save('2026-10-22', '2026-10-22', cap=654)['cap'], 654)
+        self.assertEqual(self.run_with_save('2026-10-23', '2026-10-21')['updated'], '2026-10-22')
 
 
     def test_command_line_reads_a_data_file(self):
@@ -337,6 +474,41 @@ class StatusAlertsTest(unittest.TestCase):
             got = json.load(open(cur, encoding='utf-8'))
         self.assertEqual([(a['id'], a['to']) for a in got['alerts']], [(654, 'Out')])
         self.assertEqual(got['updated'], '2026-10-21')
+
+
+class PaceTest(unittest.TestCase):
+    # Game 1 of 2026-27, the official box score's team totals: 44 + 29 two- and three-point tries, 19 free throws, 15 offensive
+    # rebounds, 14 turnovers.
+    def test_possessions_from_the_team_totals(self):
+        tot = {'FieldGoalsAttempted2': 44, 'FieldGoalsAttempted3': 29, 'FreeThrowsAttempted': 19, 'OffensiveRebounds': 15, 'Turnovers': 14}
+        self.assertAlmostEqual(elbuild.possessions(tot), 44 + 29 + 0.44 * 19 - 15 + 14)
+
+    def games(self):
+        # (date, club, possessions, opponent's possessions)
+        return [('2026-10-01', 'OLY', 70, 72), ('2026-10-01', 'BAR', 72, 70),
+                ('2026-10-08', 'OLY', 80, 78), ('2026-10-08', 'VIR', 78, 80),
+                ('2026-10-15', 'OLY', 90, 90), ('2026-10-15', 'BAR', 90, 90)]
+
+    def test_pace_is_the_average_game_both_ways(self):
+        got = elbuild.pace_table(self.games(), '2026-10-31')
+        self.assertEqual(got['OLY'], {'pace': 80.0, 'pace_for': 80.0, 'pace_allowed': 80.0, 'pace_gp': 3})
+        self.assertEqual(got['VIR'], {'pace': 79.0, 'pace_for': 78.0, 'pace_allowed': 80.0, 'pace_gp': 1})
+
+    def test_only_games_before_the_date_count(self):
+        # a round's deadline day: its own games are not known before it
+        got = elbuild.pace_table(self.games(), '2026-10-15')
+        self.assertEqual(got['OLY']['pace_gp'], 2)
+        self.assertEqual(got['BAR'], {'pace': 71.0, 'pace_for': 72.0, 'pace_allowed': 70.0, 'pace_gp': 1})
+
+    def test_pace_goes_into_the_defence_entry_and_past_rounds_get_their_own(self):
+        defence = {'OLY': {'pir_allowed': 82.0}}
+        elbuild.add_pace(defence, self.games(), '2026-10-31')
+        self.assertEqual(defence['OLY'], {'pir_allowed': 82.0, 'pace': 80.0, 'pace_for': 80.0, 'pace_allowed': 80.0, 'pace_gp': 3})
+        self.assertNotIn('VIR', defence)  # no PIR-allowed row: not a club the planner knows
+        hist = elbuild.pace_hist(self.games(), {7: '2026-10-08', 8: '2026-10-15', 9: '2026-10-29'})
+        self.assertEqual(hist[7], {'OLY': 71.0, 'BAR': 71.0})
+        self.assertEqual(hist[8]['OLY'], 75.0)
+        self.assertEqual(hist[9]['OLY'], 80.0)
 
 
 if __name__ == '__main__':

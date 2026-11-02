@@ -7,6 +7,9 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
 ## What every card does after the first tip-off (`roundStarted()` → `TRADES_CLOSED`, `liveRound()`)
 
 - **Trades**: none. The planner proposes no trades and the Trades card says they are closed. A player who has played is never suggested.
+  On My team, "Suggest replacements" stays in place but is disabled, with a tooltip saying why (decided with Ognjen, 28 Oct 2026).
+  "Replace" lists only his own squad (court, 6th man, bench) and swaps the two places; a swap that would bring a player who
+  has played onto the court or in as 6th man is greyed with the reason. The coach picker is greyed: the coach stays (same day).
 - **Lineup and captain**: his own saved lineup and captain (My team), not a new pick from projections.
 - **A played turn is history**: it shows the real scores and the captain he had. Never re-pick its captain or lineup,
   and never show a projection for a game that was played.
@@ -21,8 +24,8 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   Decided with Ognjen, 22 Oct 2026: the earlier time is never wrong, a later one could be.
 - **Bottom line**: one section per turn still to play, never "all done for the round" while a turn is left. The next turn's
   to-dos (captain, lineup changes, lineup, checks) can be ticked; a later turn shows what is already known and "decide after
-  Thu's games" lines for what the earlier games decide. The progress line names each turn ("Turn 2: ✓ all done · Turn 3:
-  after Thu's games"). The pill shows the next tip-off. Decided with Ognjen, 22 Oct 2026.
+  Thu's games" lines for what the earlier games decide. The progress line names each turn ("Turn 2: ✓ all done" and "Turn 3:
+  after Thu's games", side by side). The pill shows the next tip-off. Decided with Ognjen, 22 Oct 2026.
 - **Lineup changes between turns** (GLOSSARY, docs/rules.md): any swap, as long as the player coming in has not played
   and the new five is one of the five formations; the formation may change. Corrected with Ognjen on 22 Oct 2026 against
   the official rules book: this bullet first said "only same position, so the formation stays", a rule nobody had checked.
@@ -37,7 +40,7 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   lineup changes on My team and ticks that turn's Bottom line items. Nothing reaches the daily report until Save on My team.
 - **The captain walk** starts at the round's first captain (the deadline snapshot), not the saved one, so a played turn keeps
   the captain it had after the armband moves on.
-- **Your players' matchups**: only games still to play.
+- **Your players' matchups**: his saved team, not the proposal (#106), and only games still to play. Before the deadline the card lists the proposal, headed "Matchups in the proposed squad" when it differs from his squad.
 - **Round schedule**: a played game shows "Final" and the score; his players in it show their points (never PIR), ± % against
   the projection at the deadline (the snapshot; the live projection already includes the game) and the credit change from
   the game. The header says trades are closed.
@@ -49,8 +52,8 @@ Played games ARE that information. Decided with Ognjen, 22 Oct 2026, after the s
   - **Proj.**: TBC, with the site's tooltip "To be calculated after the current round is finished", sorted last. Next
     round's projection is made after the round. Never his score, never today's projection (it already includes the game).
   - **± cr / Value**: the real credit change from his game, not the estimate.
-  - **Next game**: next round's game with its round ("vs Efes · R8 · Wed 28 Oct"), in the column, the line under his name,
-    the player card and the picker. In his drawer, the played game is headed "This round · played".
+  - **Next game**: next round's game with its round ("vs Efes", with "R8 Wed 28 Oct" under it), in the column, the line under his name,
+    the player card and the picker. In his drawer, the played game is headed "Played this round".
   - **Team analysis**: a score block, like the report lists: points; % against the deadline projection, next to it; value.
   - **Last 5**: each bar's tooltip (the site's design) shows the round, date, opponent, result, points against the
     projection when one is on record, and the credit change, in green or red.

@@ -37,7 +37,9 @@ A calendar week holding two rounds, so every club plays twice in a few days. Eac
 _Avoid_: Double round, double-game week
 
 **Trade**:
-Swapping one squad player, or the coach, for another before a round's deadline. Up to 4 per round.
+Swapping one squad player, or the coach, for another before a round's deadline. Up to 4 per round, counted from the squad
+when the round's market opened (data.json `tradeBase`): trades already saved on My team are part of the 4. Selling a player
+bought this round is still that one trade (Faye → Nebo, then Nebo → Hayes, is Faye → Hayes); bringing a sold player back frees it.
 _Avoid_: Transfer, swap
 
 **Free-trade window**:
@@ -65,9 +67,47 @@ the round is finished.
 _Avoid_: showing his score or this round's projection under Proj.
 _Avoid_: xPTS (that is FantaSheet's input to it), prediction
 
+**DTD** (Day to day):
+An injury status: he may play; it is decided close to the game. The planner counts 75% of his projection (`PLAY_CHANCE`
+in index.html). The data keeps "Day to day"; the site shows DTD, with this meaning in its tooltip.
+_Avoid_: writing "Day to day" out on the site
+
 **Matchup**:
 How much the opponent lets a player's position score, as a percentage above or below an average team.
 _Avoid_: Score spread, fixture difficulty
+
+**Pace**:
+Possessions per game in a club's games (both teams' possessions over two), from the official box scores. Faster games give every player more chances to score.
+_Avoid_: tempo, speed
+
+**Ownership**:
+The share of all FantaSheet teams that own a player ("Owned by 4.3%", with the change since last round). Not his league's.
+_Avoid_: popularity, pop (the data's field name)
+
+**Differential**:
+A pick about as good as the planner's (at most 4 projected points less) that far fewer teams own (at most half the share,
+and at least 5 points of share less). Shown as a hint under the captain and under each incoming player; it never changes
+the proposal, unless Chase rank is on (docs/adr/0003-differential-picks.md).
+_Avoid_: hidden gem (a different idea, #64), punt
+
+**Chase rank**:
+A planner setting, off by default: before the deadline, each incoming player and the first captain is swapped for his
+differential when he has one. A tie-break only, so a pick never gives up more than 4 projected points. No effect once the
+round has started.
+_Avoid_: differential mode, risk mode
+
+**Hidden gem**:
+A cheap player whose projection may lag behind his growing role. All of: costs under 6 cr; his last 3 EuroLeague games
+average at least 3 minutes more than his season; this round's opponent allows his position at least 10% more PIR than an
+average team (soft, shown as plus); if his domestic games are known, they are good (the Domestic form rule: PIR at least
+1.1 × price + 3), and when none are known that rule is skipped. Never Out, Doubtful, or a player who has played this round.
+Agreed with Ognjen, 28 Oct 2026 (#64); the numbers are constants in index.html (`GEM_PRICE`, `GEM_MIN`, `GEM_MU`).
+_Avoid_: differential (a different idea: few owners), sleeper, punt
+
+**Include hidden gems**:
+A planner setting, off by default: before the deadline, each incoming player is swapped for the best hidden gem that could
+take his place. A tie-break only, so a pick never gives up more than 4 projected points; with Chase rank also on, a gem it
+brought in stays (docs/adr/0004-hidden-gems.md).
 
 **Look-ahead**:
 Counting half of a player's next-round projection, with that round's matchup, when judging a trade made this round. Covers this round and the next one only, and never changes who starts or captains this round.

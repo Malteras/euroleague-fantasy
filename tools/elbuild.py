@@ -63,7 +63,17 @@ def parse_log(t, domestic=False):
         out.append({'d':date(g.group(1)),'opp':opp,'ha':'A' if g.group(7) else 'H','res':f'{g.group(3)} {g.group(4)}-{g.group(5)}',
                     'min':num(g.group(8)),'pts':int(num(g.group(9))),'fpt':num(g.group(10)),'pir':num(g.group(12)),'cr':cr,
                     'reb':num(g.group(16)),'stl':num(g.group(21)),'tov':num(g.group(22)),'ast':num(g.group(23)),'blk':num(g.group(24))})
-    return out
+    # Since 29 Oct 2026 FantaSheet fills the shooting and rebound columns with the same dummy cells for every game
+    # ("8/12 3 1/4 5 2 …"), so the row above no longer matches. Read the columns that are still real (minutes, points,
+    # FPT, credit change, PIR) and leave the box-score detail empty rather than take the dummy numbers.
+    short = []
+    for g in re.finditer(r'(\d{1,2} \w+) (.+?) \1 · ([WL]) (\d+)–(\d+) (.+?) (✈️ )?[WL] \d+–\d+ '+N+' '+N+' '+N+r' (\S+) '+N+r' .*?Full box score', gl):
+        opp = g.group(2) if domestic else SHORT.get(g.group(2), g.group(2))
+        cr = num(g.group(11)) if g.group(11) not in ('-', '—') else None
+        short.append({'d':date(g.group(1)),'opp':opp,'ha':'A' if g.group(7) else 'H','res':f'{g.group(3)} {g.group(4)}-{g.group(5)}',
+                      'min':num(g.group(8)),'pts':int(num(g.group(9))),'fpt':num(g.group(10)),'pir':num(g.group(12)),'cr':cr,
+                      'reb':None,'stl':None,'tov':None,'ast':None,'blk':None})
+    return short if len(short) > len(out) else out
 
 def parse_player(f, team_code):
     t = flat(txt(f))
@@ -164,6 +174,49 @@ EL_CODE = {'BAS':'KBA','BES':'BJK','IST':'EFS','MAD':'RMB','MUN':'BAY','PAM':'VA
 def el_name(s):
     return [w for w in norm(s.replace(',', ' ').replace('-', ' ')) if w not in ('jr', 'ii', 'iii', 'iv')]
 
+# Pace (#28): possessions per game, from the official box scores' team totals. Fast games make more PIR for everyone.
+def possessions(tot):
+    """A team's possessions in one game: shots + 0.44 x free throws - offensive rebounds + turnovers."""
+    return (tot['FieldGoalsAttempted2'] + tot['FieldGoalsAttempted3'] + 0.44 * tot['FreeThrowsAttempted']
+            - tot['OffensiveRebounds'] + tot['Turnovers'])
+
+def pace_games(pages):
+    """[(date, club, possessions, opponent's possessions)] for every finished EuroLeague game of the season."""
+    f = get(EL_API, os.path.join(pages, 'el_games.json'))
+    try: games = [g for g in json.load(open(f))['data'] if g.get('played')]
+    except Exception: return []
+    def box(g):
+        return g, get(EL_BOX + str(g['gameCode']), os.path.join(pages, f"el_box{g['gameCode']}.json"))
+    with ThreadPoolExecutor(8) as ex: boxes = list(ex.map(box, games))
+    out = []
+    for g, bf in boxes:
+        try: a, b = (possessions(s['totr']) for s in json.load(open(bf))['Stats'])
+        except Exception: continue
+        loc, road = (EL_CODE.get(g[s]['club']['code'], g[s]['club']['code']) for s in ('local', 'road'))
+        d = g['date'][:10]
+        out += [(d, loc, a, b), (d, road, b, a)]
+    return out
+
+def pace_table(games, before):
+    """{club: {pace, pace_for, pace_allowed, pace_gp}} from the games played before the date. pace is the average game
+    (both teams' possessions over two); pace_for and pace_allowed are the club's own and its opponents' possessions."""
+    by = {}
+    for d, club, own, opp in games:
+        if d < before: by.setdefault(club, []).append((own, opp))
+    r = lambda v: round(v, 1)
+    return {c: {'pace': r(sum(a + b for a, b in g) / 2 / len(g)), 'pace_for': r(sum(a for a, _ in g) / len(g)),
+                'pace_allowed': r(sum(b for _, b in g) / len(g)), 'pace_gp': len(g)} for c, g in by.items()}
+
+def add_pace(defence, games, before):
+    """Pace into each club's defence entry, so the history snapshot of the round carries it too."""
+    for c, v in pace_table(games, before).items():
+        if c in defence: defence[c].update(v)
+
+def pace_hist(games, deadlines):
+    """{round: {club: pace}} as it stood before each round's deadline, for the rounds whose snapshot has no pace
+    (history files are never rewritten, so the scorecard reads these instead)."""
+    return {n: {c: v['pace'] for c, v in pace_table(games, d).items()} for n, d in deadlines.items()}
+
 def official_games(pages):
     """{(date, club): [(name words, line)]} for the finished games of the current round (the latest round with a game played).
     Older games do not change, so they stay as FantaSheet's game log has them."""
@@ -195,6 +248,29 @@ def official_games(pages):
                     'tov': float(x['Turnovers']), 'ast': float(x['Assistances']), 'blk': float(x['BlocksFavour']), 'src': 'official'}))
             out[(d, club)] = players
     return out
+
+def official_next(games):
+    """{club: [upcoming game]} from the official schedule's unplayed games, in Banja Luka time, shaped like teamNext's
+    Sofascore games (EuroLeague only)."""
+    from zoneinfo import ZoneInfo
+    tz, out = ZoneInfo('Europe/Sarajevo'), {}
+    for g in sorted((g for g in games if not g.get('played')), key=lambda g: g['utcDate']):
+        dt = datetime.datetime.fromisoformat(g['utcDate'].replace('Z', '+00:00')).astimezone(tz)
+        loc, road = (EL_CODE.get(g[s]['club']['code'], g[s]['club']['code']) for s in ('local', 'road'))
+        for club, opp, side, ha in ((loc, road, 'road', 'H'), (road, loc, 'local', 'A')):
+            out.setdefault(club, []).append({'d': dt.date().isoformat(), 't': dt.strftime('%H:%M'), 'comp': f"EuroLeague R{g['round']}",
+                                             'el': True, 'opp': g[side]['club']['name'], 'ha': ha, 'oc': opp})
+    return out
+
+def fill_next(team_next, times, official):
+    """When Sofascore gave a club no EuroLeague game (it refuses requests some days), use the official schedule's.
+    Tip-off times missing from Sofascore come from it too. Returns the clubs filled."""
+    filled = []
+    for club, gs in official.items():
+        if not any(g.get('el') for g in team_next.get(club) or []):
+            team_next[club] = gs[:3]; filled.append(club)
+        for g in gs: times.setdefault(g['d'] + '|' + club, g['t'])
+    return filled
 
 def find_line(name, lines):
     """His line among one club's players in one game: same name words, else same surname and first initial, else a unique surname."""
@@ -300,6 +376,24 @@ def carried(old):
         'injuries': old.get('injuries'),
     }
 
+def trade_base(old, rnd):
+    """The squad when round rnd's market opened: the one that played the round before. The planner counts the round's 4 trades
+    from it, so trades already saved on My team count too. Taken from the last data.json of the round before, whose squad is
+    the one saved while that round was played (no trades then); kept as it is for the rest of the round. None when unknown."""
+    tb = old.get('tradeBase')
+    if tb and tb.get('round') == rnd: return tb
+    sq = old.get('squad') or {}
+    if old.get('round') == (rnd or 0) - 1 and sq.get('players') and sq.get('coach'):
+        if old.get('deadline') and old.get('updated', '') <= old['deadline']:
+            print(f"WARNING tradeBase for round {rnd} from data of {old.get('updated')}, before round {old['round']}'s deadline: "
+                  'trades saved after it are not in it')
+        # its bank too: prices do not move during the market, so this squad plus this bank is the team value until the deadline
+        bank = (old.get('lineup') or {}).get('bank')
+        return {'round': rnd, 'players': list(sq['players']), 'coach': sq['coach'],
+                **({'bank': round(float(bank), 1)} if bank is not None else {}), 'from': old.get('updated')}
+    return None
+
+
 def snapshot(data):
     """The inputs the planner projects a round from, as they stood before its deadline (history/round-N.json)."""
     keep = ('id', 'name', 'team', 'pos', 'price', 'status', 'xpts', 'rise', 'fpt', 'gp', 'next', 'pop')
@@ -311,7 +405,7 @@ def snapshot(data):
                     for p in data.get('players', [])],
         'defence': data.get('defence'), 'fixtures': data.get('fixtures'), 'coaches': data.get('coaches'),
         # each club's next two EuroLeague games: this round and the look-ahead round
-        'teamNext': {c: [{k: v for k, v in g.items() if k not in ('comp', 'el')} for g in gs if g.get('el')][:2]
+        'teamNext': {c: [{k: v for k, v in g.items() if k != 'comp'} for g in gs if g.get('el')][:2]
                      for c, gs in (data.get('teamNext') or {}).items()},
         'tradeWindow': data.get('tradeWindow'), 'injuries': data.get('injuries'),
         'squad': {**(data.get('squad') or {}), **{k: lineup.get(k) for k in ('slots', 'cap', 'bank')}},
@@ -329,9 +423,28 @@ def write_history(data, hist_dir):
         if not re.fullmatch(r'round-\d+\.json', name): continue
         p = os.path.join(hist_dir, name)
         snap = json.load(open(p, encoding='utf-8'))
+        if fill_played(snap, data):
+            save(p, snap)
+            print(f'history: the team he played in {p}')
         if fill_actual(snap, data):
             save(p, snap)
             print(f'history: actuals in {p}')
+
+def fill_played(snap, data):
+    """The team he played the round with (#109): his last save from the site between the round's deadline and its last game
+    day. The snapshot is taken on the first run of deadline day, often before his trades are saved, so its squad can be the
+    team before them. A newer save in the round replaces an older one; a save outside the round is another round's team.
+    Returns True when played changed."""
+    fixtures, lineup, squad = snap.get('fixtures') or [], data.get('lineup') or {}, data.get('squad') or {}
+    saved = lineup.get('updated')
+    if not fixtures or not saved or not snap.get('deadline') or not squad.get('players'): return False
+    if not snap['deadline'] <= saved <= max(f[0] for f in fixtures): return False
+    if (snap.get('played') or {}).get('updated', '') > saved: return False
+    played = {'players': list(squad['players']), 'coach': squad.get('coach'),
+              **{k: lineup.get(k) for k in ('slots', 'cap', 'bank', 'updated')}}
+    if snap.get('played') == played: return False
+    snap['played'] = played
+    return True
 
 def fill_actual(snap, data):
     """After the round's last game day, add what happened: each player's FPT, minutes and credit change (None = did not play)
@@ -356,6 +469,24 @@ def fill_actual(snap, data):
         actual['coaches'] = {c['team']: c['last'][back] for c in data.get('coaches', []) if len(c.get('last', [])) > back}
         added = True
     return added
+
+def round_schedule(fixtures, rnd, *before):
+    """The round's fixtures, deadline and turns. `fixtures` come from each player's next game, so once a club has played this
+    round its game is gone (its next game is next round's). Games of the same round in an earlier data.json or the history
+    snapshot are kept, unless the club has a game in `fixtures` (moved); a game on the day it is played may come without its
+    tip-off time, which is then taken from them too. Deadline = the round's first game day."""
+    clubs = {c for f in fixtures for c in f[1:3]}
+    keep, times = {}, {}
+    for src in before:
+        if not src or src.get('round') != rnd: continue
+        for f in src.get('fixtures') or []:
+            if len(f) > 3: times.setdefault(tuple(f[:3]), f[3])
+            if f[1] not in clubs and f[2] not in clubs: keep.setdefault(tuple(f[:3]), list(f))
+    fixtures = [f + [times[tuple(f)]] if len(f) == 3 and tuple(f) in times else f for f in fixtures]
+    fixtures = sorted(fixtures + list(keep.values()))
+    days = sorted({f[0] for f in fixtures})
+    return fixtures, (days[0] if days else None), {d: datetime.date.fromisoformat(d).strftime('%a %-d %b') for d in days}
+
 
 def xpts_jumps(players, snap, factor=2.0):
     """Players whose xPTS moved more than x2 from the round's deadline snapshot: a sign the team table was misread (#66).
@@ -439,6 +570,17 @@ def main():
     # team defence
     sf = get(f'{BASE}/teams/stats', os.path.join(pages, 'teamstats.html'))
     defence = parse_team_stats(sf) if sf else {}
+    # pace from every finished game; and as each past round's deadline saw it, for snapshots taken before pace existed
+    pgames = pace_games(pages)
+    add_pace(defence, pgames, '9999')
+    hdir = os.path.join(os.path.dirname(os.path.abspath(oldp)) if oldp != '-' else '.', 'history')
+    deadlines = {}
+    for name in sorted(os.listdir(hdir)) if os.path.isdir(hdir) else []:
+        m = re.fullmatch(r'round-(\d+)\.json', name)
+        if not m: continue
+        h = json.load(open(os.path.join(hdir, name), encoding='utf-8'))
+        if h.get('deadline') and not any('pace' in v for v in (h.get('defence') or {}).values()): deadlines[int(m.group(1))] = h['deadline']
+    print(f'pace: {len(pgames) // 2} games, {sum("pace" in v for v in defence.values())} clubs; past rounds {sorted(deadlines)}')
     # coaches from latest price-changes page
     rf = get(f'{BASE}/fantasy-rounds', os.path.join(pages, 'rounds.html'))
     rnums = sorted({int(x) for x in re.findall(r'/round-(\d+)/price-changes', open(rf, encoding='utf-8').read())}) if rf else []
@@ -469,8 +611,8 @@ def main():
     rounds = sorted({r for r in fx.values() if r})
     nxt_round = rounds[0] if rounds else old.get('round')
     fixtures = sorted([[d, h, a] for (d, h, a), r in fx.items() if r == nxt_round])
-    days = sorted({f[0] for f in fixtures})
-    turns = {d: datetime.date.fromisoformat(d).strftime('%a %-d %b') for d in days}
+    hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
+    snap = json.load(open(hp, encoding='utf-8')) if os.path.exists(hp) else {}
     # tip-off times for the next round + each club's upcoming fixtures (Europe/Sarajevo)
     times = {}; teamNext = {}
     try:
@@ -494,9 +636,16 @@ def main():
             teamNext[code] = lst
     except Exception as ex:
         print('tip-off times failed', ex)
+    try:
+        sched = json.load(open(get(EL_API, os.path.join(pages, 'el_games.json'))))['data']
+        filled = fill_next(teamNext, times, official_next(sched))
+        if filled: print(f'WARNING: Sofascore gave no EuroLeague game for {len(filled)} clubs; used the official schedule:', ' '.join(sorted(filled)))
+    except Exception as ex:
+        print('WARNING: official schedule failed, next games and tip-off times may be missing', ex)
     for f_ in fixtures:
         t_ = times.get(f_[0] + '|' + f_[1]) or times.get(f_[0] + '|' + f_[2])
         if t_ and len(f_) == 3: f_.append(t_)
+    fixtures, deadline, turns = round_schedule(fixtures, nxt_round, old, snap)
     # his team: squad.json next to data.json (written from the site's My team editor)
     squad, budget, lineup = old.get('squad'), old.get('budget', 99.6), old.get('lineup')
     sqp = os.path.join(os.path.dirname(os.path.abspath(oldp)) if oldp != '-' else '.', 'squad.json')
@@ -511,18 +660,18 @@ def main():
         print(f"squad.json from {sq.get('updated')}: value {budget}" + (f" missing ids {missing}" if missing else ''))
     data = {
         'updated': datetime.date.today().isoformat(), 'round': nxt_round, 'roundLabel': f'Round {nxt_round}',
-        'deadline': days[0] if days else old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
+        'deadline': deadline or old.get('deadline'), 'team': old.get('team','Boškovi Fazani'),
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
+        'tradeBase': trade_base(old, nxt_round), 'paceHist': pace_hist(pgames, deadlines),
         'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
         **carried(old),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
     print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)} ownership {sum(p.get("pop") is not None for p in players)}')
     for b in bad[:15]: print('  bad', b)
-    hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
-    if os.path.exists(hp):
-        jumps = xpts_jumps(players, json.load(open(hp, encoding='utf-8')))
+    if snap:
+        jumps = xpts_jumps(players, snap)
         if jumps: print(f'WARNING xPTS moved more than x2 since the deadline snapshot ({len(jumps)} players; FantaSheet table misread?):', '; '.join(jumps[:10]))
 
 if __name__ == '__main__':
