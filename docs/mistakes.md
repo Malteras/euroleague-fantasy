@@ -235,3 +235,10 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   starts the walk at `played.firstCap`, else the snapshot's captain, else the squad's, whichever is in his team, with that
   captain's own keep mark. During the round `planView()` lists his team; a played turn shows the roles from `played`.
   Tests: tools/test_liveplan.mjs (the real Round 9 files), tools/test_elbuild.py.
+
+## 2 Nov 2026 · the Player market showed no players once Round 10's data came
+- **What:** the market said "No players match these filters" and no day button was on. His saved day filter was
+  Fri 30 Oct, a Round 9 game day; Round 10 is 4 to 6 Nov, so no player matched and there was no button to undo it.
+- **Why:** the day filter is saved (localStorage and state.json) and nothing checked it against the new round's days.
+- **Guard:** `market()` resets a saved day that is not one of `dayKeys` to Any day; tools/test_market.mjs. Any saved
+  filter whose values come from the round's data must fall back when the round changes.
