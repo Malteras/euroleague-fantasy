@@ -29,7 +29,7 @@
  "day": "ALL",
  "sort": "pop",
  "only": false,
- "tag": "Domestic form",
+ "tag": "Captain option",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -54,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-03T10:03:19.831Z"
+ "savedAt": "2026-11-03T10:03:25.168Z"
 }
