@@ -95,6 +95,40 @@ class ParseLogTest(unittest.TestCase):
         self.assertIsNone(got[0]['reb'])
 
 
+class ParseDomTest(unittest.TestCase):
+    # FantaSheet ?phase=domestic, 3 Nov 2026: ACB rows have a published PIR, BSL rows an approximate one ("~10", no space)
+    HEAD = 'Domestic stats Season Domestic Preseason Game log Date Opponent Result MIN PTS FPT ± Cr PIR 2P 3P FT REB '
+    ACB = HEAD + ('PIR pub. Box 01 Nov Burgos 01 Nov · W 90–79 Recoletas Salud San Pablo Burgos W 90–79 22.1 4 0.0 - 0 '
+                  '8/12 3 1/4 5 2 8/12 3 1/4 5 2 8/12 3 1/4 5 Full box score 25 Oct Lleida 25 Oct · W 86–122 iLERNA Lleida ✈️ '
+                  'W 86–122 16.6 15 17.6 - 16 8/12 3 1/4 5 Full box score Totals (5 GP) Totals (5 GP) 95.7 48 70.4 2.3 64 ')
+    BSL = HEAD + ('Box 18 Oct Petkim Spor 18 Oct · L 77–82 Petkim Spor L 77–82 20.0 10 10.0 - ~10 8/12 3 1/4 5 Partial '
+                  '25 Oct Roanne 25 Oct · L 96–75 Chorale Roanne Basket ✈️ L 96–75 9.5 2 -8.0 - ~-8 8/12 Partial Totals (2 GP) ')
+
+    def test_reads_published_and_approximate_pir(self):
+        got = elbuild.parse_dom(self.ACB) + elbuild.parse_dom(self.BSL)
+        self.assertEqual([(g['d'], g['opp'], g['ha'], g['hs'], g['as'], g['min'], g['pts'], g['pir'], g['approx']) for g in got],
+                         [('2026-11-01', 'Burgos', 'H', 90, 79, 22.1, 4, 0.0, False),
+                          ('2026-10-25', 'Lleida', 'A', 86, 122, 16.6, 15, 16.0, False),
+                          ('2026-10-18', 'Petkim Spor', 'H', 77, 82, 20.0, 10, 10.0, True),
+                          ('2026-10-25', 'Roanne', 'A', 96, 75, 9.5, 2, -8.0, True)])
+
+    def test_not_a_domestic_page(self):
+        self.assertEqual(elbuild.parse_dom(self.ACB.replace('Domestic stats', 'Season stats')), [])
+
+    def test_club_games_and_absent_players(self):
+        row = elbuild.parse_dom(self.ACB)
+        a = {'id': 1, 'team': 'RMB', 'domLeague': 'ACB', 'gp': 9, 'dom': [], 'domLog': row}
+        b = {'id': 2, 'team': 'RMB', 'domLeague': 'ACB', 'gp': 9, 'dom': [], 'domLog': row[1:]}
+        c = {'id': 3, 'team': 'RMB', 'domLeague': 'ACB', 'gp': 0, 'dom': [], 'domLog': []}
+        games = elbuild.fs_domestic([a, b, c], '2026-10-20')
+        self.assertEqual([(g['d'], g['ha'], g['score'], g['result'], g['comp']) for g in games],
+                         [('2026-11-01', 'H', '90–79', 'W', 'Liga ACB'), ('2026-10-25', 'A', '86–122', 'W', 'Liga ACB')])
+        self.assertEqual(b['dom'][0]['d'], '2026-11-01')
+        self.assertTrue(b['dom'][0]['absent'])       # his club played, he is not in the box score
+        self.assertEqual(c['dom'], [])                # no EuroLeague games: not followed
+        self.assertNotIn('domLog', a)
+
+
 class ParsePlayerTest(unittest.TestCase):
     def parse(self, header):
         with tempfile.TemporaryDirectory() as d:

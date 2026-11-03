@@ -306,63 +306,51 @@ def sofa_team_id(code, cache):
         if e.get('sport', {}).get('slug') == 'basketball' and e.get('gender', 'M') == 'M' and not re.search(r'U\d|Women|II\b|B$', e.get('name','')):
             cache[code] = e['id']; return e['id']
     return None
-def sofa_domestic(players, cache, since):
-    """Domestic (non-EuroLeague) games since `since` for the 20 clubs, matched to FantaSheet players by name."""
-    games, idx = [], {}
-    for p in players: idx.setdefault(p['team'], []).append(p)
-    def team_games(code):
-        tid = sofa_team_id(code, cache)
-        if not tid: return code, []
-        ev = sget(f'/team/{tid}/events/last/0').get('events', [])
-        out = []
-        for e in ev:
-            t = e.get('tournament', {}).get('name', '')
-            if 'euroleague' in t.lower() or e.get('status', {}).get('type') != 'finished': continue
-            d = datetime.datetime.fromtimestamp(e["startTimestamp"], datetime.timezone.utc).date().isoformat()
-            if d < since: continue
-            home = e['homeTeam']['id'] == tid
-            lu = sget(f"/event/{e['id']}/lineups")
-            out.append((e, d, home, lu, t))
-        return code, out
-    with ThreadPoolExecutor(6) as ex: res = list(ex.map(team_games, SOFA_Q))
-    for code, evs in res:
-        for e, d, home, lu, t in evs:
-            hs, as_ = e.get('homeScore', {}).get('current'), e.get('awayScore', {}).get('current')
-            opp = e['awayTeam' if home else 'homeTeam']['name']
-            my, their = (hs, as_) if home else (as_, hs)
-            win = my is not None and their is not None and my > their
-            games.append({'d': d, 'comp': re.sub(r',.*', '', t), 'team': code, 'opp': opp, 'ha': 'H' if home else 'A',
-                          'score': f'{hs}–{as_}', 'result': 'W' if win else 'L'})
-            side = lu.get('home' if home else 'away', {}).get('players', [])
-            hit = set()
-            for pl in side:
-                st = pl.get('statistics') or {}
-                sec = st.get('secondsPlayed') or 0
-                nm = norm(pl.get('player', {}).get('name', ''))
-                if not nm: continue
-                match = None
-                for fp in idx.get(code, []):
-                    fn = norm(fp['name'])
-                    if fn and fn[-1] == nm[-1] and (fn[0][0] == nm[0][0] or len(fn) == 1 or len(nm) == 1):
-                        match = fp; break
-                if not match: continue
-                hit.add(match['id'])
-                g = lambda k: st.get(k) or 0
-                pir = (g('points') + g('rebounds') + g('assists') + g('steals') + g('blocks')
-                       - (g('fieldGoalAttempts') - g('fieldGoalsMade')) - (g('freeThrowAttempts') - g('freeThrowsMade'))
-                       - g('turnovers') - g('personalFouls'))
-                match['dom'].append({'d': d, 'comp': re.sub(r',.*', '', t), 'opp': opp, 'ha': 'H' if home else 'A',
-                                     'res': ('W' if win else 'L') + f' {hs}-{as_}', 'min': round(sec/60, 1),
-                                     'pts': g('points'), 'reb': g('rebounds'), 'ast': g('assists'),
-                                     'pir': pir if sec else None, 'dnp': sec == 0})
-            if side:
-                for fp in idx.get(code, []):
-                    if fp['id'] not in hit and fp.get('gp'):
-                        fp['dom'].append({'d': d, 'comp': re.sub(r',.*', '', t), 'opp': opp, 'ha': 'H' if home else 'A',
-                                          'res': ('W' if win else 'L') + f' {hs}-{as_}', 'min': 0, 'pts': 0, 'reb': 0, 'ast': 0,
-                                          'pir': None, 'dnp': True, 'absent': True})
-    for p in players: p['dom'].sort(key=lambda x: x['d'], reverse=True)
-    return sorted(games, key=lambda x: x['d'], reverse=True)
+COMP = {'ACB':'Liga ACB','LBA':'Lega A Basket','GBL':'Stoiximan GBL','ABA':'AdmiralBet ABA League','LNB':'France Pro A',
+        'BBL':'Germany BBL','LKL':'Betsafe-LKL','BSL':'Turkish Basketball Super League','Israel':'Israeli Basketball Super League'}
+DOM_ROW = re.compile(r'(\d{1,2} [A-Z][a-z]+) (.+?) \1 · ([WL]) (\d+)–(\d+) (.+?) (✈️ )?[WL] \d+–\d+ '
+                     r'([\d.]+) ([−-]?\d+) ([−-]?[\d.]+) (\S+) (~ ?)?([−-]?[\d.]+)(?= )')
+def parse_dom(t):
+    """A player's domestic game log from FantaSheet's ?phase=domestic page (flat text): date, opponent, result,
+    minutes, points and PIR. Rebounds and assists on that page are placeholders for visitors without an account,
+    so they are not read. PIR marked "~" is approximate (blocks against not published)."""
+    if 'Domestic stats' not in t: return []
+    gl = t[t.find('Game log'):t.find('Totals (')]
+    out = []
+    for g in DOM_ROW.finditer(gl):
+        out.append({'d': date(g.group(1)), 'opp': g.group(2), 'oppFull': g.group(6), 'ha': 'A' if g.group(7) else 'H',
+                    'win': g.group(3) == 'W', 'hs': int(g.group(4)), 'as': int(g.group(5)),
+                    'min': num(g.group(8)), 'pts': int(num(g.group(9))), 'pir': num(g.group(13)), 'approx': bool(g.group(12))})
+    return out
+
+def fs_domestic(players, since):
+    """Domestic (non-EuroLeague) games since `since` for the 20 clubs, from each player's FantaSheet domestic game log.
+    A club's game list is the union of its players' logs; a player with EuroLeague games who is missing from a game
+    his club played is marked absent (rested or left out)."""
+    clubs = {}
+    for p in players:
+        for g in p.pop('domLog', []) or []:
+            if g['d'] < since: continue
+            k = (g['d'], g['opp'])
+            clubs.setdefault(p['team'], {}).setdefault(k, g)
+            p['dom'].append({'d': g['d'], 'comp': COMP[p['domLeague']], 'opp': g['oppFull'], 'ha': g['ha'],
+                             'res': ('W' if g['win'] else 'L') + f" {g['hs']}-{g['as']}", 'min': g['min'], 'pts': g['pts'],
+                             'reb': None, 'ast': None, 'pir': g['pir'], 'approx': g['approx'], 'dnp': not g['min'], 'key': k})
+    games = []
+    for code, gs in clubs.items():
+        comp = COMP[DOMESTIC[code]]
+        for (d, opp), g in gs.items():
+            games.append({'d': d, 'comp': comp, 'team': code, 'opp': g['oppFull'], 'ha': g['ha'],
+                          'score': f"{g['hs']}–{g['as']}", 'result': 'W' if g['win'] else 'L'})
+            for p in players:
+                if p['team'] != code or not p.get('gp') or any(x['key'] == (d, opp) for x in p['dom']): continue
+                p['dom'].append({'d': d, 'comp': comp, 'opp': g['oppFull'], 'ha': g['ha'],
+                                 'res': ('W' if g['win'] else 'L') + f" {g['hs']}-{g['as']}", 'min': 0, 'pts': 0,
+                                 'reb': None, 'ast': None, 'pir': None, 'dnp': True, 'absent': True, 'key': (d, opp)})
+    for p in players:
+        for x in p['dom']: x.pop('key', None)
+        p['dom'].sort(key=lambda x: x['d'], reverse=True)
+    return sorted(games, key=lambda x: (x['d'], x['team']), reverse=True)
 
 def carried(old):
     """The parts of data.json the daily report writes; this script can't produce them, so they pass through as they are."""
@@ -551,7 +539,8 @@ def main():
     def fetch(r):
         pid, slug, _ = r
         a = get(f'{BASE}/players/{pid}-{slug}', os.path.join(pages, f'{pid}.html'))
-        return a, None
+        b = get(f'{BASE}/players/{pid}-{slug}?phase=domestic', os.path.join(pages, f'{pid}-dom.html'))
+        return a, b
     with ThreadPoolExecutor(10) as ex: files = list(ex.map(fetch, roster))
     players, bad = [], []
     for (pid, slug, tc), (a, b) in zip(roster, files):
@@ -559,6 +548,8 @@ def main():
             p = parse_player(a, tc)
             p['dom'] = []
             p['domLeague'] = DOMESTIC[tc]
+            try: p['domLog'] = parse_dom(flat(txt(b))) if b else []
+            except Exception: p['domLog'] = []
             x = xp.get(p['name'])
             p['xpts'] = x['xpts'] if x else None
             p['rise'] = x['rise'] if x else None
@@ -571,7 +562,8 @@ def main():
     print('official box scores (current round)', len(games) // 2, 'games, player lines used', apply_official(players, games))
     cache = old.get('sofaIds', {})
     since = (datetime.date.today() - datetime.timedelta(days=12)).isoformat()
-    domgames = sofa_domestic(players, cache, since)
+    domgames = fs_domestic(players, since)
+    if not domgames: print('WARNING: no domestic games found on FantaSheet in the last 12 days; the report must say domestic data is missing')
     # team defence
     sf = get(f'{BASE}/teams/stats', os.path.join(pages, 'teamstats.html'))
     defence = parse_team_stats(sf) if sf else {}
@@ -673,7 +665,7 @@ def main():
         **carried(old),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
-    print(f'domestic games {len(domgames)} lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)} ownership {sum(p.get("pop") is not None for p in players)}')
+    print(f'domestic games {len(domgames)} (FantaSheet) lines {sum(len(p["dom"]) for p in players)} sofa ids {len(cache)}'); print(f'players {len(players)} roster {len(roster)} bad {len(bad)} fixtures {len(fixtures)} round {nxt_round} defence {len(defence)} coaches {len(coaches)} ownership {sum(p.get("pop") is not None for p in players)}')
     for b in bad[:15]: print('  bad', b)
     if snap:
         jumps = xpts_jumps(players, snap)

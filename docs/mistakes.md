@@ -242,3 +242,14 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
 - **Why:** the day filter is saved (localStorage and state.json) and nothing checked it against the new round's days.
 - **Guard:** `market()` resets a saved day that is not one of `dayKeys` to Any day; tools/test_market.mjs. Any saved
   filter whose values come from the round's data must fall back when the round changes.
+
+## 3 Nov 2026 · no domestic games in any report: Sofascore blocks the cloud server
+- **What:** domGames in data.json was empty on every run (at least the last 40 commits). The Monday report had no
+  domestic results and did not say so; he noticed it himself.
+- **Why:** the builder read domestic box scores from the Sofascore API, which answers the cloud server with
+  403 Forbidden. `sget()` turned the error into an empty answer, so the builder printed "domestic games 0" and moved on.
+- **Guard:** domestic games now come from FantaSheet's own domestic game log on each player page (`?phase=domestic`,
+  `parse_dom` / `fs_domestic` in tools/elbuild.py, tests in tools/test_elbuild.py). The builder prints a WARNING when it
+  finds no domestic games, and the report must then say domestic data is missing. A source that returns nothing is a
+  failure to report, not an empty week. FantaSheet shows minutes, points and PIR (published, or "~" approximate) but
+  not rebounds or assists, so the site no longer shows those columns for domestic games.
