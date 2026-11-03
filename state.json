@@ -31,7 +31,7 @@
  "day": "ALL",
  "sort": "pop",
  "only": false,
- "tag": null,
+ "tag": "Soft matchup",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -56,5 +56,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-03T10:02:15.843Z"
+ "savedAt": "2026-11-03T10:02:23.054Z"
 }
