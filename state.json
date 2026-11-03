@@ -28,7 +28,7 @@
  "day": "ALL",
  "sort": "pop",
  "only": false,
- "tag": "Captain option",
+ "tag": "Status changed",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -53,5 +53,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-03T10:03:29.234Z"
+ "savedAt": "2026-11-03T10:03:32.125Z"
 }
