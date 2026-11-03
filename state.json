@@ -33,6 +33,7 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
+ "coachView": "round",
  "team": null,
  "budgetTouched": false,
  "calOpen": true,
@@ -53,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-03T10:04:43.844Z"
+ "savedAt": "2026-11-03T17:11:12.942Z"
 }
