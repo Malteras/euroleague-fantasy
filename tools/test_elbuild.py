@@ -66,6 +66,14 @@ class OfficialNextTest(unittest.TestCase):
         self.assertEqual(nxt['PBB'], [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague R8', 'el': True,
                                        'opp': 'Dubai Basketball', 'ha': 'A', 'oc': 'DUB'}])
 
+    def test_el_next_keeps_round_date_time_opponent_code_and_side(self):
+        # the Coaches page's Next 5 games (#63) reads these; a played game is not in the list
+        nxt = elbuild.el_next(elbuild.official_next(self.games()))
+        self.assertEqual(nxt['VIR'], [{'r': 8, 'd': '2026-10-28', 't': '20:30', 'oc': 'ZAL', 'ha': 'H'},
+                                      {'r': 9, 'd': '2026-10-30', 't': '20:30', 'oc': 'BJK', 'ha': 'H'}])
+        self.assertEqual([g['r'] for g in nxt['ZAL']], [8])
+        self.assertEqual(elbuild.el_next(elbuild.official_next(self.games()), n=1)['VIR'], [nxt['VIR'][0]])
+
     def test_fills_only_clubs_without_a_euroleague_game_and_gives_tip_off_times(self):
         team_next = {'VIR': [], 'DUB': [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague', 'el': True, 'opp': 'Paris', 'ha': 'H'}],
                      'ZAL': [{'d': '2026-10-25', 't': '18:00', 'comp': 'LKL', 'el': False, 'opp': 'Rytas', 'ha': 'A'}]}
