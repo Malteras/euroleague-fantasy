@@ -30,7 +30,7 @@
  "only": false,
  "tag": "Credit gainer",
  "dtab": "overview",
- "allGames": true,
+ "allGames": false,
  "collapsed": [],
  "form": null,
  "team": null,
@@ -53,5 +53,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-03T10:04:05.775Z"
+ "savedAt": "2026-11-03T10:04:11.371Z"
 }
