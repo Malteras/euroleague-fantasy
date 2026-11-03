@@ -154,7 +154,23 @@ section{padding-block:28px 8px}
 
 /* panels */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px}
-.ctrl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:16px}
+.ctrl{display:flex;flex-direction:column;gap:10px;padding:16px}
+/* planner settings (#140): what it may do (budget, trades) and how it picks (switches) in one row; the long notes behind one link */
+.ps-top{display:grid;grid-template-columns:180px minmax(0,270px) minmax(0,1fr);gap:18px;align-items:end}
+.ps-top #maxT button{white-space:nowrap}
+.ps-sw{display:flex;gap:10px 22px;flex-wrap:wrap;align-items:center;padding-bottom:6px}
+.sw,.field label.sw{position:relative;display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:14px;letter-spacing:0;text-transform:none;cursor:pointer;white-space:nowrap;color:var(--fg)}
+.sw input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.sw .trk{width:34px;height:20px;border-radius:10px;background:var(--line);position:relative;transition:background .15s;flex:none}
+.sw .trk::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--fg);transition:left .15s}
+.sw input:checked+.trk{background:var(--accent)}
+.sw input:checked+.trk::after{left:17px;background:var(--accent-ink)}
+.sw input:focus-visible+.trk{outline:2px solid var(--accent);outline-offset:2px}
+.ps-more{align-self:flex-start;background:none;border:0;padding:0;color:var(--accent);font-weight:600;font-size:13.5px;cursor:pointer}
+.ps-det{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:12px 14px;border-radius:12px;background:var(--raise)}
+.ps-det b{display:block;font-size:13px;color:var(--fg);margin-bottom:2px}
+.ctrl>.wmm{margin-top:6px;border-top:1px solid var(--line-soft);padding-top:12px}
+@media (prefers-reduced-motion:reduce){.sw .trk,.sw .trk::after{transition:none}}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field label{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .num-input{background:var(--raise);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%;font-weight:700;font-size:18px}
@@ -592,10 +608,6 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tl-warn{margin-top:8px;padding:7px 11px;border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:13.5px}
 @media (max-width:900px){.plan{grid-template-columns:1fr}}
 @media (max-width:420px){.pbench{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.opts{display:flex;flex-direction:column;gap:14px;margin-top:8px}
-.opt-chk,.field .opt-chk{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--fg);cursor:pointer;white-space:nowrap}
-.opt .note{margin:3px 0 0 26px}
-.opt-chk input{width:18px;height:18px;margin:0;accent-color:var(--accent);flex:none}
 .mt-save{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
 .mt-over{margin:2px 0 14px;padding:12px 14px;border:1px solid var(--bad);border-radius:12px;background:var(--bad-soft);color:var(--fg);font-size:14px;line-height:1.45}
 .mt-over>b{color:var(--bad)}.mt-over ul{margin:6px 0 0;padding-left:20px}.mt-over li{margin:2px 0}
@@ -939,7 +951,10 @@ footer{padding-block:28px 40px;color:var(--muted);font-size:13px}
 }
 @media (max-width:760px){
   .days{grid-template-columns:1fr}
-  .ctrl{grid-template-columns:1fr 1fr}
+  .ps-top{grid-template-columns:1fr;gap:14px}
+  .ps-top .num-input{max-width:160px}
+  .ps-sw{flex-direction:column;align-items:flex-start;gap:12px}
+  .ps-det{grid-template-columns:1fr}
   .tiles{grid-template-columns:1fr 1fr}
   .tile:nth-child(2){border-right:0}
   .tile:nth-child(-n+2){border-bottom:1px solid var(--line)}
@@ -2562,7 +2577,7 @@ const wmmPos=i=>4-i;
 function wmmField(){
   const i=stopIdx(),t=wmmText(i);
   const stops=STOP_NAMES.map((n,j)=>`<button type="button" tabindex="-1" data-stop="${j}" class="${j===4?"first":j===0?"last":""}${j===i?" on":""}" style="left:${wmmPos(j)*25}%">${esc(n)}</button>`).join("");
-  return `<div class="field wmm" style="grid-column:1/-1"><label for="lam">What matters more</label><div class="wmm-ends"><span class="wmm-dest b">← Team value</span><span class="wmm-split" id="wmmSplit">${t.split}</span><span class="wmm-dest a r">Points →</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p>${result&&result.flat?'<p class="wmm-flat">Every setting gives the same trades for your squad this round. The expected price rise is worked out from the same projection as the points, so the two usually agree.</p>':""}</div>`;
+  return `<div class="field wmm"><label for="lam">What matters more</label><div class="wmm-ends"><span class="wmm-dest b">← Team value</span><span class="wmm-split" id="wmmSplit">${t.split}</span><span class="wmm-dest a r">Points →</span></div><input id="lam" class="wmm-bar" type="range" min="0" max="4" step="1" value="${wmmPos(i)}" style="--f:${wmmPos(i)/4}" aria-valuetext="${esc(t.vt)}"><div class="wmm-stops" id="wmmStops">${stops}</div><p class="wmm-explain" id="wmmExplain">${t.ex}</p>${result&&result.flat?'<p class="wmm-flat">Every setting gives the same trades for your squad this round. The expected price rise is worked out from the same projection as the points, so the two usually agree.</p>':""}</div>`;
 }
 function wmmSync(i){
   const t=wmmText(i),r=document.getElementById("lam");
@@ -2587,19 +2602,23 @@ function twNote(){
   if(!T||T.round!==D.round||typeof T.unlimited!=="boolean")return next;
   return ` The daily report says round ${D.round} is ${T.unlimited?"":"not "}a free-trade window${T.nextUnlimited===true?`, and round ${D.round+1} is one`:""}.`+next;
 }
+// "What does each setting do?" stays open across redraws (not saved)
+let setHelp=false;
 function proposal(){
   const parts=proposalParts(result);
+  const sw=(id,l)=>`<label class="sw"><input type="checkbox" role="switch" id="${id}"${state[id]?" checked":""}><span class="trk"></span>${l}</label>`;
+  const det=[["Trades this round",`A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}`],
+    ["Leave out injured",`Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.`],
+    ["Chase rank",`On a near-tie, pick the player few teams own. For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.`],
+    ["Include hidden gems",`On a near-tie, pick the cheap player on the rise. For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.`]];
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
-    <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
-    <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div><div class="note">A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}</div>
-      <div class="opts">
-      <div class="opt"><label class="opt-chk"><input type="checkbox" id="noInj"${state.noInj?" checked":""}> Leave out injured</label>
-      <div class="note">Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.</div></div>
-      <div class="opt"><label class="opt-chk"><input type="checkbox" id="chase"${state.chase?" checked":""}> Chase rank</label>
-      <div class="note">On a near-tie, pick the player few teams own. For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.</div></div>
-      <div class="opt"><label class="opt-chk"><input type="checkbox" id="gems"${state.gems?" checked":""}> Include hidden gems</label>
-      <div class="note">On a near-tie, pick the cheap player on the rise. For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.</div></div>
-      </div></div>
+    <div class="ps-top">
+      <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
+      <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div></div>
+      <div class="field"><label>How it picks</label><div class="ps-sw">${sw("noInj","Leave out injured")}${sw("chase","Chase rank")}${sw("gems","Include hidden gems")}</div></div>
+    </div>
+    <button type="button" class="ps-more" id="setHelp" aria-expanded="${setHelp}" aria-controls="setDet">${setHelp?"Hide what each setting does":"What does each setting do?"}</button>
+    <div class="ps-det" id="setDet"${setHelp?"":" hidden"}>${det.map(([t,x])=>`<div class="note"><b>${t}</b>${x}</div>`).join("")}</div>
     ${wmmField()}
   </div>
   <div class="tiles" id="propTiles">${parts.tiles}</div></div>
@@ -4048,6 +4067,7 @@ function bind(){
   const ni=$("#noInj");if(ni)ni.onchange=()=>{state.noInj=ni.checked;rerender();};
   const ch=$("#chase");if(ch)ch.onchange=()=>{state.chase=ch.checked;rerender();};
   const gm=$("#gems");if(gm)gm.onchange=()=>{state.gems=gm.checked;rerender();};
+  const sh=$("#setHelp");if(sh)sh.onclick=()=>{setHelp=!setHelp;sh.setAttribute("aria-expanded",setHelp);sh.textContent=setHelp?"Hide what each setting does":"What does each setting do?";$("#setDet").hidden=!setHelp;};
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});
   const so=$("#sort");if(so)so.onchange=e=>{state.sort=e.target.value;rerender();};
