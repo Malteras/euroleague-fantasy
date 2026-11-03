@@ -262,6 +262,18 @@ def official_next(games):
                                              'el': True, 'opp': g[side]['club']['name'], 'ha': ha, 'oc': opp})
     return out
 
+def el_next(official, n=5):
+    """{club: its next n EuroLeague games} from official_next(), for the Coaches page's Next 5 games (#63): round, date,
+    tip-off (Banja Luka time), opponent's code, H or A. A game already played is not in the official list."""
+    out = {}
+    for club, gs in official.items():
+        lst = []
+        for g in gs:
+            m = re.search(r'R(\d+)$', g.get('comp', ''))
+            if m and g.get('oc'): lst.append({'r': int(m.group(1)), 'd': g['d'], 't': g['t'], 'oc': g['oc'], 'ha': g['ha']})
+        out[club] = lst[:n]
+    return out
+
 def fill_next(team_next, times, official):
     """When Sofascore gave a club no EuroLeague game (it refuses requests some days), use the official schedule's.
     Tip-off times missing from Sofascore come from it too. Returns the clubs filled."""
@@ -611,7 +623,7 @@ def main():
     hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
     snap = json.load(open(hp, encoding='utf-8')) if os.path.exists(hp) else {}
     # tip-off times for the next round + each club's upcoming fixtures (Europe/Sarajevo)
-    times = {}; teamNext = {}
+    times = {}; teamNext = {}; elNext = old.get('elNext')  # kept from the last build if the official schedule fails
     try:
         from zoneinfo import ZoneInfo
         tz = ZoneInfo('Europe/Sarajevo')
@@ -635,7 +647,9 @@ def main():
         print('tip-off times failed', ex)
     try:
         sched = json.load(open(get(EL_API, os.path.join(pages, 'el_games.json'))))['data']
-        filled = fill_next(teamNext, times, official_next(sched))
+        official = official_next(sched)
+        elNext = el_next(official)
+        filled = fill_next(teamNext, times, official)
         if filled: print(f'WARNING: Sofascore gave no EuroLeague game for {len(filled)} clubs; used the official schedule:', ' '.join(sorted(filled)))
     except Exception as ex:
         print('WARNING: official schedule failed, next games and tip-off times may be missing', ex)
@@ -661,7 +675,7 @@ def main():
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
         'tradeBase': trade_base(old, nxt_round), 'paceHist': pace_hist(pgames, deadlines),
-        'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext,
+        'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext, 'elNext': elNext,
         **carried(old),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))

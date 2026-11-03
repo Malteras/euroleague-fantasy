@@ -17,6 +17,7 @@
   --tip-good:#0c6a41; --tip-bad:#b02842; /* on the light tooltip (its background is --fg): the light theme's colours */
   --good:#3fcf8f; --good-ink:#04251a; --good-soft:rgba(63,207,143,.14); --bad:#f7889b; --bad-soft:rgba(242,99,125,.14); --warn:#f3b64b; --warn-soft:rgba(243,182,75,.15); --warn-ink:#1d1300;
   --be:#8e9bb6; --credit:#f3b64b;
+  --cz-w1:#1d3a33;--cz-w2:#1f4a3d;--cz-w3:#235a48;--cz-wi:#d9f7e8;--cz-o:#45301f;--cz-oi:#ffd2ad;--cz-r:#46222d;--cz-ri:#ffc2cd; /* Coaches heat map (#63) */
   --court-a:#1d2a3f; --court-b:#152036; --court-line:rgba(255,255,255,.10);
   --display:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
   --body:"Barlow","Segoe UI",system-ui,sans-serif;
@@ -29,6 +30,7 @@
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
   --tip-good:#3fcf8f; --tip-bad:#f7889b; /* on the dark tooltip: the dark theme's colours */
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
+  --cz-w1:#e2f2ea;--cz-w2:#c9e8d8;--cz-w3:#acdcc3;--cz-wi:#0a3d26;--cz-o:#fde3cc;--cz-oi:#7d3400;--cz-r:#fbe0e5;--cz-ri:#8f1a31;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}}
 :root[data-theme="light"]{
   --bg:#edf1f6; --surface:#ffffff; --raise:#f3f6fa; --line:#d6dde8; --line-soft:#e5eaf1;
@@ -36,6 +38,7 @@
   --accent:#086672; --accent-soft:rgba(8,102,114,.10); --accent-ink:#ffffff;
   --tip-good:#3fcf8f; --tip-bad:#f7889b; /* on the dark tooltip: the dark theme's colours */
   --good:#0c6a41; --good-soft:rgba(12,106,65,.10); --good-ink:#ffffff; --bad:#b02842; --bad-soft:rgba(176,40,66,.09); --warn:#7a4f04; --warn-soft:rgba(122,79,4,.11); --warn-ink:#ffffff;
+  --cz-w1:#e2f2ea;--cz-w2:#c9e8d8;--cz-w3:#acdcc3;--cz-wi:#0a3d26;--cz-o:#fde3cc;--cz-oi:#7d3400;--cz-r:#fbe0e5;--cz-ri:#8f1a31;
   --be:#56637d; --credit:#966006; --court-a:#e9c99a; --court-b:#d9b27c; --court-line:rgba(255,255,255,.55); --al-bg:#fff6e2; --al-line:#e6c37f; color-scheme:light;}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
@@ -470,6 +473,57 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tag.Out{background:var(--bad-soft);color:var(--bad)} .tag.Doubtful{background:var(--warn-soft);color:var(--warn)}
 .coach-btn{border:1px solid var(--line);background:var(--raise);border-radius:8px;padding:5px 10px;font-weight:600;font-size:13px;cursor:pointer}
 .coach-btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+/* Coaches page (#63): a grouped table (This round) and a heat map (Next 5 games). Heat-map cells: solid backgrounds, each
+   with its own text colour, 4.5:1 or more in both themes (--cz-* tokens on :root) */
+#coaches .cz-sw{flex:none}#coaches .cz-sw button{flex:0 0 auto;padding:6px 14px}
+.cz-wrap{overflow-x:auto}
+.cz-t{width:100%;border-collapse:collapse;min-width:760px;font-variant-numeric:tabular-nums}
+.cz-t.cz-five{min-width:920px}
+.cz-t th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.cz-t .cz-g th{font-size:12px;color:var(--fg);padding-top:12px;border-bottom:2px solid var(--line)}
+.cz-t th.r,.cz-t td.r{text-align:right}
+.cz-t td{padding:10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;font-size:14px}
+.cz-t tbody tr:last-child td{border-bottom:0}
+.cz-t td>small{display:block;color:var(--muted);font-size:12.5px}
+.cz-t .cz-sep{border-left:1px solid var(--line)}
+.cz-t .cz-num{font-family:var(--display);font-weight:700;font-size:20px;white-space:nowrap}
+.cz-t .cz-num small{display:block;font-family:var(--body);font-weight:500;font-size:12px;color:var(--muted)}
+.cz-t .cz-pos{color:var(--good)}.cz-t .cz-neg{color:var(--bad)}
+.cz-t tr.cz-best>td{background:var(--accent-soft)}
+/* the coach column stays in view when the table scrolls sideways (phone) */
+.cz-t th:first-child,.cz-t td:first-child{position:sticky;left:0;z-index:1;background:var(--surface)}
+.cz-t tr.cz-best>td:first-child{background:linear-gradient(var(--accent-soft),var(--accent-soft)),var(--surface)}
+@media (max-width:560px){.cz-t th:first-child,.cz-t td:first-child{box-shadow:1px 0 0 var(--line)}}
+.cz-t .cz-sub th{padding-top:18px;border-top:1px solid var(--line)}
+.cz-played td{color:var(--muted)}.cz-played td b{color:var(--fg)}
+.cz-mine{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:6px;background:var(--accent-soft);color:var(--accent);vertical-align:1px}
+.cz-wbar{display:inline-block;vertical-align:middle;width:54px;height:6px;border-radius:3px;background:var(--line);margin-left:6px;overflow:hidden}
+.cz-wbar i{display:block;height:100%;background:var(--accent)}
+.cz-note{margin:0;padding:10px 14px;font-size:13px;color:var(--muted);border-top:1px solid var(--line-soft)}
+.cz-note p{margin:0}.cz-note+.cz-note{border-top:0;padding-top:0}
+.cz-t th.cz-hc,.cz-t td.cz-hc{text-align:center;padding:3px}
+.cz-hm{min-width:66px;border-radius:6px;padding:5px 4px;cursor:help;background:var(--hb);color:var(--hi);text-align:center}
+.cz-hm>small{display:block;font-size:11px;line-height:1.25;font-weight:500;color:inherit}
+.cz-hm .plink:hover{color:inherit;text-decoration-color:currentColor} /* the accent would fail contrast on the cell colours */
+.cz-hm>b{display:block;font-family:var(--display);font-size:17px;font-weight:700;color:inherit}
+.k-win1{--hb:var(--cz-w1);--hi:var(--cz-wi)}.k-win2{--hb:var(--cz-w2);--hi:var(--cz-wi)}.k-win3{--hb:var(--cz-w3);--hi:var(--cz-wi)}
+.k-lossx{--hb:var(--cz-o);--hi:var(--cz-oi)}.k-neg{--hb:var(--cz-r);--hi:var(--cz-ri)}
+.k-pl{--hb:var(--raise);--hi:var(--muted)}.cz-hm.k-pl{border:1px dashed var(--line)}
+.cz-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.cz-leg span{display:inline-flex;align-items:center;gap:6px}
+.cz-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--hb);border:1px solid var(--hi)}
+.cz-ht{display:inline-flex;gap:5px;align-items:center;cursor:help}
+.cz-i{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--muted);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0}
+/* the cell's tooltip: a small grid, margins across, a win row and a loss row; the chance big, its points small under it */
+.has-tip>.tip-pick .cz-tg{display:grid;grid-template-columns:auto repeat(3,auto);margin-top:4px;font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:700;align-items:stretch}
+/* stretch, not baseline: a one-line label and a two-line cell then share the row line above them (QA #139) */
+.cz-tg .cz-rh{line-height:19px}
+.cz-tg>span{padding:3px 8px;text-align:center;white-space:nowrap}
+.cz-tg .cz-l,.cz-tg .cz-rh{padding-left:0;text-align:left}
+.cz-tg .cz-th{font-size:11px;font-weight:600;color:color-mix(in srgb,var(--bg) 70%,var(--fg));border-bottom:1px solid color-mix(in srgb,var(--bg) 30%,var(--fg));padding-bottom:4px}
+.cz-tg .cz-rt{border-top:1px solid color-mix(in srgb,var(--bg) 18%,var(--fg))}
+.cz-tg strong{display:block;font-size:14px}
+.cz-tg em{display:block;font-style:normal;font-weight:500;font-size:11px;color:color-mix(in srgb,var(--bg) 78%,var(--fg))}
 .ptags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .ptag{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--line-soft);color:var(--muted);white-space:nowrap}
 .ptag.good{background:var(--good-soft);color:var(--good)} .ptag.bad{background:var(--bad-soft);color:var(--bad)}
@@ -971,7 +1025,7 @@ function pickBtn(k,p,on){
 }
 // add the id to a pick list, or take it out if it is there
 const toggleId=(a,id)=>a.includes(id)?a.filter(i=>i!==id):[...a,id];
-let state={pins:[],avoids:[],stars:[],starOnly:false,coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null};
+let state={pins:[],avoids:[],stars:[],starOnly:false,coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null,coachView:"round"};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -2997,9 +3051,95 @@ function market(){
   ${(state.pins.length||state.avoids.length||state.coachPin)?'<button type="button" class="chip-toggle" id="clear">Clear picks</button>':""}</div>
   <div class="mkt">${head}${body||`<div class="lrow"><span class="note">${state.starOnly&&!stars.size?"No players on your shortlist: tap ☆ on a player to add him.":"No players match these filters."}</span></div>`}</div></section>`;
 }
+// coachFive:begin
+// The Coaches page's Next 5 games (#63, agreed in the prototype rounds). A club's game this round (c.opp, c.day) and its next
+// EuroLeague games after it: elNext from the builder (round, date, time, opponent code, H/A), or in older data teamNext's
+// EuroLeague games with a code. Each game's points and win chance come from the team model (TM = teamModel()), the same as
+// this round's projection. s: shown(c). A played game counts his real points and 1 win or 0, never a projection.
+const COACH_SD=12; // teamModel's spread of the margin
+const coachCdf=z=>{const x=Math.abs(z)/Math.SQRT2,k=1/(1+.3275911*x);
+  const e=1-k*(.254829592+k*(-.284496736+k*(1.421413741+k*(-1.453152027+k*1.061405429))))*Math.exp(-x*x);return z<0?(1-e)/2:(1+e)/2;};
+// the chance of each coach result, by margin (rules book: win by 1–10 +10, 11–20 +20, 21+ +25; lose −5, −10, −20)
+const COACH_BANDS=[[1,"1–10",0,10,10,-5],[2,"11–20",10,20,20,-10],[3,"21+",20,Infinity,25,-20]];
+function coachBands(mg){
+  const F=v=>coachCdf((v-mg)/COACH_SD);
+  return COACH_BANDS.map(([,m,lo,hi,w,l])=>({m,win:{p:w,pr:F(hi)-F(lo)},lose:{p:l,pr:F(-lo)-F(-hi)}}));
+}
+function coachFive(c,s,data,TM,n=5){
+  const R=data.round,EN=data.elNext&&data.elNext[c.team];
+  const later=EN?EN.filter(g=>g.r>R):((data.teamNext||{})[c.team]||[]).filter(g=>g.el!==false&&g.oc&&(!c.day||g.d>c.day))
+    .map((g,k)=>({r:R+1+k,d:g.d,t:g.t,oc:g.oc,ha:g.ha}));
+  const tipOf=d=>((data.fixtures||[]).find(f=>f[0]===d&&(f[1]===c.team||f[2]===c.team))||[])[3]||"";
+  const G=[];
+  if(c.opp)G.push(s.played?{r:R,d:c.day,t:tipOf(c.day),opp:c.opp.opp,ha:c.opp.ha,pl:true,v:s.pts??0,w:s.pts>0?1:0}
+    :{r:R,d:c.day,t:tipOf(c.day),opp:c.opp.opp,ha:c.opp.ha,pl:false,x:c.x,pw:c.pw,mg:c.mg});
+  for(const g of later){if(G.length>=n)break;const o={opp:g.oc,ha:g.ha};
+    G.push({r:g.r,d:g.d,t:g.t||"",opp:g.oc,ha:g.ha,pl:false,x:TM.coachPts(c.team,o),pw:TM.winP(c.team,o),mg:TM.margin(c.team,o)});}
+  G.forEach(g=>{if(!g.pl){g.v=g.x;g.w=g.pw;}});
+  return {G,tot:r1(G.reduce((a,g)=>a+g.v,0)),ew:G.reduce((a,g)=>a+g.w,0),n:G.length};
+}
+// a heat-map cell's colour: green, a win expected (three steps by points); orange, a loss expected but above 0; red, below 0
+const coachKind=g=>g.pl?"pl":g.x<0?"neg":g.pw<.5?"lossx":g.x>=10?"win3":g.x>=5?"win2":"win1";
+// coachFive:end
+const cSg=v=>`${v>0?"+":v<0?"−":""}${Math.abs(v)}`,cSg1=v=>`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)}`,cPc=v=>`${Math.round(v*100)}%`;
+const cNum=v=>`${v<0?"−":""}${Math.abs(v).toFixed(1)}`; // one decimal, a real minus sign
+const cAt=(ha,o)=>`${ha==="H"?"vs":"@"} ${o}`;
+// a played game's final score from his club's side, from any of its players' logs ("W 92–77"); "" if not found
+function coachRes(c){
+  for(const p of P){if(p.team!==c.team)continue;const g=(p.log||[]).find(g=>g.d===c.day);
+    const m=g&&/^([WL]) (\d+)-(\d+)/.exec(g.res||"");if(m)return `${m[1]} ${g.ha==="A"?m[3]:m[2]}–${g.ha==="A"?m[2]:m[3]}`;}
+  return "";
+}
+let coachTM=null;const coachModel=()=>coachTM&&coachTM.D===D?coachTM.TM:(coachTM={D,TM:teamModel(D)}).TM;
+function coachCellTip(g){
+  const ctx=`R${g.r} ${cAt(g.ha,TEAMS[g.opp]?TEAMS[g.opp][0]:g.opp)}, ${dayFmt(g.d)}${g.t?` ${g.t}`:""}`;
+  if(g.pl)return tipPick(ctx,`Played: ${cSg(g.v)} points`,`${g.v>0?"A win":"A loss"}. His real points, not a projection.`);
+  const B=coachBands(g.mg),cell=x=>`<span class="cz-st"><strong>${cPc(x.pr)}</strong><em>${cSg(x.p)}</em></span>`;
+  const grid=`<span class="cz-tg"><span class="cz-th cz-l">By</span>${B.map(b=>`<span class="cz-th">${b.m}</span>`).join("")}`
+    +`<span class="cz-rh tg-up">Win ${cPc(g.pw)}</span>${B.map(b=>cell(b.win)).join("")}`
+    +`<span class="cz-rh cz-rt tg-dn">Lose ${cPc(1-g.pw)}</span>${B.map(b=>cell(b.lose).replace('class="cz-st"','class="cz-st cz-rt"')).join("")}</span>`;
+  return `<span class="tip tip-pick" role="tooltip"><small>${esc(ctx)}</small><b>${esc(`${cSg1(g.x)} points on average`)}</b><span>${grid}</span></span>`;
+}
+const COACH_PTS_TIP=()=>tipPick("Next 5 games","Points","The average a coach scores over every way each game can end, added up for 5 games. A loss costs less than a win pays, so a slight underdog still averages above 0.","A played game counts his real points.");
 function coaches(){
-  const list=C.slice().sort(projSort).map(c=>`<div class="lrow"><div><b>${esc(c.name)}</b> <span class="muted">${TEAMS[c.team][0]}</span><small>${facts(`${c.price.toFixed(1)} cr`,c.opp&&(c.opp.ha==="H"?"vs ":"@ ")+TEAMS[c.opp.opp][0],esc(dayShort(c.day)),`win chance ${Math.round(c.pw*100)}%${c.opp?`, by ${fmt(c.mg,0)} expected`:""}`,["Last two",c.last.join(", ")])}</small></div><div style="display:flex;gap:10px;align-items:center"><span class="xp">${projCell(c)}</span><button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button></div></div>`).join("");
-  return `<section id="coaches"><div class="sec-head"><div><div class="eyebrow">${facts("Win by 1–10 +10","11–20 +20","21+ +25")}</div><h2>Head coaches</h2></div></div><div class="panel list">${list}</div></section>`;
+  const mode=state.coachView==="five"?"five":"round",mine=orig&&orig.coach,closed=TRADES_CLOSED;
+  const tag=c=>c.team===mine?' <span class="cz-mine">Your coach</span>':"";
+  const pick=c=>closed?"":`<button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button>`;
+  const who=c=>`<td><b>${esc(c.name)}</b>${tag(c)}<small>${tname(c.team)}</small></td>`; // a club name opens the club drawer
+  const sw=`<div class="seg sm cz-sw" role="group" aria-label="Coaches view">${[["round","This round"],["five","Next 5 games"]].map(([k,l])=>`<button type="button" data-coach-view="${k}" class="${mode===k?"on":""}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
+  const head=`<div class="sec-head"><div><div class="eyebrow">Round ${D.round}</div><h2>Head coaches</h2></div>${sw}</div>`;
+  const bands=`<p class="cz-note">Coach points: win by 1–10 +10, by 11–20 +20, by 21+ +25. Lose by 1–10 −5, by 11–20 −10, by 21+ −20.</p>`;
+  let body;
+  if(mode==="round"){
+    const S=C.map(c=>({c,s:shown(c)})),open=S.filter(r=>!r.s.played).sort((a,b)=>projSort(a.c,b.c)),done=S.filter(r=>r.s.played).sort((a,b)=>(b.s.pts??-99)-(a.s.pts??-99));
+    const best=open[0]&&open[0].c.team,game=c=>c.opp?cAt(c.opp.ha,tname(c.opp.opp)):"No game",day=c=>c.day?esc(dayShort(c.day)):"";
+    const row=({c})=>`<tr class="${c.team===best?"cz-best":""}">${who(c)}<td class="cz-sep">${game(c)}</td><td>${day(c)}</td>
+      <td class="r">${c.opp?`${cPc(c.pw)}<span class="cz-wbar"><i style="width:${(c.pw*100).toFixed(0)}%"></i></span>`:"–"}</td>
+      <td class="r cz-num">${shown(c).played?projCell(c):cNum(c.x)}</td><td class="r cz-sep">${c.price.toFixed(1)}</td><td class="r">${cNum(c.x/c.price)}</td>
+      <td class="cz-sep">${c.last.map(cSg).join(", ")}</td><td class="r">${pick(c)}</td></tr>`;
+    const prow=({c,s})=>`<tr>${who(c)}<td class="cz-sep">${game(c)}</td><td>${day(c)}</td><td class="r">${esc(coachRes(c))}</td>
+      <td class="r cz-num ${s.pts>0?"cz-pos":s.pts<0?"cz-neg":""}">${s.pts!=null?cSg(s.pts):"played"}${s.x!=null?`<small>vs ${s.x} projected</small>`:""}</td>
+      <td class="r cz-sep">${c.price.toFixed(1)}</td><td></td><td class="cz-sep">${c.last.map(cSg).join(", ")}</td><td></td></tr>`;
+    body=`<div class="panel cz-wrap"><table class="cz-t"><thead>
+      <tr class="cz-g"><th></th><th class="cz-sep" colspan="4">This round</th><th class="cz-sep" colspan="2">Cost</th><th class="cz-sep">Form</th><th></th></tr>
+      <tr><th>Coach</th><th class="cz-sep">Game</th><th>Day</th><th class="r">Win chance</th><th class="r">Proj.</th><th class="r cz-sep">Price</th><th class="r">Pts per cr</th><th class="cz-sep">Last two</th><th></th></tr></thead>
+      <tbody>${open.map(row).join("")}</tbody>${done.length?`<tbody class="cz-played"><tr class="cz-sub"><th>Played this round</th><th class="cz-sep">Game</th><th>Day</th><th class="r">Result</th><th class="r">Points</th><th class="r cz-sep">Price</th><th></th><th class="cz-sep">Last two</th><th></th></tr>${done.map(prow).join("")}</tbody>`:""}</table>${bands}</div>`;
+  }else{
+    const TM=coachModel(),L=C.map(c=>({c,F:coachFive(c,shown(c),D,TM)})).sort((a,b)=>b.F.tot-a.F.tot),N=Math.max(...L.map(r=>r.F.n),1);
+    const RN=Array.from({length:N},(_,i)=>D.round+i),best=L[0]&&L[0].c.team;
+    const cell=g=>g?`<td class="cz-hc"><div class="cz-hm k-${coachKind(g)} has-tip" tabindex="0"><small>${cAt(g.ha,tname(g.opp,g.opp))}</small><b>${g.pl?cSg(g.v):cSg1(g.x).replace("+","")}</b><small>${g.pl?"played":`${cPc(g.pw)} win`}</small>${coachCellTip(g)}</div></td>`:`<td class="cz-hc muted">–</td>`;
+    const row=({c,F})=>`<tr class="${c.team===best?"cz-best":""}">${who(c)}${RN.map((r,i)=>cell(F.G.find(g=>g.r===r)).replace('<td class="cz-hc','<td class="cz-hc'+(i===0?" cz-sep":""))).join("")}
+      <td class="r cz-sep cz-num ${F.tot>=0?"cz-pos":"cz-neg"}">${cSg1(F.tot)}</td><td class="r">${F.ew.toFixed(1)} <span class="muted">of ${F.n}</span></td>
+      <td class="r cz-sep">${c.price.toFixed(1)}</td><td class="r">${cNum(F.tot/c.price)}</td><td class="r">${pick(c)}</td></tr>`;
+    const legend=`<div class="cz-leg"><span><i class="k-win3"></i>Win expected (50%+)</span><span><i class="k-lossx"></i>Loss expected, still above 0</span><span><i class="k-neg"></i>Below 0 points</span></div>`;
+    const free=((D.tradeWindows&&D.tradeWindows.rounds)||[]).filter(r=>r>D.round&&RN.includes(r));
+    body=`${legend}<div class="panel cz-wrap"><table class="cz-t cz-five"><thead>
+      <tr class="cz-g"><th></th><th class="cz-sep" colspan="${N}">Next ${N} games</th><th class="cz-sep" colspan="2">Total</th><th class="cz-sep" colspan="2">Cost</th><th></th></tr>
+      <tr><th>Coach</th>${RN.map((r,i)=>`<th class="cz-hc${i===0?" cz-sep":""}">R${r}</th>`).join("")}<th class="r cz-sep"><span class="has-tip cz-ht" tabindex="0">Points <span class="cz-i">i</span>${COACH_PTS_TIP()}</span></th><th class="r">Expected wins</th><th class="r cz-sep">Price</th><th class="r">Pts per cr</th><th></th></tr></thead>
+      <tbody>${L.map(row).join("")}</tbody></table>
+      <div class="cz-note"><p>Rounds ${RN[0]}–${RN[RN.length-1]}. Each game uses today's club strengths and home court, so games further away are less certain.</p><p>Expected wins adds up the win chances: 3.4 means about 3 wins in ${N}.</p><p>Hover or tap a cell for the chance of each result.</p>${free.map(r=>`<p>Round ${r} has free trades: before its deadline any coach can be changed.</p>`).join("")}</div>${bands}</div>`;
+  }
+  return `<section id="coaches">${head}${body}</section>`;
 }
 /* ---------- how the projections did ---------- */
 const HIST_FROM=7; // the first round with a history/round-N.json (#19)
@@ -3946,6 +4086,7 @@ function bind(){
   document.querySelectorAll("#rf button").forEach(b=>b.onclick=()=>{state.rf=b.dataset.v;rerender();});
   document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const d=b.dataset.day;state.collapsed=state.collapsed.includes(d)?state.collapsed.filter(x=>x!==d):[...state.collapsed,d];rerender();});
   document.querySelectorAll("[data-coach]").forEach(b=>b.onclick=()=>{const t=b.dataset.coach;state.coachPin=state.coachPin===t?null:t;rerender();});
+  document.querySelectorAll("[data-coach-view]").forEach(b=>b.onclick=()=>{state.coachView=b.dataset.coachView;rerender();});
   document.querySelectorAll('a[href="#myteam"],a[href="#team"]').forEach(a=>{if(!a.dataset.page)a.onclick=e=>{e.preventDefault();goPage("team","myteam");};});
 }
 })();
