@@ -262,3 +262,11 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   finds no domestic games, and the report must then say domestic data is missing. A source that returns nothing is a
   failure to report, not an empty week. FantaSheet shows minutes, points and PIR (published, or "~" approximate) but
   not rebounds or assists, so the site no longer shows those columns for domestic games.
+
+## 3 Nov 2026 · the page scrolled sideways at 375px (scrollWidth 434)
+- **What:** on #myteam the "Watch before the deadline" card's phone row for Edwin Jackson ran 59px past the screen. The
+  injury news line ("back not in the Round 9 roster (coach's decision); played domestic 1 Nov") could not wrap.
+- **Why:** `.facts .f` and `.wt-day` are `white-space:nowrap`, made for short facts like "plays Thu". The injury return
+  field is free text from the news, so it can be a whole sentence.
+- **Guard:** in `.wt` a fact may wrap (`.wt .facts .f, .wt .facts .wt-day`). A field filled with free text from data must
+  be allowed to wrap. Check every page with `document.documentElement.scrollWidth <= innerWidth` at 375px with today's data.
