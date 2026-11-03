@@ -25,7 +25,7 @@
  "maxT": 4,
  "lam": 0,
  "noInj": true,
- "chase": true,
+ "chase": false,
  "gems": true,
  "pos": "ALL",
  "day": "ALL",
@@ -56,5 +56,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-03T08:45:01.549Z"
+ "savedAt": "2026-11-03T08:45:29.679Z"
 }
