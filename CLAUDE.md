@@ -53,3 +53,6 @@ Read docs/mistakes.md first: mistakes already made and what stops them.
    played and one who has not, every column of their row, card and drawer; every tooltip hovered.
 9. Tooltips: always the site's own tooltip (`tipPick()` → `.tip.tip-pick`: context line, title, text, footer, on a
    `.has-tip` parent that also opens it on keyboard focus). Never a browser tooltip: no `title` attribute, no SVG `<title>`.
+10. A name is a link: every club name or club code the site shows opens the club drawer (`tname(t)`, or `badge(t)`), and every
+   player name opens the player drawer (`plink(p)`). Never `esc(TEAMS[t][0])` or a bare name on a page or in a card. Tooltip
+   text is the one exception: it cannot hold a button.

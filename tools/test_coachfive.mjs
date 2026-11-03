@@ -76,3 +76,12 @@ test("cell colours: green a win expected, orange a loss expected above 0, red be
   assert.equal(coachKind({ x: 5.6, pw: 0.58 }), "win2");
   assert.equal(coachKind({ x: 12.3, pw: 0.79 }), "win3");
 });
+
+// QA on #139: every club name on the Coaches page opens the club drawer (tname()), like everywhere else on the site
+test("club names on the Coaches page are tname() buttons, never plain text", () => {
+  const src = cut("function coaches(){", "/* ---------- how the projections did ---------- */");
+  assert.doesNotMatch(src, /esc\(TEAMS\[[^\]]+\]\[0\]\)/, "a club name shown as plain text");
+  assert.match(src, /<small>\$\{tname\(c\.team\)\}<\/small>/, "the coach's club");
+  assert.match(src, /cAt\(c\.opp\.ha,tname\(c\.opp\.opp\)\)/, "this round's opponent");
+  assert.match(src, /cAt\(g\.ha,tname\(g\.opp,g\.opp\)\)/, "a heat-map cell's opponent");
+});

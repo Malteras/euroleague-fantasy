@@ -504,6 +504,7 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .cz-t th.cz-hc,.cz-t td.cz-hc{text-align:center;padding:3px}
 .cz-hm{min-width:66px;border-radius:6px;padding:5px 4px;cursor:help;background:var(--hb);color:var(--hi);text-align:center}
 .cz-hm>small{display:block;font-size:11px;line-height:1.25;font-weight:500;color:inherit}
+.cz-hm .plink:hover{color:inherit;text-decoration-color:currentColor} /* the accent would fail contrast on the cell colours */
 .cz-hm>b{display:block;font-family:var(--display);font-size:17px;font-weight:700;color:inherit}
 .k-win1{--hb:var(--cz-w1);--hi:var(--cz-wi)}.k-win2{--hb:var(--cz-w2);--hi:var(--cz-wi)}.k-win3{--hb:var(--cz-w3);--hi:var(--cz-wi)}
 .k-lossx{--hb:var(--cz-o);--hi:var(--cz-oi)}.k-neg{--hb:var(--cz-r);--hi:var(--cz-ri)}
@@ -514,7 +515,9 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .cz-ht{display:inline-flex;gap:5px;align-items:center;cursor:help}
 .cz-i{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--muted);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0}
 /* the cell's tooltip: a small grid, margins across, a win row and a loss row; the chance big, its points small under it */
-.has-tip>.tip-pick .cz-tg{display:grid;grid-template-columns:auto repeat(3,auto);margin-top:4px;font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:700;align-items:baseline}
+.has-tip>.tip-pick .cz-tg{display:grid;grid-template-columns:auto repeat(3,auto);margin-top:4px;font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:700;align-items:stretch}
+/* stretch, not baseline: a one-line label and a two-line cell then share the row line above them (QA #139) */
+.cz-tg .cz-rh{line-height:19px}
 .cz-tg>span{padding:3px 8px;text-align:center;white-space:nowrap}
 .cz-tg .cz-l,.cz-tg .cz-rh{padding-left:0;text-align:left}
 .cz-tg .cz-th{font-size:11px;font-weight:600;color:color-mix(in srgb,var(--bg) 70%,var(--fg));border-bottom:1px solid color-mix(in srgb,var(--bg) 30%,var(--fg));padding-bottom:4px}
@@ -3102,14 +3105,14 @@ function coaches(){
   const mode=state.coachView==="five"?"five":"round",mine=orig&&orig.coach,closed=TRADES_CLOSED;
   const tag=c=>c.team===mine?' <span class="cz-mine">Your coach</span>':"";
   const pick=c=>closed?"":`<button type="button" class="coach-btn${state.coachPin===c.team?" on":""}" data-coach="${c.team}" aria-pressed="${state.coachPin===c.team}">${state.coachPin===c.team?"Picked":"Pick"}</button>`;
-  const who=c=>`<td><b>${esc(c.name)}</b>${tag(c)}<small>${esc(TEAMS[c.team][0])}</small></td>`;
+  const who=c=>`<td><b>${esc(c.name)}</b>${tag(c)}<small>${tname(c.team)}</small></td>`; // a club name opens the club drawer
   const sw=`<div class="seg sm cz-sw" role="group" aria-label="Coaches view">${[["round","This round"],["five","Next 5 games"]].map(([k,l])=>`<button type="button" data-coach-view="${k}" class="${mode===k?"on":""}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>`;
   const head=`<div class="sec-head"><div><div class="eyebrow">Round ${D.round}</div><h2>Head coaches</h2></div>${sw}</div>`;
   const bands=`<p class="cz-note">Coach points: win by 1–10 +10, by 11–20 +20, by 21+ +25. Lose by 1–10 −5, by 11–20 −10, by 21+ −20.</p>`;
   let body;
   if(mode==="round"){
     const S=C.map(c=>({c,s:shown(c)})),open=S.filter(r=>!r.s.played).sort((a,b)=>projSort(a.c,b.c)),done=S.filter(r=>r.s.played).sort((a,b)=>(b.s.pts??-99)-(a.s.pts??-99));
-    const best=open[0]&&open[0].c.team,game=c=>c.opp?cAt(c.opp.ha,esc(TEAMS[c.opp.opp][0])):"No game",day=c=>c.day?esc(dayShort(c.day)):"";
+    const best=open[0]&&open[0].c.team,game=c=>c.opp?cAt(c.opp.ha,tname(c.opp.opp)):"No game",day=c=>c.day?esc(dayShort(c.day)):"";
     const row=({c})=>`<tr class="${c.team===best?"cz-best":""}">${who(c)}<td class="cz-sep">${game(c)}</td><td>${day(c)}</td>
       <td class="r">${c.opp?`${cPc(c.pw)}<span class="cz-wbar"><i style="width:${(c.pw*100).toFixed(0)}%"></i></span>`:"–"}</td>
       <td class="r cz-num">${shown(c).played?projCell(c):cNum(c.x)}</td><td class="r cz-sep">${c.price.toFixed(1)}</td><td class="r">${cNum(c.x/c.price)}</td>
@@ -3124,7 +3127,7 @@ function coaches(){
   }else{
     const TM=coachModel(),L=C.map(c=>({c,F:coachFive(c,shown(c),D,TM)})).sort((a,b)=>b.F.tot-a.F.tot),N=Math.max(...L.map(r=>r.F.n),1);
     const RN=Array.from({length:N},(_,i)=>D.round+i),best=L[0]&&L[0].c.team;
-    const cell=g=>g?`<td class="cz-hc"><div class="cz-hm k-${coachKind(g)} has-tip" tabindex="0"><small>${cAt(g.ha,esc(g.opp))}</small><b>${g.pl?cSg(g.v):cSg1(g.x).replace("+","")}</b><small>${g.pl?"played":`${cPc(g.pw)} win`}</small>${coachCellTip(g)}</div></td>`:`<td class="cz-hc muted">–</td>`;
+    const cell=g=>g?`<td class="cz-hc"><div class="cz-hm k-${coachKind(g)} has-tip" tabindex="0"><small>${cAt(g.ha,tname(g.opp,g.opp))}</small><b>${g.pl?cSg(g.v):cSg1(g.x).replace("+","")}</b><small>${g.pl?"played":`${cPc(g.pw)} win`}</small>${coachCellTip(g)}</div></td>`:`<td class="cz-hc muted">–</td>`;
     const row=({c,F})=>`<tr class="${c.team===best?"cz-best":""}">${who(c)}${RN.map((r,i)=>cell(F.G.find(g=>g.r===r)).replace('<td class="cz-hc','<td class="cz-hc'+(i===0?" cz-sep":""))).join("")}
       <td class="r cz-sep cz-num ${F.tot>=0?"cz-pos":"cz-neg"}">${cSg1(F.tot)}</td><td class="r">${F.ew.toFixed(1)} <span class="muted">of ${F.n}</span></td>
       <td class="r cz-sep">${c.price.toFixed(1)}</td><td class="r">${cNum(F.tot/c.price)}</td><td class="r">${pick(c)}</td></tr>`;

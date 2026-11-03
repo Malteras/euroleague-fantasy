@@ -236,6 +236,15 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   captain's own keep mark. During the round `planView()` lists his team; a played turn shows the roles from `played`.
   Tests: tools/test_liveplan.mjs (the real Round 9 files), tools/test_elbuild.py.
 
+## 3 Nov 2026 · the new Coaches page showed every club name as plain text (QA on #139)
+- **What:** the redesigned Coaches page (#63) wrote the coach's club, this round's opponent and each heat-map cell's opponent
+  as text. Everywhere else on the site a club name opens the club drawer. He had asked for it before, on other pages.
+- **Why:** I built the page from the prototype, which had no drawers, and did not look at how the site already shows a club
+  name (`tname()`). The convention was nowhere in writing, so nothing reminded me.
+- **Guard:** CLAUDE.md rule 10 (a name is a link: `tname(t)` / `badge(t)` for a club, `plink(p)` for a player).
+  tools/test_coachfive.mjs fails on a plain club name in `coaches()`. When a prototype turns into site code, list every
+  name, number and control it shows and find the site's existing helper for each before writing new markup.
+
 ## 2 Nov 2026 · the Player market showed no players once Round 10's data came
 - **What:** the market said "No players match these filters" and no day button was on. His saved day filter was
   Fri 30 Oct, a Round 9 game day; Round 10 is 4 to 6 Nov, so no player matched and there was no button to undo it.
