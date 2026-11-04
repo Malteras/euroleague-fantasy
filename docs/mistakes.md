@@ -131,6 +131,16 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   replace then get the best player the budget allows while keeping enough for the cheapest player for each slot after
   them. Test: tools/test_optimiser.mjs "left-out players make room for the pinned ones first".
 
+## 4 Nov 2026 · names in the Round 9 review did not open their drawer
+- **What:** on the Round report, clicking a player in "Round 9 review" (the proposal's trades and the best team's trades)
+  did nothing. The names looked like links. The same was true of the names in "Round N, turn by turn".
+- **Why:** these cards need the history files. They are drawn empty first, then redrawn on their own with `outerHTML`
+  when the files arrive (`redrawScore()` / `redrawReview()` / `redrawRound()`). Player and club links get their click
+  handler in `bind()`, which runs only after a full `render()`, so the redrawn buttons had none.
+- **Guard:** `bindLinks(root)` in index.html binds `[data-open]` and `[data-team]`; `bind()` calls it for the page and each
+  redraw function calls it for its card. tools/test_redrawlinks.mjs fails on an `outerHTML` redraw without `bindLinks()`.
+  When checking a card, click its links on a fresh load, after everything has loaded.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
