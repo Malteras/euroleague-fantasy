@@ -3172,7 +3172,7 @@ function loadHistory(){
       if(TRADES_CLOSED){const y=window.scrollY;render();window.scrollTo(0,y);return;}
       redrawScore();redrawReview();redrawRound();});
 }
-function redrawScore(){const el=document.getElementById("scCard");if(el)el.outerHTML=scoreCard();}
+function redrawScore(){const el=document.getElementById("scCard");if(el){el.outerHTML=scoreCard();bindLinks(document.getElementById("scCard"));}}
 const SC_NOTE={today:"Proposal 1",m50:"Proposal 2",band:"learned from earlier rounds",look:"next round"};
 // what each version is, in plain words, for the i beside its name: [text, who uses it]
 const SC_MT=t=>`Today's projection plus ${t} of the matchup: how much more or less this opponent lets players of his position score than an average defence.`;
@@ -3217,7 +3217,7 @@ function scoreCard(){
     <p class="note sc-foot">Every player whose club played. A player who sat out scored 0, as he does in your team. An Out player counts only if he played, then as a 0 projection. A player without an xPTS uses his form in every version.</p></div>`;
 }
 /* ---------- end of round: his score against the deadline proposal and the best team in hindsight (#30) ---------- */
-function redrawRound(){const el=document.getElementById("rrCard");if(el)el.outerHTML=roundCard();}
+function redrawRound(){const el=document.getElementById("rrCard");if(el){el.outerHTML=roundCard();bindLinks(document.getElementById("rrCard"));}}
 function roundCard(){
   if(!HIST){loadHistory();return '<div id="rrCard"></div>';}
   // the latest round on record whose actual points are in
@@ -3244,7 +3244,7 @@ function roundCard(){
     <p class="note sc-foot">Best in hindsight: the most points your squad at the deadline could have reached with ${lim}, ${f(V.best.budget)} cr and 6 players per club.</p></div>`;
 }
 /* ---------- turn by turn: the squad's scores after each turn of the round (#29) ---------- */
-function redrawReview(){const el=document.getElementById("rvCard");if(el)el.outerHTML=reviewCard();}
+function redrawReview(){const el=document.getElementById("rvCard");if(el){el.outerHTML=reviewCard();bindLinks(document.getElementById("rvCard"));}}
 // The captain strip (capStrip) as HTML. The round in progress uses his saved lineup and today's projections (liveRound),
 // the same walk as "Plan for the round"; a finished round uses the deadline snapshot and the real scores.
 function capStripHtml(V){
@@ -4046,6 +4046,16 @@ function bindTeam(rerender){
   const q=$("#pkq");let t;
   if(q)q.oninput=e=>{clearTimeout(t);t=setTimeout(()=>{pick.q=e.target.value;const pos=q.selectionStart;document.getElementById("picker-root").innerHTML=picker();bindTeam(rerender);const n=$("#pkq");n.focus();n.setSelectionRange(pos,pos);},200);};
 }
+// player and club links: bound on every render, and again inside a card that is redrawn on its own
+// once the history files arrive (redrawScore / redrawReview / redrawRound), or its links would do nothing
+let linkRerender=null;
+function bindLinks(root){
+  const rerender=linkRerender;if(!rerender||!root)return;
+  root.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";dcmp=null;rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
+  root.querySelectorAll("[data-team]").forEach(b=>{const go=e=>{e.stopPropagation();e.preventDefault();tp=b.dataset.team;
+    // the team panel sits under the player drawer: a club link in the drawer closes it, so the panel shows
+    if(b.closest("#drawer-root"))state.open=null;rerender();setTimeout(()=>{const x=document.querySelector(".tpanel .dr-x");if(x)x.focus();},0);};b.onclick=go;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")go(e);};});
+}
 function bind(){
   const $=s=>document.querySelector(s);
   const rerender=()=>{save();const y=window.scrollY;const db=document.querySelector(".drawer");const dy=db?db.scrollTop:0;render();window.scrollTo(0,y);const nb=document.querySelector(".drawer");if(nb)nb.scrollTop=dy;};
@@ -4084,7 +4094,7 @@ function bind(){
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{const id=+b.dataset.no;state.pins=state.pins.filter(i=>i!==id);state.avoids=toggleId(state.avoids,id);rerender();});
   // ☆ only remembers him (#131): it never touches ♥ or ⊘
   document.querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{state.stars=toggleId(state.stars,+b.dataset.star);rerender();});
-  document.querySelectorAll("[data-open]").forEach(b=>{const go=()=>{state.open=+b.dataset.open;state.dtab="overview";dcmp=null;rerender();setTimeout(()=>{const x=document.querySelector(".dr-x");if(x)x.focus();},0);};b.onclick=e=>{e.stopPropagation();go();};b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();go();}};});
+  linkRerender=rerender;bindLinks(document);
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{state.open=null;dcmp=null;rerender();});
   // the drawer's compare (#51)
   const dcTop=()=>{const d=document.querySelector("#drawer-root .dcmp");if(d)d.scrollIntoView({block:"start"});};
@@ -4097,9 +4107,6 @@ function bind(){
   document.querySelectorAll("#allg button").forEach(b=>b.onclick=()=>{state.allGames=b.dataset.v==="1";rerender();});
   const ct=$("#calToggle");if(ct)ct.onclick=()=>{state.calOpen=!state.calOpen;rerender();};
   document.querySelectorAll("[data-pmode]").forEach(b=>b.onclick=()=>{state.pmode=b.dataset.pmode;justApplied=0;rerender();});
-  document.querySelectorAll("[data-team]").forEach(b=>{const go=e=>{e.stopPropagation();e.preventDefault();tp=b.dataset.team;
-    // the team panel sits under the player drawer: a club link in the drawer closes it, so the panel shows
-    if(b.closest("#drawer-root"))state.open=null;rerender();setTimeout(()=>{const x=document.querySelector(".tpanel .dr-x");if(x)x.focus();},0);};b.onclick=go;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")go(e);};});
   document.querySelectorAll("[data-tp-close]").forEach(b=>b.onclick=()=>{tp=null;rerender();});
   document.querySelectorAll("[data-game]").forEach(b=>b.onclick=e=>{if(e.target.closest(".plink"))return;const k=b.dataset.game;state.rg=state.rg===k?null:k;rerender();});
   document.querySelectorAll("[data-rgt]").forEach(b=>b.onclick=()=>{state.rgt={k:b.dataset.rgk,t:b.dataset.rgt};rerender();});
