@@ -28,7 +28,7 @@
  "day": "ALL",
  "sort": "x",
  "only": false,
- "tag": "Rise %",
+ "tag": null,
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -54,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-04T11:56:25.975Z"
+ "savedAt": "2026-11-04T11:56:27.669Z"
 }
