@@ -26,7 +26,7 @@
  "gems": true,
  "pos": "ALL",
  "day": "ALL",
- "sort": "pop",
+ "sort": "x",
  "only": false,
  "tag": "Rise %",
  "dtab": "overview",
@@ -54,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "10:false",
- "savedAt": "2026-11-04T11:56:20.314Z"
+ "savedAt": "2026-11-04T11:56:25.975Z"
 }
