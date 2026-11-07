@@ -272,3 +272,14 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   finds no domestic games, and the report must then say domestic data is missing. A source that returns nothing is a
   failure to report, not an empty week. FantaSheet shows minutes, points and PIR (published, or "~" approximate) but
   not rebounds or assists, so the site no longer shows those columns for domestic games.
+
+## 7 Nov 2026 · "Vezenkov was captain" on a finished round where Feliz was
+- **What:** "Round 10, turn by turn" said "Vezenkov was captain · Armband bonus +28.0". His saved lineup had Feliz as
+  captain (28 → 56) and the table under it marked Feliz "C ×2". The totals were right; only the strip was wrong.
+- **Why:** for a finished round the strip walked the deadline captain plan (`capStrip`) from the snapshot's captain, taken
+  before his deadline-day save, and printed the plan's last captain as "was captain". A simulated path under a label
+  that promises what happened.
+- **Guard:** `realCapStrip()` in index.html: once every turn is played and his saved lineup is on record, the strip shows
+  the captain the table counts ×2 and his score as the bonus. Without a saved captain it labels the walk "The plan's
+  captain" and "The plan's armband bonus". After the round, `turnReview()` keeps his saved captain ×2 even when the plan
+  said move it. Tests in tools/test_capstrip.mjs and tools/test_review.mjs.
