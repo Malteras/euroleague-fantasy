@@ -160,3 +160,43 @@ test("swaps: each turn's five is a formation, not only the last one", () => {
   const R = turnSwaps({ ...S, st: [S.a, x, S.c, S.d, S.e], bench: [h, i], score: sc({ 1: 20, 2: 4, 3: 20, 4: 20, 5: 11, 6: 20 }) });
   assert.deepEqual(R.swaps.map(s => [s.in.short, s.out.short, s.gain, s.form.join("-")]), [["H", "X", 13, "2-2-1"]]);
 });
+
+// realCapStrip: a finished round with his saved captain on record shows him, not the plan's walk.
+// Round 10 as it was: the snapshot (before his deadline-day trades) had Vezenkov (Friday) as captain, his saved lineup had
+// Feliz (Wednesday), who scored 28 → 56. The plan's walk from Vezenkov said "Vezenkov was captain"; the table said Feliz C ×2.
+const { realCapStrip } = new Function(src + "\nreturn {realCapStrip};")();
+const r10 = () => {
+  const [W4, T5, F6] = ["2026-11-04", "2026-11-05", "2026-11-06"], d = [W4, T5, F6];
+  const Fe = pl(38, "Feliz", W4, 17), Ab = pl(26, "Abalde", W4, 12), Br = pl(291, "Brooks", T5, 12), Ve = pl(7, "Vezenkov", F6, 21),
+    Di = pl(118, "Diarra", F6, 16);
+  const pts = { 38: 28, 26: 23, 291: 15.4, 7: 28, 118: 30 };
+  return { ps: [Fe, Ab, Br, Ve, Di], days: d, score: p => pts[p.id] ?? null, Fe, Ve, Ab };
+};
+
+test("round over, saved captain on record: he is the captain and his score is the bonus, not the plan's walk", () => {
+  const R = r10();
+  const plan = capStrip({ ...R, first: R.Ve, firstKeep: null, nowId: 38, played: () => true, tipOf: () => "" });
+  assert.equal(plan.top.who.short, "Vezenkov"); // the bug: the plan's walk from the snapshot's captain
+  const S = realCapStrip({ ...R, first: R.Ve, firstKeep: null, realId: 38 });
+  assert.equal(S.top.k, "over");
+  assert.equal(S.top.real, true);
+  assert.equal(S.top.who.short, "Feliz");
+  assert.equal(S.bonus, 28);
+  assert.equal(S.holdId, 38);
+  // the snapshot's captain plays after Feliz, so he never held the armband: one stop
+  assert.deepEqual(S.stops.map(s => [s.p.short, s.res]), [["Feliz", "kept"]]);
+});
+
+test("round over, armband moved from the deadline captain: he shows first, moved on, then the real captain", () => {
+  const R = r10();
+  const S = realCapStrip({ ...R, first: R.Fe, firstKeep: 29.2, realId: 7 });
+  assert.deepEqual(S.stops.map(s => [s.p.short, s.res, s.keep]), [["Feliz", "moved", 30], ["Vezenkov", "kept", null]]);
+  assert.equal(S.top.who.short, "Vezenkov");
+  assert.equal(S.bonus, 28);
+  assert.equal(S.holdId, 7);
+});
+
+test("realCapStrip: a captain who is not in the squad gives null, so the strip falls back to the plan", () => {
+  const R = r10();
+  assert.equal(realCapStrip({ ...R, first: R.Fe, firstKeep: null, realId: 999 }), null);
+});

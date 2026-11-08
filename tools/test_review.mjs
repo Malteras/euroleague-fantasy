@@ -127,6 +127,18 @@ test("the armband moved to the Thursday captain: his own score counts double, no
   assert.equal(r1.mult, 1); assert.equal(r1.counted, 9);
 });
 
+test("after the round, his saved captain counts ×2 even when the plan said move it on", () => {
+  // 1 scores 9 (under the keep mark 18) and he kept the armband on him: the game doubled 1, so the table does too
+  const both = { ...wed, 1: [W, 9], 3: [T, 10], 4: [T, 2], 6: [T, 30], 8: [T, 6], 9: [T, 1] };
+  const R = turnReview(snap(), live(both), { slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cap: 1, updated: W });
+  assert.equal(R.cap.call, "move");
+  const r1 = R.turns[0].rows.find(r => r.id === 1);
+  assert.equal(r1.cap, true); assert.equal(r1.moved, undefined); assert.equal(r1.counted, 18);
+  // while Thursday is still to play, the same lineup still shows the armband to move
+  const mid = turnReview(snap(), live({ ...wed, 1: [W, 9] }), { slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cap: 1, updated: W });
+  assert.equal(mid.turns[0].rows.find(r => r.id === 1).moved, true);
+});
+
 test("each row carries his matchup at the deadline: the snapshot's allowance of his opponent for his position (#58)", () => {
   // KBA allows guards +30 and PAO allows centres −17; PAO's guard 1 faces KBA, KBA's guard 2 faces PAO (no number: null)
   const s = { ...snap(), defence: { KBA: { vs_g: 30, vs_f: 2, vs_c: 5 }, PAO: { vs_g: null, vs_f: -4, vs_c: -17 } } };

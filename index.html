@@ -1377,7 +1377,8 @@ function turnReview(snap,logs,saved){
   // the first captain's double counts only if he keeps the armband: a score under the keep mark counts once,
   // because the armband moves to a later player (keep or move is judged on his raw score, not the doubled one)
   // only his own row: once the armband is on a later player in the saved lineup, that player's row is the captain's
-  const firstCap=capCall&&capCall.call==="move"&&cap===capCall.first.id;
+  // after the round, his saved captain (not the snapshot) is who the game doubled, so his row stays ×2 whatever the plan said
+  const over=R.dayKeys.every(d=>played.has(d)),firstCap=capCall&&capCall.call==="move"&&cap===capCall.first.id&&!(over&&from!=="snapshot");
   if(firstCap)for(const t of turns)for(const r of t.rows)if(r.cap){
     const m=r.mult/2;got+=r1((r.fpt||0)*m)-r.counted;projSoFar+=r1(r.x*m)-r.px;
     projRound+=r1(r.x*m)-r.px;
@@ -2797,6 +2798,17 @@ function capStrip({ps,days,first,firstKeep,score,nowId,played,tipOf}){
   for(const s of stops)s.last=s.keep==null&&!s.res&&!s.gone&&(final(s.p)||s===stops[stops.length-1]);
   return {stops,top,bonus:kept?kept.score:0,holdId:over?(kept?kept.p.id:null):nowId};
 }
+// A finished round with his real captain on record (the saved lineup's armband, the "C ×2" row of the turn table): the strip
+// shows him and his score as the bonus, not the plan's walk. The deadline's first captain shows before him, moved on, when
+// he played an earlier turn. realId: that captain; the rest as capStrip. Same shape as capStrip's result.
+function realCapStrip({ps,days,first,firstKeep,score,realId}){
+  const real=ps.find(p=>p.id===realId);if(!real)return null;
+  const ix=p=>days.indexOf(p.day),stops=[];
+  if(first&&first.id!==real.id&&ix(first)<ix(real))
+    stops.push({p:first,keep:firstKeep!=null?Math.ceil(firstKeep):null,score:score(first),res:"moved",real:true,last:false});
+  stops.push({p:real,keep:null,score:score(real),res:"kept",real:true,last:false});
+  return {stops,top:{k:"over",who:real,real:true},bonus:score(real)||0,holdId:real.id};
+}
 // Bench swaps between turns. A bench player who has not played comes onto the court (or 6th man) for any player, as long
 // as the starting five is one of FORMS after each turn's swaps (official rules: "field-bench subs ... only if the new player
 // chosen has not yet taken the field", and the formation may change; docs/rules.md). Court and 6th man count 100%, bench 50%:
@@ -3260,14 +3272,20 @@ function capStripHtml(V){
   const tipOf=d=>fx.filter(f=>f[0]===d).map(f=>f[3]).filter(Boolean).sort()[0]||"";
   const gameOf=p=>(fx.find(f=>f[0]===p.day&&(f[1]===p.team||f[2]===p.team))||[])[3]||"";
   const wd=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short"});}catch(e){return d;}};
-  const S=capStrip({ps,days,first,firstKeep:C.keepAt,score,nowId:C.now?C.now.id:null,played,tipOf});
+  // after the round: his real captain, the row the table counts ×2, when his saved lineup is on record; else the plan's walk
+  const capRow=V.from!=="snapshot"&&V.turns.flatMap(t=>t.rows).find(r=>r.cap),over=days.every(played);
+  const S=(over&&capRow&&realCapStrip({ps,days,first,firstKeep:C.keepAt,score,realId:capRow.id}))
+    ||capStrip({ps,days,first,firstKeep:C.keepAt,score,nowId:C.now?C.now.id:null,played,tipOf});
+  const plan=S.top.k==="over"&&!S.top.real;
   // the projection at the deadline for a played game (today's already includes it), today's for one still to play
   const deadX={};V.turns.forEach(t=>t.rows.forEach(r=>deadX[r.id]=r.x));
   const proj=s=>s.score!=null&&deadX[s.p.id]!=null?deadX[s.p.id]:s.p.x;
   const f=v=>v.toFixed(1),nm=p=>byId[p.id]?plink(byId[p.id],p.short):esc(p.short),MAX=40;
   const T=S.top,by=d=>`${wd(d)} ${tipOf(d)}`;
   let lab,main,rest="";
-  if(T.k==="over"){lab="Round over";main=T.who?`${esc(T.who.short)} was captain`:"No captain scored double";}
+  if(T.k==="over"&&T.real){lab="Round over";main=`${esc(T.who.short)} was captain`;}
+  else if(T.k==="over"){lab="Round over";main=T.who?`The plan's captain: ${esc(T.who.short)}`:"The plan's captain scored no double";
+    rest="Your captain this round is not on record, so this is the plan's walk from the deadline";}
   else if(T.k==="todo"){lab="✗ To do";main=`Move the armband to ${esc(T.who.short)}`;rest=`before ${by(T.who.day)}`;}
   else{lab="Today";main="Nothing to do";
     rest=T.k==="kept"?`${esc(T.who.short)} keeps the armband (×2)`
@@ -3279,17 +3297,17 @@ function capStripHtml(V){
   const lum=h=>{const v=parseInt(h.slice(1),16);return(.299*(v>>16)+.587*(v>>8&255)+.114*(v&255))/255;};
   const stops=S.stops.map(s=>{const p=s.p,col=(TEAMS[p.team]||["","#56637d"])[1],x=proj(s),sc=s.score;
     // the bar's tooltip: what he scored, his projection, and the mark that keeps the armband (raw score, never doubled)
-    const tipF=[sc!=null&&["Scored",f(sc)],["Projected",f(x)],s.gone?"no armband":s.keep!=null?["Keep mark",s.keep]:"last turn"];
+    const tipF=[sc!=null&&["Scored",f(sc)],["Projected",f(x)],s.gone?"no armband":s.keep!=null?["Keep mark",s.keep]:s.real?"your captain":"last turn"];
     const tip=facts(...tipF),tipAria=tipF.filter(Boolean).map(t=>Array.isArray(t)?t.join(" "):t).join(", ");
-    const kind=sc==null?"pj":s.res==="moved"?"lo":"";
-    const tag=s.gone?facts("no armband",sc==null&&`projected ${f(x)}`):sc!=null?(s.res==="moved"?facts(`<span class="lo">under ${s.keep}</span>`,T.k==="todo"&&C.now&&C.now.id===p.id?"move the armband on":"armband moved on")
-        :s.res==="kept"?(s.keep!=null?facts(`${s.keep}+`,"armband stayed (×2)"):facts("last turn","counts ×2")):"scored")
+    const under=s.res==="moved"&&(!s.real||(s.keep!=null&&sc<s.keep)),kind=sc==null?"pj":under?"lo":"";
+    const tag=s.gone?facts("no armband",sc==null&&`projected ${f(x)}`):sc!=null?(s.res==="moved"?facts((s.keep!=null&&(!s.real||sc<s.keep))&&`<span class="lo">under ${s.keep}</span>`,T.k==="todo"&&C.now&&C.now.id===p.id?"move the armband on":"armband moved on")
+        :s.res==="kept"?(s.real?facts("your captain","counts ×2"):s.keep!=null?facts(`${s.keep}+`,"armband stayed (×2)"):facts("last turn","counts ×2")):"scored")
       :facts("projected",s.keep!=null?`keep at ${s.keep}+`:"last turn");
     return `<div class="rv-st${p.id===S.holdId?" hold":""}${s.gone?" gone":""}"><div class="bdg" style="--tc:${col};--ti:${lum(col)>.6?"#0f1a2d":"#fff"}">${esc(p.team)}${p.id===S.holdId?'<span class="cb" aria-label="Captain">C</span>':""}</div>
-      <span class="nm">${nm(p)}</span><div class="num${sc==null||s.gone?"":s.res==="moved"?" lo":s.res==="kept"?" hi":" sc"}">${f(sc!=null?sc:x)}</div>
+      <span class="nm">${nm(p)}</span><div class="num${sc==null||s.gone?"":under?" lo":s.res==="moved"?" sc":s.res==="kept"?" hi":" sc"}">${f(sc!=null?sc:x)}</div>
       <div class="rv-bar" tabindex="0" role="img" aria-label="${tipAria}"><i class="${kind}" style="width:${Math.max(0,Math.min(100,(sc!=null?sc:x)/MAX*100))}%"></i>${s.keep!=null?`<u style="left:${s.keep/MAX*100}%"></u>`:""}${sc!=null?`<span class="pk" style="left:${Math.min(100,x/MAX*100)}%"></span>`:""}<span class="tip">${tip}</span></div>
       <small>${facts(`T${days.indexOf(p.day)+1}`,`${wd(p.day)} ${gameOf(p)}`)}</small><small>${tag}</small></div>`;}).join("");
-  return `<div class="rv-arm"><div class="rv-al${T.k==="todo"?" bad":""}"><span class="lab">${lab}</span><b>${main}</b>${rest?`<span class="muted">${rest}</span>`:""}<span class="rv-bonus">Armband bonus <b>${S.bonus>0?"+":S.bonus<0?"−":""}${f(Math.abs(S.bonus))}</b></span></div>
+  return `<div class="rv-arm"><div class="rv-al${T.k==="todo"?" bad":""}"><span class="lab">${lab}</span><b>${main}</b>${rest?`<span class="muted">${rest}</span>`:""}<span class="rv-bonus">${plan?"The plan's armband bonus":"Armband bonus"} <b>${S.bonus>0?"+":S.bonus<0?"−":""}${f(Math.abs(S.bonus))}</b></span></div>
     <div class="rv-tk" style="--n:${n}">${lines}${stops}</div></div>`;
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest(".rv-bar");
