@@ -19,7 +19,7 @@
  "coachPin": null,
  "budget": 105.7,
  "maxT": 4,
- "lam": 20,
+ "lam": 0,
  "noInj": true,
  "chase": false,
  "gems": true,
@@ -50,5 +50,5 @@
   "t": "BJK"
  },
  "maxTAuto": "11:false",
- "savedAt": "2026-11-10T12:52:48.585Z"
+ "savedAt": "2026-11-10T12:53:42.789Z"
 }
