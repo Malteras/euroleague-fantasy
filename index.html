@@ -274,6 +274,7 @@ section{padding-block:28px 8px}
 .tx .tp{color:var(--accent)} .tx .tc{color:var(--credit)} .tx .neg{color:var(--bad)} .tx .z{color:var(--faint)}
 .tx tfoot td{border-top:2px solid var(--line);font-weight:800}
 .tx tfoot td:first-child{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.02em}
+.tx tfoot .tx-used{display:block;font-family:var(--body,inherit);font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);margin-top:2px}
 /* look-ahead: "R7 / R8" game lines under the player and two-round bars in the points column */
 .tx th small{display:block;text-transform:none;letter-spacing:0;font-weight:600;color:var(--faint)}
 .tx-p small em{font-style:normal;font-weight:800;font-size:10.5px;letter-spacing:.04em;color:var(--faint);margin-right:4px}
@@ -2656,10 +2657,12 @@ function proposalParts(R){
   const num=(v,c)=>{v=r1(v);return `<span class="${v===0?"z":v<0&&c?"neg":c}">${fmt(v,1)}</span>`;};
   const was=(a,b,f)=>`<span class="was">${a?f(a):"–"} → ${b?f(b):"–"}</span>`;
   const tot={dp:0,dn:0,dc:0,fr:0};
-  // a row that changes a trade already made this round: it does not add a trade, it replaces or undoes that one
+  // what a row does to the round's trade count (#137): a change from My team is not always a new trade. Selling a player
+  // bought this round replaces that trade; buying back one sold this round undoes it. Said on the row, so 5 changes
+  // next to a limit of 4 reads right.
   const madeNote=(p,side)=>{if(!start||p.id==null)return "";
     const was=start.players.includes(p.id);
-    return side==="o"&&!was?`<small class="tx-own">Bought this round</small>`:side==="i"&&was?`<small class="tx-own">Sold, back in</small>`:"";};
+    return side==="o"&&!was?`<small class="tx-own">Bought this round: replaces that trade</small>`:side==="i"&&was?`<small class="tx-own">Sold this round: undoes that trade</small>`:"";};
   // a differential for an incoming player (#26): one the optimiser could also have picked (same position, no dearer,
   // room at his club, not left out by you), within DIFF_PTS of his projected points with the look-ahead. Coaches: none.
   // with Chase rank on, the incoming player it chose says so, and whom it chose him over
@@ -2686,7 +2689,7 @@ function proposalParts(R){
   const xBtn=(attr,v,label)=>`<button type="button" class="tx-del" ${attr}="${v}" aria-label="${esc(label)}">✕</button>`;
   const xFor=(o,i)=>{const a=byId[o],b=byId[i];
     return a?xBtn("data-drop",`${a.id},${b?b.id:""}`,`Remove this trade: keep ${a.short}`):xBtn("data-no",b.id,`Remove this trade: leave out ${b.short}`);};
-  const nTr=pairs.length+(coachChanged?1:0);
+  const nTr=pairs.length+(coachChanged?1:0),made0=tradesUsed(orig.players,orig.coach);
   const rows=pairs.map(([o,i])=>row(byId[o],byId[i],i??null,p=>plink(p),"",xFor(o,i)))
     .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach",
       orig.coach?xBtn("data-coach-keep",orig.coach,"Remove this trade: keep your coach"):"")]:[]).join("");
@@ -2696,7 +2699,7 @@ function proposalParts(R){
   let capRow="";
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
     capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td><td></td></tr>`;}
-  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} ${txWord(nTr)}`)}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
+  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} ${txWord(nTr)}`)}${made0?`<small class="tx-used">${R.used} of ${state.maxT>=99?"unlimited":state.maxT} trades this round, the ${made0} already made included</small>`:""}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
   const laNote=LA?`<div class="rb-legend"><span><i></i>${rN}, this round</span><span><i class="h"></i>${rN2}, counts half</span><span class="rb-legend-w">Grey numbers, out → in: projected points in ${rN} and in ${rN2}</span></div>`
     :state.pmode==="m"&&!LOOK_ON?`<p class="note" style="margin:10px 0 0">Round ${D.round+1} is a free-trade window, so these trades are judged on this round only.</p>`:"";
   const noTrades=!pairs.length&&!coachChanged;
