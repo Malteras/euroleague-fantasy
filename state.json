@@ -29,7 +29,7 @@
  "only": false,
  "tag": "Soft matchup",
  "dtab": "games",
- "allGames": false,
+ "allGames": true,
  "collapsed": [],
  "form": null,
  "coachView": "round",
@@ -50,5 +50,5 @@
   "t": "BJK"
  },
  "maxTAuto": "11:false",
- "savedAt": "2026-11-10T13:04:10.529Z"
+ "savedAt": "2026-11-10T13:04:12.041Z"
 }
