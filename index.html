@@ -142,10 +142,21 @@ section{padding-block:28px 8px}
 .gt{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted)}
 /* a played game: final score in place of vs, his players' scores against the deadline projection */
 .game.done .gt{font-size:12px;letter-spacing:.04em;text-transform:uppercase}.game.done .vs{font-family:var(--display);font-weight:700;font-size:15px;color:var(--fg);white-space:nowrap}
-.game.done .gmine .gp{display:block}
-.gsc{font-weight:700;color:var(--fg)}.gsc .up{color:var(--good)}.gsc .dn{color:var(--bad)}.gsc small{font-weight:400;color:var(--muted)}
+/* the middle column grows to the score (111–109), so it never runs into the away club's name; the winner's score is bold */
+.game.done{grid-template-columns:42px minmax(0,1fr) auto minmax(0,1fr)}
+.game.done .vs{padding:0 4px;font-weight:500;color:var(--muted)}.game.done .vs b{font-weight:800;color:var(--fg)}
+/* his players in a played game: one row each, name · score · projection · credit change in columns */
+.gpl{grid-column:2/-1;display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;column-gap:12px;row-gap:3px;align-items:baseline;
+  margin-top:4px;padding:6px 10px;border-radius:8px;background:var(--raise);font-size:12.5px}
+.gpl-h{grid-column:1/-1;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gpl .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.gpl .sc{font-family:var(--display);font-size:15px;font-weight:800;text-align:right;color:var(--fg)}.gpl .sc.up{color:var(--good)}.gpl .sc.dn{color:var(--bad)}
+.gpl .sc small{font-family:var(--body);font-size:11px;font-weight:500;color:var(--muted);margin-left:2px}
+.gpl .pj{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.gpl .gcr{font-size:12px;font-weight:700;text-align:right;white-space:nowrap}.gpl .gcr.up{color:var(--good)}.gpl .gcr.dn{color:var(--bad)}
 .gside{display:flex;align-items:center;gap:7px;min-width:0}
 .gside.away{justify-content:flex-end}
+.tn .plink{text-decoration:none;color:inherit;font:inherit}.tn .plink:hover,.tn .plink:focus-visible{text-decoration:underline}
 .tn{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vs{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;font-weight:700}
 .tb{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:10.5px;letter-spacing:.02em;color:#fff;background:var(--tc);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18),0 0 0 1px var(--line)}
@@ -2419,22 +2430,27 @@ function hero(){
   const px=Object.fromEntries(sp.map(p=>[p.id,p.x])),pr=Object.fromEntries(sp.map(p=>[p.id,p.price]));
   // his credit change from the game, the same number as the Value column of "Round N, turn by turn"
   const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"} has-tip" tabindex="0">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr${tipPick(p.short,`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr`,"His credit change from this game.")}</span>`;};
-  const scoreTxt=(p,d)=>{const g=gameOf(p,d);if(!g)return `${plink(p,p.short)} <span class="gsc">DNP${crTxt(null,p)}</span>`;
-    const x=px[p.id],pc=x>0?Math.round(100*(g.fpt-x)/x):null;
-    return `${plink(p,p.short)} <span class="gsc">${(+g.fpt).toFixed(1)}${pc==null?"":` <span class="${pc>=0?"up":"dn"}">${pc>=0?"+":"−"}${Math.abs(pc)}%</span>`}${crTxt(g,p)} ${x!=null?`<small>(proj ${x})</small>`:""}</span>`;};
+  // one row of four cells: name, his score (green above the deadline projection, red below), that projection, credit change
+  const scoreTxt=(p,d)=>{const g=gameOf(p,d),x=px[p.id],nm=`<span class="nm">${plink(p,p.short)}</span>`;
+    if(!g)return `${nm}<span class="sc">DNP</span><span class="pj">${x!=null?`proj ${x.toFixed(1)}`:""}</span>${crTxt(null,p)}`;
+    const pc=x>0?Math.round(100*(g.fpt-x)/x):null;
+    const pj=x!=null?`<span class="pj has-tip" tabindex="0">proj ${x.toFixed(1)}${tipPick(p.short,`${(+g.fpt).toFixed(1)} pts vs ${x.toFixed(1)} projected`,pc==null?"His projection at the round's deadline.":`${pc>=0?"+":"−"}${Math.abs(pc)}% against his projection at the round's deadline.`)}</span>`:`<span class="pj"></span>`;
+    return `${nm}<span class="sc${x!=null?(g.fpt>=x?" up":" dn"):""}">${(+g.fpt).toFixed(1)}<small>pts</small></span>${pj}${crTxt(g,p)}`;};
   const days=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).slice().sort((a,b)=>(a[3]||"").localeCompare(b[3]||""));
     const myCount=P.filter(p=>mine.has(p.id)&&p.day===d).length;
     const rows=games.map(([_,h,a,t])=>{
       const my=P.filter(p=>mine.has(p.id)&&(p.team===h||p.team===a));
       const sc=final(d,h);
-      const names=sc?my.map(p=>`<span class="gp">${scoreTxt(p,d)}</span>`).join(""):my.map(p=>plink(p,p.short)).join(", ");
+      const names=sc?my.map(p=>scoreTxt(p,d)).join(""):my.map(p=>plink(p,p.short)).join(", ");
+      // the final score, home first, the winner's number bold
+      const scHtml=sc?(([x,y])=>+x>+y?`<b>${x}</b>–${y}`:+y>+x?`${x}–<b>${y}</b>`:`${x}–${y}`)(sc.split("–")):"";
       return `<li class="game${my.length?" has-mine":""}${sc?" done":""}">
         <span class="gt">${sc?"Final":t?esc(t):"–"}</span>
-        <span class="gside">${badge(h)}<span class="tn">${esc(TEAMS[h][0])}</span></span>
-        <span class="vs">${sc?esc(sc):"vs"}</span>
-        <span class="gside away"><span class="tn">${esc(TEAMS[a][0])}</span>${badge(a)}</span>
-        ${my.length?`<span class="gmine">${names}</span>`:""}
+        <span class="gside">${badge(h)}<span class="tn">${tname(h)}</span></span>
+        <span class="vs">${sc?scHtml:"vs"}</span>
+        <span class="gside away"><span class="tn">${tname(a)}</span>${badge(a)}</span>
+        ${my.length?sc?`<div class="gpl"><span class="gpl-h">Your players</span>${names}</div>`:`<span class="gmine">${names}</span>`:""}
       </li>`;}).join("");
     const shut=state.collapsed.includes(d);
     return `<div class="day${shut?" shut":""}"><button type="button" class="day-h" data-day="${d}" aria-expanded="${!shut}"><div><span class="turn">Turn ${k+1}</span><b>${esc(dayLabel(d))}</b></div><span class="day-n">${facts(`${games.length} game${games.length===1?"":"s"}`,`${myCount} of yours`)}<span class="chev" aria-hidden="true"></span></span></button><ul class="games"${shut?" hidden":""}>${rows}</ul></div>`;}).join("");
