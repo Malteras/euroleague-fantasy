@@ -154,6 +154,8 @@ section{padding-block:28px 8px}
 .gpl .sc small{font-family:var(--body);font-size:11px;font-weight:500;color:var(--muted);margin-left:2px}
 .gpl .pj{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
 .gpl .gcr{font-size:12px;font-weight:700;text-align:right;white-space:nowrap}.gpl .gcr.up{color:var(--good)}.gpl .gcr.dn{color:var(--bad)}
+/* a cell with a tooltip says so: dashed underline */
+.gpl .has-tip{text-decoration:underline dashed;text-decoration-thickness:1px;text-underline-offset:3px}
 .gside{display:flex;align-items:center;gap:7px;min-width:0}
 .gside.away{justify-content:flex-end}
 .tn .plink{text-decoration:none;color:inherit;font:inherit}.tn .plink:hover,.tn .plink:focus-visible{text-decoration:underline}
@@ -2477,13 +2479,16 @@ function hero(){
   const snap=HIST&&HIST.find(h=>h.round===D.round),sp=snap?project(snap).players:[];
   const px=Object.fromEntries(sp.map(p=>[p.id,p.x])),pr=Object.fromEntries(sp.map(p=>[p.id,p.price]));
   // his credit change from the game, the same number as the Value column of "Round N, turn by turn"
-  const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"} has-tip" tabindex="0">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr${tipPick(p.short,`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr`,"His credit change from this game.")}</span>`;};
+  const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"}">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr</span>`;};
   // one row of four cells: name, his score (green above the deadline projection, red below), that projection, credit change
   const scoreTxt=(p,d)=>{const g=gameOf(p,d),x=px[p.id],nm=`<span class="nm">${plink(p,p.short)}</span>`;
     if(!g)return `${nm}<span class="sc">DNP</span><span class="pj">${x!=null?`proj ${x.toFixed(1)}`:""}</span>${crTxt(null,p)}`;
-    const pc=x>0?Math.round(100*(g.fpt-x)/x):null;
-    const pj=x!=null?`<span class="pj has-tip" tabindex="0">proj ${x.toFixed(1)}${tipPick(p.short,`${(+g.fpt).toFixed(1)} pts vs ${x.toFixed(1)} projected`,pc==null?"His projection at the round's deadline.":`${pc>=0?"+":"−"}${Math.abs(pc)}% against his projection at the round's deadline.`)}</span>`:`<span class="pj"></span>`;
-    return `${nm}<span class="sc${x!=null?(g.fpt>=x?" up":" dn"):""}">${(+g.fpt).toFixed(1)}<small>pts</small></span>${pj}${crTxt(g,p)}`;};
+    // the tooltip sits on his score and says only what the row does not: the % against the deadline projection, green
+    // above it, red below, no colour at zero (the colours of gameTipHtml). No name line: the hovered row is right there.
+    const pc=x>0?Math.round(100*(g.fpt-x)/x):null,cls=pc>0?"tg-up":pc<0?"tg-dn":"";
+    const tip=pc==null?"":`<span class="tip tip-pick" role="tooltip"><b${cls?` class="${cls}"`:""}>${pc>0?"+":pc<0?"−":""}${Math.abs(pc)}%</b><span>vs ${x.toFixed(1)} projected</span></span>`;
+    const sc=`${(+g.fpt).toFixed(1)}<small>pts</small>`;
+    return `${nm}<span class="sc${x!=null&&g.fpt!==x?(g.fpt>x?" up":" dn"):""}${tip?" has-tip":""}"${tip?' tabindex="0"':""}>${sc}${tip}</span><span class="pj">${x!=null?`proj ${x.toFixed(1)}`:""}</span>${crTxt(g,p)}`;};
   const days=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).slice().sort((a,b)=>(a[3]||"").localeCompare(b[3]||""));
     const myCount=P.filter(p=>mine.has(p.id)&&p.day===d).length;
