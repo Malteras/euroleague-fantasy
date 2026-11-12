@@ -441,6 +441,29 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tp-v{font-family:var(--display);font-weight:800;font-size:17px;text-align:right}.tp-v.good{color:var(--good)}.tp-v.bad{color:var(--bad)}
 .tp-vt{font-size:12.5px;color:var(--muted)}.tp-vt.good{color:var(--good);font-weight:600}.tp-vt.bad{color:var(--bad);font-weight:600}
 .tp-line{margin:8px 0 0;font-size:14px}
+/* pace card: all clubs on one slow → fast strip, this club's badge above, this round's opponent below */
+.pc-h{display:flex;justify-content:space-between;align-items:center;gap:8px}.pc-h h4{margin:0}
+.pc-pill{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--raise);color:var(--muted);white-space:nowrap}
+.pc-pill.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}.pc-pill.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.pc-big{margin:8px 0 0;font-size:14px}.pc-big b{font-family:var(--display);font-size:26px;font-weight:800;margin-right:4px}.pc-big .muted{display:block;font-size:12.5px}
+.pc-strip{position:relative;height:56px;margin:4px 14px 0}.pc-strip.two{height:84px}
+.pc-track{position:absolute;left:0;right:0;top:36px;height:8px;border-radius:999px;background:linear-gradient(90deg,color-mix(in srgb,var(--bad) 35%,var(--raise)),var(--raise) 50%,color-mix(in srgb,var(--good) 35%,var(--raise)))}
+.pc-dot{position:absolute;top:1px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--faint);opacity:.75}
+.pc-avg{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--fg);opacity:.55}
+.pc-m{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
+.pc-m .tb{width:26px;height:26px;font-size:9px}.pc-m i{width:2px;height:10px;background:var(--fg)}
+.pc-m.op{top:auto;bottom:0;flex-direction:column-reverse}.pc-m.op i{opacity:.6}
+.pc-ends{position:relative;display:flex;justify-content:space-between;gap:8px;margin:6px 0 0;padding-bottom:16px;font-size:11.5px;color:var(--muted)}
+.pc-ends .pc-al{position:absolute;top:16px;transform:translateX(-50%);margin-left:0;white-space:nowrap;color:var(--fg);opacity:.75}
+.pc-strip+.pc-ends{margin-inline:0}
+.pc-sh{margin:4px 0 6px;font-size:12px;color:var(--muted)}
+.pc-split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pc-split span{display:flex;flex-direction:column;padding:8px 10px;border-radius:10px;background:var(--raise)}
+.pc-split small{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.pc-split b{font-family:var(--display);font-size:18px;font-weight:800}
+.pc-game{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.pc-gk{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);flex-basis:100%}
+.pc-gv{font-size:14px}.pc-gv b{font-family:var(--display);font-size:18px;font-weight:800}.pc-gt{flex-basis:100%;font-size:13px;color:var(--muted)}
+.pc-note{margin:10px 0 0;font-size:12px}
 .tp-warn{padding:10px 12px;border-radius:12px;background:var(--warn-soft);font-size:14px}
 .tp-pl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .tp-pl li{display:flex;align-items:center;gap:10px}.tp-pl .jersey{width:32px;height:32px;font-size:10px;flex:none}.tp-pl .jersey::after{display:none}
@@ -1786,10 +1809,35 @@ function teamSummary(I){
   if(I.strong&&I.strong.v<=-12)L.push(`<b>Strong spot:</b> they allow ${POSW[I.strong.k]} ${-I.strong.v} PIR less than average. Avoid ${POSW[I.strong.k]} who play against ${n}.`);
   if(I.avgAllowed!=null){const d=Math.round(I.df.pir_allowed-I.avgAllowed);
     L.push(d>=5?`Overall they give away a lot: ${I.df.pir_allowed} team PIR per game, ${d} above the league average.`:d<=-5?`Overall a tough defence: ${I.df.pir_allowed} team PIR per game, ${-d} below the league average.`:`Overall an average defence (${I.df.pir_allowed} team PIR allowed per game).`);}
-  if(I.df.pace!=null&&I.paceAvg!=null){const d=r1(I.df.pace-I.paceAvg);
-    L.push(`<b>Pace:</b> ${I.df.pace.toFixed(1)} possessions a game, ${Math.abs(d)>=1?`${Math.abs(d).toFixed(1)} ${d>0?"more":"fewer"} than`:"about"} the league average of ${I.paceAvg.toFixed(1)}. They use ${I.df.pace_for.toFixed(1)}, their opponents ${I.df.pace_allowed.toFixed(1)}. ${d>=1?"Fast games give both teams' players more chances to score.":d<=-1?"Slow games give both teams' players fewer chances to score.":""} The projection does not use pace yet: the Round report's "How the projections did" card measures it first.`);}
   return L;
 }
+// paceCard:begin
+// Pace (#28) in its own card: every club on one slow → fast strip, this club above it, this round's opponent below,
+// the league average as a tick; then what that means for this round's game: about (club + opponent) ÷ 2 possessions.
+const paceWord=d=>d>=1?{cls:"good",txt:"Fast"}:d<=-1?{cls:"bad",txt:"Slow"}:{cls:"",txt:"Average"};
+function paceCard(I){
+  const df=I.df,avg=I.paceAvg;if(!df||df.pace==null||avg==null)return "";
+  const all=Object.entries(D.defence||{}).filter(([,x])=>x.pace!=null).map(([k,x])=>[k,x.pace]);
+  const lo=Math.min(...all.map(x=>x[1])),hi=Math.max(...all.map(x=>x[1])),at=v=>hi>lo?(v-lo)/(hi-lo)*100:50;
+  const rankTxt=(r,n)=>r===1?`the fastest of ${n}`:r===n?`the slowest of ${n}`:`${r}${r%100>10&&r%100<14?"th":["th","st","nd","rd"][r%10]||"th"} fastest of ${n}`;
+  const rank=all.filter(([,v])=>v>df.pace).length+1,d=r1(df.pace-avg),W=paceWord(d);
+  const o=I.opp&&D.defence&&D.defence[I.opp.opp]&&D.defence[I.opp.opp].pace!=null?I.opp.opp:null;
+  const dots=all.filter(([k])=>k!==I.t&&k!==o).map(([,v])=>`<i class="pc-dot" style="left:${at(v).toFixed(1)}%"></i>`).join("");
+  // a club's badge on the strip: still a link to its drawer, with a tooltip that says where it sits
+  const mark=(k,cls)=>{const v=D.defence[k].pace,c=TEAMS[k][1],r=all.filter(([,x])=>x>v).length+1;
+    return `<span class="pc-m ${cls}" style="left:${at(v).toFixed(1)}%"><span class="tb tlink has-tip" style="--tc:${c};color:${inkOn(c)}" data-team="${k}" role="button" tabindex="0" aria-label="${esc(TEAMS[k][0])}: ${v.toFixed(1)} possessions a game, team analysis">${k}${tipPick(cls==="op"?"This round's opponent":"Pace",TEAMS[k][0],`${v.toFixed(1)} possessions a game, ${rankTxt(r,all.length)}. Tap for the team analysis.`)}</span><i></i></span>`;};
+  let game="";
+  if(o){const g=(df.pace+D.defence[o].pace)/2,gd=r1(g-avg),G=paceWord(gd);
+    game=`<div class="pc-game"><span class="pc-gk">This round ${I.opp.ha==="H"?"vs":"at"} ${tname(o)}</span><span class="pc-gv">about <b>${g.toFixed(1)}</b> possessions</span><span class="pc-pill ${G.cls}">${G.txt} game</span><span class="pc-gt">${gd>=1?"More possessions than usual: more chances to score for both teams' players.":gd<=-1?"Fewer possessions than usual: fewer chances to score for both teams' players.":"Close to the league average: pace changes little here."}</span></div>`;}
+  return `<div class="tp-card"><div class="pc-h"><h4>Pace</h4><span class="pc-pill ${W.cls}">${W.txt}</span></div>
+    <p class="pc-big"><b>${df.pace.toFixed(1)}</b> possessions a game<span class="muted">${(t=>t[0].toUpperCase()+t.slice(1))(rankTxt(rank,all.length))}${Math.abs(d)>=.1?`, ${fmt(d,1)} against the average`:""}</span></p>
+    <div class="pc-strip${o?" two":""}"><div class="pc-track"><span class="pc-avg" style="left:${at(avg).toFixed(1)}%"></span>${dots}</div>${mark(I.t,"me")}${o?mark(o,"op"):""}</div>
+    <div class="pc-ends"><span>Slow ${lo.toFixed(1)}</span><span class="pc-al" style="left:calc(14px + (100% - 28px) * ${(at(avg)/100).toFixed(3)})">Average ${avg.toFixed(1)}</span><span>${hi.toFixed(1)} Fast</span></div>
+    <p class="pc-sh">Possessions a game, each side</p><div class="pc-split"><span><small>Theirs</small><b>${df.pace_for.toFixed(1)}</b></span><span><small>Their opponents'</small><b>${df.pace_allowed.toFixed(1)}</b></span></div>
+    ${game}
+    <p class="note pc-note">The projection does not use pace yet: the Round report's "How the projections did" card measures it first.</p></div>`;
+}
+// paceCard:end
 function teamPanel(){
   if(!tp||!TEAMS[tp])return "";
   const I=teamInfo(tp),n=TEAMS[tp][0],col=TEAMS[tp][1];
@@ -1819,7 +1867,7 @@ function teamPanel(){
    <div class="dr-body tp-body">
     <div class="tp-card"><h4>What they allow, by position</h4><p class="note" style="margin:0 0 8px">PIR opponents score against them compared with an average team. Plus = easy for that position, minus = hard.</p>${bars}
       ${teamSummary(I).map(x=>`<p class="tp-line">${x}</p>`).join("")}</div>
-    ${attack}${avoid}
+    ${attack}${avoid}${paceCard(I)}
     <div class="tp-card"><h4>Form</h4><div class="tp-form">${form||'<span class="note">No games yet.</span>'}</div>${next?`<h4 style="margin-top:12px">Next EuroLeague games</h4><ul class="tp-next">${next}</ul>`:""}</div>
     <div class="tp-card"><h4>Best fantasy players</h4>${pl(top)}</div>
     ${risers.length?`<div class="tp-card"><h4>Cheap risers (9 cr or less)</h4>${pl(risers)}</div>`:""}
@@ -2759,12 +2807,29 @@ function capSteps(capPath,name,turn){
     return {day:p.day,txt:`${k?`If the armband is on ${name(p)} now: keep it if he scores`:`If ${name(p)} scores`} <b>${Math.round(keepAt)}+</b>${k?"":", keep the armband"}. Otherwise move it to ${name(n)} (${esc(turn(n.day))}, proj ${n.x}). Bring him into the starting five first if needed.`};});
 }
 // capStrip:begin
+const CAP_SWITCH=1; // points of expected captain bonus a better armband must add before the plan says to move it
 // After the round has started: walk the turns with his real captain and the real scores of the turns played.
 // A played turn is history: its captain and scores stay as they were. Each step goes under the turn it must be done before.
 // ps: his players (projected, with .day); cap: his captain; score(p): his points if his turn was played, else null.
 // firstKeep: the first captain's keep mark from the plan at the deadline, when known (the history snapshot)
 function liveCapPlan(ps,cap,days,score,name,turn,firstKeep=null){
   const steps=[],held=[cap],calls=[];let c=cap;
+  // a captain who has not played is still a choice (#147): before the first turn not played yet, the armband may go to
+  // anyone who has not played. When the best walk from that turn starts with someone else and is worth CAP_SWITCH+ more
+  // than keeping him, move it now. Played turns are not re-picked: everyone in this walk is still to play.
+  const k0=days.findIndex(d=>ps.some(p=>p.day===d&&score(p)==null));
+  if(c&&k0>=0&&score(c)==null&&days.indexOf(c.day)>=k0){
+    const sd=p=>({...p,sd:spreadOf(p)}),open=ps.filter(p=>days.indexOf(p.day)>=k0).map(sd);
+    const best=capPath(open,days.slice(k0)),ci=days.indexOf(c.day);
+    const after=capPath(ps.filter(p=>days.indexOf(p.day)>ci).map(sd),days.slice(ci+1));
+    const keepV=after.path.length?eMax(c.x,spreadOf(c),after.v):c.x;
+    const nx=best.path.length?ps.find(p=>p.id===best.path[0].p.id):null;
+    if(nx&&nx.id!==c.id&&best.v-keepV>=CAP_SWITCH){
+      calls.push({day:days[k0],kind:"switch",c,nx,gain:Math.round((best.v-keepV)*10)/10});
+      steps.push({day:days[k0],txt:`Move the armband from ${name(c)} (proj ${c.x}) to ${name(nx)} (${esc(turn(nx.day))}, proj ${nx.x}) now. Bring him into the starting five first if needed.`});
+      c=nx;held.push(nx);
+    }
+  }
   for(let k=0;k<days.length-1&&c;k++){
     const d=days[k],nd=days[k+1];
     if(c.day!==d)continue;
@@ -2798,7 +2863,7 @@ function capStrip({ps,days,first,firstKeep,score,nowId,played,tipOf}){
   const final=p=>days.indexOf(p.day)===days.length-1;
   W.held.forEach((p,i)=>{const c=W.calls[i];
     stops.push({p,keep:c&&c.c===p?c.keepAt:null,score:score(p),
-      res:c&&c.c===p&&c.kind==="move"?"moved":c&&c.c===p&&c.kind==="keep"?"kept":null});});
+      res:c&&c.c===p&&c.kind==="move"?"moved":c&&c.c===p&&c.kind==="keep"?"kept":null,gone:!!(c&&c.c===p&&c.kind==="switch")});});
   const last=W.calls[W.calls.length-1],ifc=last&&last.kind==="if"?last:null;
   if(ifc)ifc.path.forEach((st,j)=>stops.push({p:st.p,keep:j<ifc.path.length-1?Math.round(st.keepAt):null,score:null,res:null,later:true}));
   // a captain with no keep mark (the last turn, or nobody after him) counts double whatever he scores
@@ -2848,7 +2913,8 @@ function turnSwaps({st,six,bench,score,days,capTo}){
   const slots=[...st,six].filter(Boolean),pairs=[];
   for(const a of slots)for(const b of bench)if(b!==needCap&&ok(a,b)){const g=gain(a,b);if(g>=1)pairs.push({out:a,in:b,gain:g,day:b.day,cap:false});}
   // a 6th man who becomes captain swaps with a starter: both count 100%, so no gain
-  if(needCap)for(const a of st)pairs.push({out:a,in:needCap,gain:needCap===six?0:gain(a,needCap),day:needCap.day,cap:true});
+  if(needCap){const six2=needCap===six,cands=six2&&st.some(a=>score(a)==null)?st.filter(a=>score(a)==null):st;
+    for(const a of cands)pairs.push({out:a,in:needCap,gain:six2?-a.x*1e-4:gain(a,needCap),day:needCap.day,cap:true});}
   // the five after the swaps due up to each turn must be a formation, or that turn can't be set in the game
   const fits=set=>{let five=st.slice();
     for(const d of days){const now=set.filter(s=>s.day===d);if(!now.length)continue;
@@ -2956,7 +3022,9 @@ function planView(R,L,{tr,noTrades,pairs,coachChanged}){
     // during the round: the real bench swaps for this turn, and the ones that wait for earlier games (the Bottom line's items)
     const its=live&&!done?LIVE.filter(i=>i.turn===d):[];
     its.filter(i=>i.kind==="swap").forEach(i=>{const [b,o]=i.ps,g=i.detail.find(x=>x[0]==="pts")[1];
-      acts.push(`Bring ${name(b)} in for ${name(o)} (${esc(g)}).${i.cap?" He is your captain, so he must be in the starting five.":""}`);});
+      // the 6th man coming into the five to take the armband: both count 100%, so it costs nothing
+      acts.push(i.cap&&b===six?`Move ${name(b)} from 6th man into the starting five for ${name(o)}, who becomes 6th man (both count 100%). The captain must be in the starting five.`
+        :`Bring ${name(b)} in for ${name(o)} (${esc(g)}).${i.cap?" He is your captain, so he must be in the starting five.":""}`);});
     const fc=its.find(i=>i.kind==="swap"&&i.form.join()!==i.from.join());
     if(fc)acts.push(`New formation: ${fc.from.join("-")} → ${fc.form.join("-")}.`);
     its.filter(i=>i.kind==="wait"&&/^Lineup changes/.test(i.title)).forEach(i=>acts.push(`<span class="muted">${esc(i.title)}: ${i.ps.map(p=>`${name(p)} (proj ${p.x})`).join(", ")} can come in for anyone who scores under that, in any position the formation allows.</span>`));
@@ -3472,7 +3540,9 @@ function blLiveItems(LR){
   const W=LR.walk(p=>p.short,turnOf2),cur=W.cur,prev=d=>dayKeys[dayKeys.indexOf(d)-1];
   const unplayed=p=>LR.score(p)==null;
   const call=W.calls.find(c=>c.day===nd);
-  if(call&&call.kind==="move")items.push({id:`${R}:live:cap:${nd}:${call.nx.id}`,kind:"captain",turn:nd,title:`Move captain to ${call.nx.short}`,ps:[call.nx,call.c],apply:{cap:call.nx.id},
+  if(call&&call.kind==="switch")items.push({id:`${R}:live:cap:${nd}:${call.nx.id}`,kind:"captain",turn:nd,title:`Move captain to ${call.nx.short}`,ps:[call.nx,call.c],apply:{cap:call.nx.id},
+    detail:[["",`${call.nx.short} proj ${call.nx.x}, ${call.c.short} proj ${call.c.x}: `],["pts",`+${call.gain.toFixed(1)} pts`],["",` of captain bonus expected\nDo it before ${dayWhen(nd)}`]]});
+  else if(call&&call.kind==="move")items.push({id:`${R}:live:cap:${nd}:${call.nx.id}`,kind:"captain",turn:nd,title:`Move captain to ${call.nx.short}`,ps:[call.nx,call.c],apply:{cap:call.nx.id},
     detail:[["",`${call.c.short} scored `],["pts",`${call.s}`],["",`, under ${call.keepAt}\nDo it before ${dayWhen(nd)}`]]});
   else if(call&&call.kind==="keep")items.push({id:`${R}:live:cap:${nd}:${call.c.id}`,kind:"captain",turn:nd,title:`Keep captain ${call.c.short}`,ps:[call.c],apply:{cap:call.c.id},
     detail:[["",`${call.c.short} scored `],["pts",`${call.s}`],["",` (${call.keepAt}+ needed): his score counts double`]]});
@@ -3481,8 +3551,8 @@ function blLiveItems(LR){
   const SW=turnSwaps({st:LR.st,six:LR.six,bench:LR.bench,score:LR.score,days:dayKeys,capTo:cur&&unplayed(cur)?cur:null});
   const swapItem=s=>({id:`${R}:live:swap:${s.out.id}>${s.in.id}`,kind:"swap",turn:s.day,
     title:`Bring ${s.in.short} in for ${s.out.short}`,ps:[s.in,s.out],apply:{out:s.out.id,in:s.in.id},cap:!!s.cap,from:s.from,form:s.form,
-    detail:[["",`${s.out.short} ${LR.score(s.out)!=null?`scored ${LR.score(s.out)}`:`proj ${s.out.x}`}, ${s.in.short} proj ${s.in.x}: `],["pts",`${s.gain>=0?"+":"−"}${Math.abs(s.gain).toFixed(1)} pts`],
-      ["",`${s.cap?`\n${s.in.short} is your captain, so he must be in the starting five`:""}\n${s.form.join()===s.from.join()?`Formation stays ${s.form.join("-")}`:`This turn's formation: ${s.from.join("-")} → ${s.form.join("-")}`}\nDo it before ${dayWhen(s.day)}`]]});
+    detail:[["",`${s.out.short} ${LR.score(s.out)!=null?`scored ${LR.score(s.out)}`:`proj ${s.out.x}`}, ${s.in.short} proj ${s.in.x}: `],["pts",`${r1(s.gain)>=0?"+":"−"}${Math.abs(r1(s.gain)).toFixed(1)} pts`],
+      ["",`${s.cap?`\n${s.in.short} is your captain, so he must be in the starting five${s.in===LR.six?` (${s.out.short} becomes 6th man, both count 100%)`:""}`:""}\n${s.form.join()===s.from.join()?`Formation stays ${s.form.join("-")}`:`This turn's formation: ${s.from.join("-")} → ${s.form.join("-")}`}\nDo it before ${dayWhen(s.day)}`]]});
   // the next turn: captain, swaps due before it, the lineup, status checks
   SW.swaps.filter(s=>s.day===nd).forEach(s=>items.push(swapItem(s)));
   const court=LR.st.filter(unplayed),six=LR.six&&unplayed(LR.six)?LR.six:null;

@@ -200,3 +200,28 @@ test("realCapStrip: a captain who is not in the squad gives null, so the strip f
   const R = r10();
   assert.equal(realCapStrip({ ...R, first: R.Fe, firstKeep: null, realId: 999 }), null);
 });
+
+// #147: a captain who has not played is still a choice. Feliz (Thursday, 15) carries the armband, Vezenkov (Thursday,
+// 24, steady) sits as 6th man: before Thursday the plan moves the armband to Vezenkov and brings him into the five.
+test("the armband moves before its turn when a Thursday player is worth clearly more than the captain", () => {
+  const sd = (id, short, pos, day, x, log) => ({ id, short, pos, day, x, log: log.map(fpt => ({ fpt })) });
+  const Fe = sd(4, "Feliz", "G", T, 15, [14, 16, 15, 15]), V = sd(7, "Vezenkov", "F", T, 24, [24, 25, 23, 24]),
+    Ab = sd(6, "Abalde", "F", T, 9.7, [9, 10, 10]), N = sd(5, "Nunn", "G", F, 19.3, [19, 20, 19]), H = sd(1, "Herrera", "G", W, 7, [7]);
+  const team = [H, Fe, V, Ab, N], score = p => (p.day === W ? 16.5 : null);
+  const S = capStrip({ ps: team, days, first: Fe, firstKeep: null, score, nowId: 4, played: d => d === W, tipOf: d => tips[d] });
+  assert.deepEqual(names(S), ["Feliz", "Vezenkov", "Nunn"]);
+  assert.equal(S.stops[0].gone, true);
+  assert.equal(S.top.k, "todo");
+  assert.equal(S.top.who.short, "Vezenkov");
+  // a played turn is never re-picked: once Thursday is played the captain stays whoever had the armband
+  const S2 = capStrip({ ps: team, days, first: Fe, firstKeep: null, score: p => (p.day === F ? null : p.day === W ? 16.5 : 30), nowId: 4, played: d => d !== F, tipOf: d => tips[d] });
+  assert.equal(S2.stops[0].p.short, "Feliz");
+  assert.equal(S2.stops[0].res, "kept");
+});
+
+test("swaps: a 6th man who becomes captain swaps with the lowest starter who has not played", () => {
+  const S = sq(), R = turnSwaps({ ...S, score: sc({ 1: 14.3, 2: 22 }), capTo: S.Da });
+  assert.equal(R.swaps[0].in.short, "Davidovac");
+  assert.equal(R.swaps[0].out.short, "Ojeleye");
+  assert.equal(R.swaps[0].cap, true);
+});
