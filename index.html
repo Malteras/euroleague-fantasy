@@ -142,10 +142,21 @@ section{padding-block:28px 8px}
 .gt{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted)}
 /* a played game: final score in place of vs, his players' scores against the deadline projection */
 .game.done .gt{font-size:12px;letter-spacing:.04em;text-transform:uppercase}.game.done .vs{font-family:var(--display);font-weight:700;font-size:15px;color:var(--fg);white-space:nowrap}
-.game.done .gmine .gp{display:block}
-.gsc{font-weight:700;color:var(--fg)}.gsc .up{color:var(--good)}.gsc .dn{color:var(--bad)}.gsc small{font-weight:400;color:var(--muted)}
+/* the middle column grows to the score (111–109), so it never runs into the away club's name; the winner's score is bold */
+.game.done{grid-template-columns:42px minmax(0,1fr) auto minmax(0,1fr)}
+.game.done .vs{padding:0 4px;font-weight:500;color:var(--muted)}.game.done .vs b{font-weight:800;color:var(--fg)}
+/* his players in a played game: one row each, name · score · projection · credit change in columns */
+.gpl{grid-column:2/-1;display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;column-gap:12px;row-gap:3px;align-items:baseline;
+  margin-top:4px;padding:6px 10px;border-radius:8px;background:var(--raise);font-size:12.5px}
+.gpl-h{grid-column:1/-1;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gpl .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.gpl .sc{font-family:var(--display);font-size:15px;font-weight:800;text-align:right;color:var(--fg)}.gpl .sc.up{color:var(--good)}.gpl .sc.dn{color:var(--bad)}
+.gpl .sc small{font-family:var(--body);font-size:11px;font-weight:500;color:var(--muted);margin-left:2px}
+.gpl .pj{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.gpl .gcr{font-size:12px;font-weight:700;text-align:right;white-space:nowrap}.gpl .gcr.up{color:var(--good)}.gpl .gcr.dn{color:var(--bad)}
 .gside{display:flex;align-items:center;gap:7px;min-width:0}
 .gside.away{justify-content:flex-end}
+.tn .plink{text-decoration:none;color:inherit;font:inherit}.tn .plink:hover,.tn .plink:focus-visible{text-decoration:underline}
 .tn{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vs{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;font-weight:700}
 .tb{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:10.5px;letter-spacing:.02em;color:#fff;background:var(--tc);box-shadow:inset 0 0 0 2px rgba(255,255,255,.18),0 0 0 1px var(--line)}
@@ -274,6 +285,7 @@ section{padding-block:28px 8px}
 .tx .tp{color:var(--accent)} .tx .tc{color:var(--credit)} .tx .neg{color:var(--bad)} .tx .z{color:var(--faint)}
 .tx tfoot td{border-top:2px solid var(--line);font-weight:800}
 .tx tfoot td:first-child{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.02em}
+.tx tfoot .tx-used{display:block;font-family:var(--body,inherit);font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);margin-top:2px}
 /* look-ahead: "R7 / R8" game lines under the player and two-round bars in the points column */
 .tx th small{display:block;text-transform:none;letter-spacing:0;font-weight:600;color:var(--faint)}
 .tx-p small em{font-style:normal;font-weight:800;font-size:10.5px;letter-spacing:.04em;color:var(--faint);margin-right:4px}
@@ -2418,22 +2430,27 @@ function hero(){
   const px=Object.fromEntries(sp.map(p=>[p.id,p.x])),pr=Object.fromEntries(sp.map(p=>[p.id,p.price]));
   // his credit change from the game, the same number as the Value column of "Round N, turn by turn"
   const crTxt=(g,p)=>{const v=creditChange(g,pr[p.id]??p.price);return ` <span class="gcr ${v>0?"up":v<0?"dn":"muted"} has-tip" tabindex="0">${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr${tipPick(p.short,`${v>0?"+":v<0?"−":""}${Math.abs(v).toFixed(1)} cr`,"His credit change from this game.")}</span>`;};
-  const scoreTxt=(p,d)=>{const g=gameOf(p,d);if(!g)return `${plink(p,p.short)} <span class="gsc">DNP${crTxt(null,p)}</span>`;
-    const x=px[p.id],pc=x>0?Math.round(100*(g.fpt-x)/x):null;
-    return `${plink(p,p.short)} <span class="gsc">${(+g.fpt).toFixed(1)}${pc==null?"":` <span class="${pc>=0?"up":"dn"}">${pc>=0?"+":"−"}${Math.abs(pc)}%</span>`}${crTxt(g,p)} ${x!=null?`<small>(proj ${x})</small>`:""}</span>`;};
+  // one row of four cells: name, his score (green above the deadline projection, red below), that projection, credit change
+  const scoreTxt=(p,d)=>{const g=gameOf(p,d),x=px[p.id],nm=`<span class="nm">${plink(p,p.short)}</span>`;
+    if(!g)return `${nm}<span class="sc">DNP</span><span class="pj">${x!=null?`proj ${x.toFixed(1)}`:""}</span>${crTxt(null,p)}`;
+    const pc=x>0?Math.round(100*(g.fpt-x)/x):null;
+    const pj=x!=null?`<span class="pj has-tip" tabindex="0">proj ${x.toFixed(1)}${tipPick(p.short,`${(+g.fpt).toFixed(1)} pts vs ${x.toFixed(1)} projected`,pc==null?"His projection at the round's deadline.":`${pc>=0?"+":"−"}${Math.abs(pc)}% against his projection at the round's deadline.`)}</span>`:`<span class="pj"></span>`;
+    return `${nm}<span class="sc${x!=null?(g.fpt>=x?" up":" dn"):""}">${(+g.fpt).toFixed(1)}<small>pts</small></span>${pj}${crTxt(g,p)}`;};
   const days=dayKeys.map((d,k)=>{
     const games=D.fixtures.filter(f=>f[0]===d).slice().sort((a,b)=>(a[3]||"").localeCompare(b[3]||""));
     const myCount=P.filter(p=>mine.has(p.id)&&p.day===d).length;
     const rows=games.map(([_,h,a,t])=>{
       const my=P.filter(p=>mine.has(p.id)&&(p.team===h||p.team===a));
       const sc=final(d,h);
-      const names=sc?my.map(p=>`<span class="gp">${scoreTxt(p,d)}</span>`).join(""):my.map(p=>plink(p,p.short)).join(", ");
+      const names=sc?my.map(p=>scoreTxt(p,d)).join(""):my.map(p=>plink(p,p.short)).join(", ");
+      // the final score, home first, the winner's number bold
+      const scHtml=sc?(([x,y])=>+x>+y?`<b>${x}</b>–${y}`:+y>+x?`${x}–<b>${y}</b>`:`${x}–${y}`)(sc.split("–")):"";
       return `<li class="game${my.length?" has-mine":""}${sc?" done":""}">
         <span class="gt">${sc?"Final":t?esc(t):"–"}</span>
-        <span class="gside">${badge(h)}<span class="tn">${esc(TEAMS[h][0])}</span></span>
-        <span class="vs">${sc?esc(sc):"vs"}</span>
-        <span class="gside away"><span class="tn">${esc(TEAMS[a][0])}</span>${badge(a)}</span>
-        ${my.length?`<span class="gmine">${names}</span>`:""}
+        <span class="gside">${badge(h)}<span class="tn">${tname(h)}</span></span>
+        <span class="vs">${sc?scHtml:"vs"}</span>
+        <span class="gside away"><span class="tn">${tname(a)}</span>${badge(a)}</span>
+        ${my.length?sc?`<div class="gpl"><span class="gpl-h">Your players</span>${names}</div>`:`<span class="gmine">${names}</span>`:""}
       </li>`;}).join("");
     const shut=state.collapsed.includes(d);
     return `<div class="day${shut?" shut":""}"><button type="button" class="day-h" data-day="${d}" aria-expanded="${!shut}"><div><span class="turn">Turn ${k+1}</span><b>${esc(dayLabel(d))}</b></div><span class="day-n">${facts(`${games.length} game${games.length===1?"":"s"}`,`${myCount} of yours`)}<span class="chev" aria-hidden="true"></span></span></button><ul class="games"${shut?" hidden":""}>${rows}</ul></div>`;}).join("");
@@ -2656,10 +2673,12 @@ function proposalParts(R){
   const num=(v,c)=>{v=r1(v);return `<span class="${v===0?"z":v<0&&c?"neg":c}">${fmt(v,1)}</span>`;};
   const was=(a,b,f)=>`<span class="was">${a?f(a):"–"} → ${b?f(b):"–"}</span>`;
   const tot={dp:0,dn:0,dc:0,fr:0};
-  // a row that changes a trade already made this round: it does not add a trade, it replaces or undoes that one
+  // what a row does to the round's trade count (#137): a change from My team is not always a new trade. Selling a player
+  // bought this round replaces that trade; buying back one sold this round undoes it. Said on the row, so 5 changes
+  // next to a limit of 4 reads right.
   const madeNote=(p,side)=>{if(!start||p.id==null)return "";
     const was=start.players.includes(p.id);
-    return side==="o"&&!was?`<small class="tx-own">Bought this round</small>`:side==="i"&&was?`<small class="tx-own">Sold, back in</small>`:"";};
+    return side==="o"&&!was?`<small class="tx-own">Bought this round: replaces that trade</small>`:side==="i"&&was?`<small class="tx-own">Sold this round: undoes that trade</small>`:"";};
   // a differential for an incoming player (#26): one the optimiser could also have picked (same position, no dearer,
   // room at his club, not left out by you), within DIFF_PTS of his projected points with the look-ahead. Coaches: none.
   // with Chase rank on, the incoming player it chose says so, and whom it chose him over
@@ -2686,7 +2705,7 @@ function proposalParts(R){
   const xBtn=(attr,v,label)=>`<button type="button" class="tx-del" ${attr}="${v}" aria-label="${esc(label)}">✕</button>`;
   const xFor=(o,i)=>{const a=byId[o],b=byId[i];
     return a?xBtn("data-drop",`${a.id},${b?b.id:""}`,`Remove this trade: keep ${a.short}`):xBtn("data-no",b.id,`Remove this trade: leave out ${b.short}`);};
-  const nTr=pairs.length+(coachChanged?1:0);
+  const nTr=pairs.length+(coachChanged?1:0),made0=tradesUsed(orig.players,orig.coach);
   const rows=pairs.map(([o,i])=>row(byId[o],byId[i],i??null,p=>plink(p),"",xFor(o,i)))
     .concat(coachChanged?[row(coachByTeam[orig.coach],coachByTeam[R.coach],"coach:"+R.coach,p=>esc(p.name),"Coach",
       orig.coach?xBtn("data-coach-keep",orig.coach,"Remove this trade: keep your coach"):"")]:[]).join("");
@@ -2696,7 +2715,7 @@ function proposalParts(R){
   let capRow="";
   if(nTr&&Math.abs(r1(dcap))>=.1){tot.dp+=dcap;
     capRow=`<tr class="tx-r tx-cap"><td><b>Captain plan</b><small>${capWho(ca)} → ${capWho(cb)}</small></td><td></td><td>${num(dcap,"tp")}<span class="was">${ca.v.toFixed(1)} → ${cb.v.toFixed(1)}</span></td><td></td><td></td></tr>`;}
-  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} ${txWord(nTr)}`)}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
+  const foot=nTr>1||capRow?`<tfoot><tr><td>${facts("Total",`${nTr} ${txWord(nTr)}`)}${made0?`<small class="tx-used">${R.used} of ${state.maxT>=99?"unlimited":state.maxT} trades this round, the ${made0} already made included</small>`:""}</td><td>${num(tot.fr,"")}<span class="u"> cr</span></td><td>${LA?rBars(tot.dp,tot.dn,rN,rN2):`${num(tot.dp+tot.dn,"tp")}<span class="u"> pts</span>`}</td><td>${num(tot.dc,"tc")}<span class="u"> cr</span></td><td></td></tr></tfoot>`:"";
   const laNote=LA?`<div class="rb-legend"><span><i></i>${rN}, this round</span><span><i class="h"></i>${rN2}, counts half</span><span class="rb-legend-w">Grey numbers, out → in: projected points in ${rN} and in ${rN2}</span></div>`
     :state.pmode==="m"&&!LOOK_ON?`<p class="note" style="margin:10px 0 0">Round ${D.round+1} is a free-trade window, so these trades are judged on this round only.</p>`:"";
   const noTrades=!pairs.length&&!coachChanged;
