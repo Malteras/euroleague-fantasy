@@ -33,22 +33,38 @@
  "collapsed": [],
  "form": null,
  "coachView": "round",
- "team": null,
+ "team": {
+  "slots": [
+   38,
+   192,
+   26,
+   118,
+   73,
+   7,
+   352,
+   27,
+   67,
+   361
+  ],
+  "coach": "PAR",
+  "bank": 2.3,
+  "cap": 38,
+  "base": "2026-11-07"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
  "rg": "2026-10-28|BJK|OLY|",
  "pmode": "m",
  "blTicks": [
-  "10:live:cap:2026-11-06:38",
-  "10:live:swap:352>7",
-  "10:live:swap:176>118",
-  "10:live:lineup:2026-11-06:118,56"
+  "11:live:cap:2026-11-12:38",
+  "11:live:swap:67>73",
+  "11:live:lineup:2026-11-12:38,192,26,118,73"
  ],
  "rgt": {
   "k": "2026-10-28|BJK|OLY|",
   "t": "BJK"
  },
  "maxTAuto": "11:false",
- "savedAt": "2026-11-12T09:42:33.190Z"
+ "savedAt": "2026-11-12T09:42:49.018Z"
 }
