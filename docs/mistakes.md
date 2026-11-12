@@ -283,3 +283,15 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   the captain the table counts ×2 and his score as the bonus. Without a saved captain it labels the walk "The plan's
   captain" and "The plan's armband bonus". After the round, `turnReview()` keeps his saved captain ×2 even when the plan
   said move it. Tests in tools/test_capstrip.mjs and tools/test_review.mjs.
+
+## 12 Nov 2026 · Feliz kept the armband over Vezenkov and Bryant on the same night
+- **What:** Round 11, Turn 2 not played yet. His saved captain was Feliz (proj 15), with Vezenkov (24) as 6th man and
+  Bryant (23) in the five, all playing Thursday. The plan for the round said "Nothing to change" for Turn 2 and only "if
+  Feliz scored 20+, keep the armband".
+- **Why:** once the round started, `liveCapPlan()` took his saved captain as fixed and only asked "keep or move after his
+  game". A captain who has not played is still a choice, and nothing compared him with the others still to play. With
+  Feliz fixed, `turnSwaps()` saw no gain in moving the 6th man into the five (both count 100%).
+- **Guard:** `liveCapPlan()` re-picks before the first turn not yet played: when the best walk from that turn starts with
+  someone else and is worth `CAP_SWITCH` (1 point) more, it says to move the armband now (call kind "switch"), and the
+  Bottom line and the plan show it. A 6th man who becomes captain swaps with the lowest starter who has not played. Played
+  turns are never re-picked. Tests in tools/test_capstrip.mjs.
