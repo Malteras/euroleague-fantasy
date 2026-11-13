@@ -74,6 +74,17 @@ class OfficialNextTest(unittest.TestCase):
         self.assertEqual([g['r'] for g in nxt['ZAL']], [8])
         self.assertEqual(elbuild.el_next(elbuild.official_next(self.games()), n=1)['VIR'], [nxt['VIR'][0]])
 
+    def test_el_season_has_every_game_by_round_with_the_score_once_played(self):
+        # the Teams tab's round arrows read this: played games too, home club first, club codes as the site uses them
+        games = self.games()
+        games[3]['local']['score'], games[3]['road']['score'] = 92, 77
+        games[1]['confirmedHour'] = False
+        self.assertEqual(elbuild.el_season(games), [
+            {'r': 7, 'd': '2026-10-21', 't': '20:00', 'h': 'ZAL', 'a': 'VIR', 's': '92–77'},
+            {'r': 8, 'd': '2026-10-27', 't': None, 'h': 'DUB', 'a': 'PBB'},
+            {'r': 8, 'd': '2026-10-28', 't': '20:30', 'h': 'VIR', 'a': 'ZAL'},
+            {'r': 9, 'd': '2026-10-30', 't': '20:30', 'h': 'VIR', 'a': 'BJK'}])
+
     def test_fills_only_clubs_without_a_euroleague_game_and_gives_tip_off_times(self):
         team_next = {'VIR': [], 'DUB': [{'d': '2026-10-27', 't': '17:00', 'comp': 'EuroLeague', 'el': True, 'opp': 'Paris', 'ha': 'H'}],
                      'ZAL': [{'d': '2026-10-25', 't': '18:00', 'comp': 'LKL', 'el': False, 'opp': 'Rytas', 'ha': 'A'}]}

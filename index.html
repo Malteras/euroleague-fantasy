@@ -432,7 +432,10 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tcard:hover{border-color:var(--accent)}.tcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tc-n{display:flex;flex-direction:column;gap:2px;min-width:0}.tc-n b{font-size:16px}.tc-n small{color:var(--muted);font-size:12.5px}
 .tc-res{font-weight:700}.tc-res.w{color:var(--good)}.tc-res.l{color:var(--bad)}
-.fx-two{margin-bottom:22px}.fx-row{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-areas:"x t" "x m";gap:3px 10px;align-items:center;padding:9px 14px;border-top:1px solid var(--line-soft)}.rg-day+.fx-row{border-top:0}
+.fx-nav{display:flex;align-items:center;gap:10px;margin:0 0 12px;flex-wrap:wrap}.fx-range{font-weight:700;min-width:96px;text-align:center}
+.fx-arrow{all:unset;box-sizing:border-box;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:22px;line-height:1;cursor:pointer;color:var(--fg)}.fx-arrow:hover:not([disabled]){border-color:var(--accent)}.fx-arrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.fx-arrow[disabled]{opacity:.35;cursor:default}
+.fx-tag{margin-left:6px;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--accent)}.fx-score{grid-area:s;align-self:center;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}.fx-score b{font-weight:500}.fx-score b.w{font-weight:800;color:var(--fg)}
+.fx-two{margin-bottom:22px}.fx-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"x t s" "x m s";gap:3px 10px;align-items:center;padding:9px 14px;border-top:1px solid var(--line-soft)}.rg-day+.fx-row{border-top:0}
 .fx-time{grid-area:x;align-self:start;padding-top:4px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}.fx-row .rg-t .plink{font-size:14px;font-weight:600}.fx-h{margin:0 0 10px}
 .tg-h{grid-column:1/-1;margin:8px 0 -2px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.tg-h:first-child{margin-top:0}
 .tp-body{display:flex;flex-direction:column;gap:12px;padding-top:14px;padding-bottom:20px}
@@ -1891,15 +1894,24 @@ function teamOrder(teams,fixtures,gameOf){
 }
 // teamOrder:end
 // elFixtures:begin
-// The next EuroLeague rounds for the Teams tab: the first n rounds after `round`, from the builder's elNext (each club's
-// games: round, date, time, opponent code, H/A). Each game once, home club first; rounds in order, games by day and tip-off.
-function elFixtures(elNext,round,n=2){
+// The Teams tab's EuroLeague rounds. elSeason (the builder's whole season: round, date, tip-off, home, away, score once
+// played) gives every round; older data has only elNext (each club's next games), so it gives the rounds still to come.
+// Each game once, home club first; rounds in order, games by day and tip-off. A time not yet confirmed is "".
+function elFixtures(season,elNext,round){
   const seen=new Set(),G=[];
-  Object.entries(elNext||{}).forEach(([t,gs])=>(gs||[]).forEach(g=>{if(!(g.r>round)||!g.oc)return;
-    const home=g.ha==="H"?t:g.oc,away=g.ha==="H"?g.oc:t,k=`${g.r}|${home}|${away}`;
-    if(seen.has(k))return;seen.add(k);G.push({r:g.r,d:g.d,t:g.t||"",home,away});}));
-  const rs=[...new Set(G.map(g=>g.r))].sort((a,b)=>a-b).slice(0,n);
+  const add=g=>{const k=`${g.r}|${g.home}|${g.away}`;if(!seen.has(k)){seen.add(k);G.push(g);}};
+  if(season&&season.length)season.forEach(g=>add({r:g.r,d:g.d,t:g.t||"",home:g.h,away:g.a,s:g.s||null}));
+  else Object.entries(elNext||{}).forEach(([t,gs])=>(gs||[]).forEach(g=>{if(!(g.r>=round)||!g.oc)return;
+    add({r:g.r,d:g.d,t:g.t||"",home:g.ha==="H"?t:g.oc,away:g.ha==="H"?g.oc:t,s:null});}));
+  const rs=[...new Set(G.map(g=>g.r))].sort((a,b)=>a-b);
   return rs.map(r=>({r,games:G.filter(g=>g.r===r).sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t)||a.home.localeCompare(b.home))}));
+}
+// The two rounds on screen: from `at` (the arrows), else the active round; never past either end of the season.
+function fxWindow(rounds,round,at){
+  if(!rounds.length)return {i:0,shown:[]};
+  let i=rounds.findIndex(x=>x.r>=(at??round));if(i<0)i=rounds.length-1;
+  i=Math.max(0,Math.min(i,rounds.length-2));
+  return {i,shown:rounds.slice(i,i+2)};
 }
 // elFixtures:end
 function teamsPage(){
@@ -1916,13 +1928,17 @@ function teamsPage(){
   const grid=played.length?`<h3 class="tg-h">Played in Round ${D.round}</h3>${played.map(card).join("")}<h3 class="tg-h">${rest.some(r=>r.f)?"Still to play":"No game this round"}</h3>${rest.map(card).join("")}`:rows.map(card).join("");
   // the next EuroLeague rounds (rounds after this one); his players and his coach's club named on their games
   const mineOf=t=>orig.players.map(i=>byId[i]).filter(p=>p&&p.team===t);
-  const fxGame=g=>{const mp=[...mineOf(g.home),...mineOf(g.away)],co=[g.home,g.away].includes(orig.coach);
+  const fxGame=(g,yours)=>{const mp=yours?[...mineOf(g.home),...mineOf(g.away)]:[],co=yours&&[g.home,g.away].includes(orig.coach);
     const mine=mp.length||co?`<span class="rg-meta">${facts(mp.length>0&&`<span class="rg-mine">Yours</span> ${mp.map(p=>plink(p,p.short||p.name)).join(", ")}`,co&&'<span class="rg-mine">Your coach</span>')}</span>`:"";
-    return `<div class="fx-row"><span class="fx-time">${esc(g.t||"TBC")}</span><span class="rg-t">${badge(g.home)}${tname(g.home)}<span class="vs">vs</span>${badge(g.away)}${tname(g.away)}</span>${mine}</div>`;};
-  const fxRound=({r,games})=>{let lastD="";
-    return `<div><h3 class="tg-h">Round ${r}</h3><div class="panel list fx-list">${games.map(g=>{const h=g.d!==lastD?`<div class="rg-day">${esc(dayFmt(g.d))}</div>`:"";lastD=g.d;return h+fxGame(g);}).join("")}</div></div>`;};
-  const FX=elFixtures(D.elNext,D.round,2);
-  const fixtures=FX.length?`<div class="two fx-two">${FX.map(fxRound).join("")}</div>${rows.some(r=>r.g)?"":`<h3 class="tg-h fx-h">Round ${D.round}</h3>`}`:"";
+    const sc=g.s&&/^(\d+)–(\d+)$/.exec(g.s),hw=sc&&+sc[1]>+sc[2];
+    const side=t=>`${badge(t)}${tname(t)}`;
+    return `<div class="fx-row${g.s?" fx-done":""}"><span class="fx-time">${esc(g.t||"TBC")}</span><span class="rg-t">${side(g.home)}<span class="vs">vs</span>${side(g.away)}</span>${mine}${sc?`<span class="fx-score"><b class="${hw?"w":""}">${sc[1]}</b>–<b class="${hw?"":"w"}">${sc[2]}</b></span>`:""}</div>`;};
+  const fxRound=({r,games})=>{let lastD="";const tag=r===D.round?"This round":r===D.round+1?"Next round":r<D.round?"Played":"";
+    return `<div><h3 class="tg-h">Round ${r}${tag?` <span class="fx-tag">${tag}</span>`:""}</h3><div class="panel list fx-list">${games.map(g=>{const h=g.d!==lastD?`<div class="rg-day">${esc(dayFmt(g.d))}</div>`:"";lastD=g.d;return h+fxGame(g,r>=D.round);}).join("")}</div></div>`;};
+  const FR=elFixtures(D.elSeason,D.elNext,D.round),FW=fxWindow(FR,D.round,fxAt);
+  const arrow=(dir,on,lbl)=>`<button type="button" class="fx-arrow" data-fx="${dir}" aria-label="${lbl}"${on?"":" disabled"}>${dir<0?"‹":"›"}</button>`;
+  const nav=FW.shown.length?`<div class="fx-nav">${arrow(-1,FW.i>0,"Earlier round")}<span class="fx-range">Rounds ${FW.shown[0].r}–${FW.shown[FW.shown.length-1].r}</span>${arrow(1,FW.i+2<FR.length,"Later round")}${fxAt!=null&&FW.shown[0].r!==D.round?`<button type="button" class="chip-toggle" data-fx="0">Back to Round ${D.round}</button>`:""}</div>`:"";
+  const fixtures=FW.shown.length?`${nav}<div class="two fx-two">${FW.shown.map(fxRound).join("")}</div>${rows.some(r=>r.g)?"":`<h3 class="tg-h fx-h">Round ${D.round}</h3>`}`:"";
   return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">${facts("Defence by position","from the player's point of view")}</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div>${fixtures}<div class="tgrid">${grid}</div></section>`;
 }
 function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
@@ -1930,6 +1946,7 @@ function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];
 /* ---------- tags ---------- */
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 let LOOK_ON=true,nextOf={};
+let fxAt=null; // the Teams tab's first round on screen, set by its arrows; null = the active round (not saved)
 const lookOn=()=>LOOK_ON&&state.pmode==="m";
 function domRecent(p){return (p.dom||[]).filter(g=>!g.dnp&&g.pir!=null).slice(0,2);}
 // a domestic game's PIR as published (FantaSheet); "~" = approximate, the league does not publish blocks against
@@ -4246,6 +4263,9 @@ function bind(){
   document.querySelectorAll("[data-game]").forEach(b=>b.onclick=e=>{if(e.target.closest(".plink"))return;const k=b.dataset.game;state.rg=state.rg===k?null:k;rerender();});
   document.querySelectorAll("[data-rgt]").forEach(b=>b.onclick=()=>{state.rgt={k:b.dataset.rgk,t:b.dataset.rgt};rerender();});
   document.querySelectorAll("#rf button").forEach(b=>b.onclick=()=>{state.rf=b.dataset.v;rerender();});
+  document.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>{const d=+b.dataset.fx;
+    if(!d){fxAt=null;rerender();return;}
+    const FR=elFixtures(D.elSeason,D.elNext,D.round),W=fxWindow(FR,D.round,fxAt),n=FR[W.i+d];if(n){fxAt=n.r;rerender();}});
   document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{const d=b.dataset.day;state.collapsed=state.collapsed.includes(d)?state.collapsed.filter(x=>x!==d):[...state.collapsed,d];rerender();});
   document.querySelectorAll("[data-coach]").forEach(b=>b.onclick=()=>{const t=b.dataset.coach;state.coachPin=state.coachPin===t?null:t;rerender();});
   document.querySelectorAll("[data-coach-view]").forEach(b=>b.onclick=()=>{state.coachView=b.dataset.coachView;rerender();});
