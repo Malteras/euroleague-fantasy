@@ -274,6 +274,20 @@ def el_next(official, n=5):
         out[club] = lst[:n]
     return out
 
+def el_season(games):
+    """The whole season's EuroLeague schedule for the Teams tab's round arrows: one row a game, by round, then tip-off.
+    r: round; d, t: date and tip-off in Banja Luka time (t None until the league confirms the hour); h, a: home and away
+    club codes; s: the final score, home first ("92–77"), once played."""
+    from zoneinfo import ZoneInfo
+    tz, out = ZoneInfo('Europe/Sarajevo'), []
+    for g in sorted(games, key=lambda g: (g['round'], g['utcDate'])):
+        dt = datetime.datetime.fromisoformat(g['utcDate'].replace('Z', '+00:00')).astimezone(tz)
+        h, a = (EL_CODE.get(g[s]['club']['code'], g[s]['club']['code']) for s in ('local', 'road'))
+        row = {'r': g['round'], 'd': dt.date().isoformat(), 't': dt.strftime('%H:%M') if g.get('confirmedHour', True) else None, 'h': h, 'a': a}
+        if g.get('played'): row['s'] = f"{g['local']['score']}–{g['road']['score']}"
+        out.append(row)
+    return out
+
 def fill_next(team_next, times, official):
     """When Sofascore gave a club no EuroLeague game (it refuses requests some days), use the official schedule's.
     Tip-off times missing from Sofascore come from it too. Returns the clubs filled."""
@@ -623,7 +637,7 @@ def main():
     hp = os.path.join(os.path.dirname(os.path.abspath(outp)), 'history', f'round-{nxt_round}.json')
     snap = json.load(open(hp, encoding='utf-8')) if os.path.exists(hp) else {}
     # tip-off times for the next round + each club's upcoming fixtures (Europe/Sarajevo)
-    times = {}; teamNext = {}; elNext = old.get('elNext')  # kept from the last build if the official schedule fails
+    times = {}; teamNext = {}; elNext = old.get('elNext'); elSeason = old.get('elSeason')  # kept from the last build if the official schedule fails
     try:
         from zoneinfo import ZoneInfo
         tz = ZoneInfo('Europe/Sarajevo')
@@ -649,6 +663,7 @@ def main():
         sched = json.load(open(get(EL_API, os.path.join(pages, 'el_games.json'))))['data']
         official = official_next(sched)
         elNext = el_next(official)
+        elSeason = el_season(sched)
         filled = fill_next(teamNext, times, official)
         if filled: print(f'WARNING: Sofascore gave no EuroLeague game for {len(filled)} clubs; used the official schedule:', ' '.join(sorted(filled)))
     except Exception as ex:
@@ -675,7 +690,7 @@ def main():
         'budget': budget, 'squad': squad, 'lineup': lineup, 'squadNote': old.get('squadNote',''),
         'turns': turns, 'fixtures': fixtures, 'players': players, 'coaches': coaches, 'defence': defence,
         'tradeBase': trade_base(old, nxt_round), 'paceHist': pace_hist(pgames, deadlines),
-        'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext, 'elNext': elNext,
+        'coachRound': old.get('coachRound'), 'domGames': domgames, 'sofaIds': cache, 'teamNext': teamNext, 'elNext': elNext, 'elSeason': elSeason,
         **carried(old),
     }
     json.dump(data, open(outp, 'w'), ensure_ascii=False, separators=(',',':'))
