@@ -24,7 +24,7 @@
  "chase": false,
  "gems": true,
  "pos": "ALL",
- "day": "2026-11-12",
+ "day": "2026-11-11",
  "sort": "x",
  "only": false,
  "tag": "Soft matchup",
@@ -66,5 +66,5 @@
   "t": "BJK"
  },
  "maxTAuto": "11:false",
- "savedAt": "2026-11-13T10:16:13.198Z"
+ "savedAt": "2026-11-13T10:16:16.880Z"
 }
