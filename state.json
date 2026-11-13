@@ -58,7 +58,7 @@
  "calOpen": true,
  "rf": "el",
  "rg": "2026-10-28|BJK|OLY|",
- "pmode": "m",
+ "pmode": "q",
  "blTicks": [
   "11:live:cap:2026-11-12:38",
   "11:live:swap:67>73",
@@ -69,5 +69,5 @@
   "t": "BJK"
  },
  "maxTAuto": "11:false",
- "savedAt": "2026-11-13T11:21:19.852Z"
+ "savedAt": "2026-11-13T15:39:07.554Z"
 }
