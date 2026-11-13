@@ -432,6 +432,8 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tcard:hover{border-color:var(--accent)}.tcard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tc-n{display:flex;flex-direction:column;gap:2px;min-width:0}.tc-n b{font-size:16px}.tc-n small{color:var(--muted);font-size:12.5px}
 .tc-res{font-weight:700}.tc-res.w{color:var(--good)}.tc-res.l{color:var(--bad)}
+.fx-two{margin-bottom:22px}.fx-row{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-areas:"x t" "x m";gap:3px 10px;align-items:center;padding:9px 14px;border-top:1px solid var(--line-soft)}.rg-day+.fx-row{border-top:0}
+.fx-time{grid-area:x;align-self:start;padding-top:4px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}.fx-row .rg-t .plink{font-size:14px;font-weight:600}.fx-h{margin:0 0 10px}
 .tg-h{grid-column:1/-1;margin:8px 0 -2px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.tg-h:first-child{margin-top:0}
 .tp-body{display:flex;flex-direction:column;gap:12px;padding-top:14px;padding-bottom:20px}
 .tp-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
@@ -1888,6 +1890,18 @@ function teamOrder(teams,fixtures,gameOf){
   return rows.sort((a,b)=>rank(a)-rank(b)||when(a).localeCompare(when(b))||a.i-b.i).map(({t,f,g})=>({t,f,g}));
 }
 // teamOrder:end
+// elFixtures:begin
+// The next EuroLeague rounds for the Teams tab: the first n rounds after `round`, from the builder's elNext (each club's
+// games: round, date, time, opponent code, H/A). Each game once, home club first; rounds in order, games by day and tip-off.
+function elFixtures(elNext,round,n=2){
+  const seen=new Set(),G=[];
+  Object.entries(elNext||{}).forEach(([t,gs])=>(gs||[]).forEach(g=>{if(!(g.r>round)||!g.oc)return;
+    const home=g.ha==="H"?t:g.oc,away=g.ha==="H"?g.oc:t,k=`${g.r}|${home}|${away}`;
+    if(seen.has(k))return;seen.add(k);G.push({r:g.r,d:g.d,t:g.t||"",home,away});}));
+  const rs=[...new Set(G.map(g=>g.r))].sort((a,b)=>a-b).slice(0,n);
+  return rs.map(r=>({r,games:G.filter(g=>g.r===r).sort((a,b)=>a.d.localeCompare(b.d)||a.t.localeCompare(b.t)||a.home.localeCompare(b.home))}));
+}
+// elFixtures:end
 function teamsPage(){
   const gameOf=(t,d)=>teamInfo(t).games.find(g=>g.d===d&&g.res)||null;
   const rows=teamOrder(Object.keys(TEAMS).filter(t=>(D.defence||{})[t]||P.some(p=>p.team===t)),D.fixtures||[],gameOf);
@@ -1900,7 +1914,16 @@ function teamsPage(){
     return `<button type="button" class="tcard" data-team="${t}">${badge(t).replace('data-team','data-x')}<span class="tc-n"><b>${esc(TEAMS[t][0])}</b><small>${facts(I.games.length>0&&`${I.w}–${I.l}`,now,["Pace",I.df&&I.df.pace!=null?I.df.pace.toFixed(1):null])}</small><span class="ptags">${chips||'<span class="ptag">Average defence</span>'}</span></span></button>`;};
   const played=rows.filter(r=>r.g),rest=rows.filter(r=>!r.g);
   const grid=played.length?`<h3 class="tg-h">Played in Round ${D.round}</h3>${played.map(card).join("")}<h3 class="tg-h">${rest.some(r=>r.f)?"Still to play":"No game this round"}</h3>${rest.map(card).join("")}`:rows.map(card).join("");
-  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">${facts("Defence by position","from the player's point of view")}</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div><div class="tgrid">${grid}</div></section>`;
+  // the next EuroLeague rounds (rounds after this one); his players and his coach's club named on their games
+  const mineOf=t=>orig.players.map(i=>byId[i]).filter(p=>p&&p.team===t);
+  const fxGame=g=>{const mp=[...mineOf(g.home),...mineOf(g.away)],co=[g.home,g.away].includes(orig.coach);
+    const mine=mp.length||co?`<span class="rg-meta">${facts(mp.length>0&&`<span class="rg-mine">Yours</span> ${mp.map(p=>plink(p,p.short||p.name)).join(", ")}`,co&&'<span class="rg-mine">Your coach</span>')}</span>`:"";
+    return `<div class="fx-row"><span class="fx-time">${esc(g.t||"TBC")}</span><span class="rg-t">${badge(g.home)}${tname(g.home)}<span class="vs">vs</span>${badge(g.away)}${tname(g.away)}</span>${mine}</div>`;};
+  const fxRound=({r,games})=>{let lastD="";
+    return `<div><h3 class="tg-h">Round ${r}</h3><div class="panel list fx-list">${games.map(g=>{const h=g.d!==lastD?`<div class="rg-day">${esc(dayFmt(g.d))}</div>`:"";lastD=g.d;return h+fxGame(g);}).join("")}</div></div>`;};
+  const FX=elFixtures(D.elNext,D.round,2);
+  const fixtures=FX.length?`<div class="two fx-two">${FX.map(fxRound).join("")}</div>${rows.some(r=>r.g)?"":`<h3 class="tg-h fx-h">Round ${D.round}</h3>`}`:"";
+  return `<section id="teams"><div class="sec-head"><div><div class="eyebrow">${facts("Defence by position","from the player's point of view")}</div><h2>Teams</h2></div><p class="note" style="max-width:52ch;margin:0">"Easy for guards" means guards score more than usual against this team. Tap a team for its full analysis. Team badges anywhere on the site open it too.</p></div>${fixtures}<div class="tgrid">${grid}</div></section>`;
 }
 function swapSlots(a,b){const s2=team.slots.slice();[s2[a],s2[b]]=[s2[b],s2[a]];team.slots=s2;if(team.cap&&!team.slots.slice(0,5).includes(team.cap))team.cap=null;}
 
