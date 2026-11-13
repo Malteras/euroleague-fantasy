@@ -30,7 +30,7 @@
  "sort": "x",
  "only": false,
  "tag": null,
- "dtab": "fixtures",
+ "dtab": "overview",
  "allGames": true,
  "collapsed": [],
  "form": null,
@@ -68,5 +68,5 @@
   "t": "BJK"
  },
  "maxTAuto": "11:false",
- "savedAt": "2026-11-13T10:17:04.795Z"
+ "savedAt": "2026-11-13T10:17:07.145Z"
 }
