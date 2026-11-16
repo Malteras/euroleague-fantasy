@@ -1,10 +1,10 @@
 {
  "updated": "2026-11-16",
  "players": [
-  73,
-  192,
+  288,
+  131,
   7,
-  118,
+  56,
   67,
   352,
   38,
@@ -12,13 +12,13 @@
   27,
   361
  ],
- "coach": "PAR",
- "bank": 2.3,
+ "coach": "DUB",
+ "bank": 0.5,
  "slots": [
-  73,
-  192,
+  288,
+  131,
   7,
-  118,
+  56,
   67,
   352,
   38,
@@ -26,12 +26,12 @@
   27,
   361
  ],
- "cap": 7,
+ "cap": 56,
  "names": [
-  "Elijah Bryant",
-  "Kendrick Nunn",
+  "Justin Robinson",
+  "Talen Horton-Tucker",
   "Sasha Vezenkov",
-  "Aliou Diarra",
+  "Jonas Valančiūnas",
   "Ousmane Diop",
   "Sebastian Herrera",
   "Andrés Feliz",
@@ -39,5 +39,5 @@
   "Gabriele Procida",
   "Dejan Davidovac"
  ],
- "coachName": "Joan Penarroya"
+ "coachName": "Xavi Pascual"
 }
