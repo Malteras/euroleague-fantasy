@@ -23,7 +23,7 @@
  ],
  "starOnly": false,
  "coachPin": "DUB",
- "budget": 104.9,
+ "budget": 108.4,
  "maxT": 4,
  "lam": 20,
  "noInj": true,
@@ -39,24 +39,7 @@
  "collapsed": [],
  "form": null,
  "coachView": "five",
- "team": {
-  "slots": [
-   288,
-   131,
-   7,
-   56,
-   67,
-   352,
-   38,
-   26,
-   27,
-   361
-  ],
-  "coach": "DUB",
-  "bank": 0.5,
-  "cap": 56,
-  "base": "2026-11-16"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -71,6 +54,6 @@
   "k": "2026-10-28|BJK|OLY|",
   "t": "BJK"
  },
- "maxTAuto": "11:false",
- "savedAt": "2026-11-16T14:40:47.385Z"
+ "maxTAuto": "12:false",
+ "savedAt": "2026-11-16T19:58:04.464Z"
 }
