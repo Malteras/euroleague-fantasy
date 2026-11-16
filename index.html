@@ -2238,6 +2238,22 @@ function searchPlan(lam){
     if(pick)S=pick.T;else warnings.push(`No affordable replacement for ${p.short}.`);
   }
   if(!closed&&state.coachPin&&coachByTeam[state.coachPin])coach=state.coachPin;
+  // The game allows maxT trades, the coach included (docs/rules.md). Picks on top of the trades already made this round
+  // can go over (16 Nov: 4 player trades made, then a coach picked on the Coaches page made a 5th). Undo made trades, buying
+  // back a player sold this round, until they fit: the best one within budget first. Never a pinned player.
+  const mine0=(start||orig).players;
+  for(let n=0;!closed&&trades(S,coach)>maxT&&n<10;n++){
+    let best=null;
+    S.forEach((id,k)=>{if(mine0.includes(id)||pins.includes(id))return;
+      for(const q of pool){if(q.pos!==byId[id].pos||!mine0.includes(q.id)||S.includes(q.id))continue;
+        const T=S.slice();T[k]=q.id;if(!clubOk(T))continue;
+        const s=(cost(T,coach)<=B+1e-9?1e6:0)+obj(T,coach);if(!best||s>best.s)best={s,T};}});
+    if(!best)break;S=best.T;
+  }
+  // nothing left to undo: the picked coach would be one trade too many, so he waits
+  if(!closed&&coach!==orig.coach&&trades(S,coach)>maxT&&trades(S,orig.coach)<=maxT){
+    warnings.push(`Coach ${coachByTeam[coach].name} would be trade ${trades(S,coach)} of ${maxT}: the coach counts as a trade. Undo a trade on My team to pick him.`);
+    coach=orig.coach;}
   const forced=trades(S,coach);
   const lim=Math.max(maxT,forced);
   if(forced>maxT)warnings.push(`Your picks need ${forced} trades, more than the ${maxT} you allowed.`);

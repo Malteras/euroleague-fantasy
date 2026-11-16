@@ -123,6 +123,29 @@ test("undoing a trade made this round frees it for a better one", () => {
   assert.equal(r.trades, 2);
 });
 
+// 16 Nov 2026: 4 player trades made, then a coach picked on the Coaches page; the plan proposed him as a 5th trade.
+// The coach counts as a trade (docs/rules.md), and the plan never goes over the limit.
+test("a picked coach on top of the trades made: a made trade is undone to fit him", () => {
+  const m = load();
+  // he traded 15 → 1, his one trade; then picked coach KBA
+  const W = madeWorld(m, [15, 2, 3, 4, 5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const r = m.withRound(W, () => { m.setState({ coachPin: "KBA" }); return m.withMode("q", m.optimise); });
+  assert.equal(r.coach, "KBA");
+  assert.ok(has(r, 15) && !has(r, 1), "15 bought back");
+  assert.equal(r.used, 1);
+  assert.deepEqual(r.warnings, []);
+});
+
+test("a picked coach waits when every made trade is a pick: no trade over the limit, and a warning", () => {
+  const m = load();
+  const W = madeWorld(m, [15, 2, 3, 4, 5, 6, 7, 8, 9, 10], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const r = m.withRound(W, () => { m.setState({ coachPin: "KBA", pins: [1] }); return m.withMode("q", m.optimise); });
+  assert.equal(r.coach, "PAO");
+  assert.ok(has(r, 1));
+  assert.equal(r.used, 1);
+  assert.ok(r.warnings.some(w => /Coach KBA would be trade 2 of 1/.test(w)), r.warnings.join(" "));
+});
+
 // Chase rank (#102, docs/adr/0003 (c)): on a near-tie the far less owned player wins; never more than DIFF_PTS less per pick.
 // The round's market guard 11 (form 14) is the trade; ownership and a few more guards are added here.
 function chaseRound(extra = [], pop = {}) {
