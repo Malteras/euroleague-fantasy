@@ -40,7 +40,24 @@
  "collapsed": [],
  "form": null,
  "coachView": "round",
- "team": null,
+ "team": {
+  "slots": [
+   288,
+   352,
+   7,
+   53,
+   56,
+   67,
+   38,
+   26,
+   27,
+   340
+  ],
+  "coach": "PAR",
+  "bank": 0.8,
+  "cap": 56,
+  "base": "2026-11-16"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -56,5 +73,5 @@
   "t": "BJK"
  },
  "maxTAuto": "12:false",
- "savedAt": "2026-11-16T00:40:56.875Z"
+ "savedAt": "2026-11-16T00:41:13.219Z"
 }
