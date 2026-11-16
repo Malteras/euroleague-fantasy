@@ -39,7 +39,7 @@
  "allGames": false,
  "collapsed": [],
  "form": null,
- "coachView": "round",
+ "coachView": "five",
  "team": {
   "slots": [
    288,
@@ -73,5 +73,5 @@
   "t": "BJK"
  },
  "maxTAuto": "12:false",
- "savedAt": "2026-11-16T00:46:53.124Z"
+ "savedAt": "2026-11-16T00:47:01.236Z"
 }
