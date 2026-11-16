@@ -25,7 +25,7 @@
  "coachPin": null,
  "budget": 108.4,
  "maxT": 4,
- "lam": 20,
+ "lam": 10,
  "noInj": true,
  "chase": false,
  "gems": true,
@@ -39,24 +39,7 @@
  "collapsed": [],
  "form": null,
  "coachView": "round",
- "team": {
-  "slots": [
-   38,
-   73,
-   26,
-   118,
-   192,
-   7,
-   352,
-   27,
-   67,
-   361
-  ],
-  "coach": "PAR",
-  "bank": 2.3,
-  "cap": 38,
-  "base": "2026-11-07"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -72,5 +55,5 @@
   "t": "BJK"
  },
  "maxTAuto": "12:false",
- "savedAt": "2026-11-16T00:40:27.788Z"
+ "savedAt": "2026-11-16T00:40:38.419Z"
 }
