@@ -141,6 +141,16 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   redraw function calls it for its card. tools/test_redrawlinks.mjs fails on an `outerHTML` redraw without `bindLinks()`.
   When checking a card, click its links on a fresh load, after everything has loaded.
 
+## 16 Nov 2026 · a coach picked on the Coaches page became a 5th trade
+- **What:** with 4 Round 12 trades made on My team (Nunn → Robinson, Davidovac → Tubelis, Diarra → Valančiūnas,
+  Bryant → Brizuela), he picked coach Xavi Pascual on the Coaches page. The planner proposed Penarroya → Pascual on top:
+  "5 of 4 trades this round", and Apply would have put it on My team. The coach counts as a trade (docs/rules.md).
+- **Why:** `searchPlan()` let picks raise the limit (`lim = max(maxT, forced)`) and only warned above the card. Picks were
+  only ever checked against trades the plan itself proposed, not against the trades already made.
+- **Guard:** after the picks, `searchPlan()` undoes made trades (buys back a player sold this round, never a pinned one)
+  until the plan fits the limit; with nothing left to undo, the picked coach waits and a warning says why. Tests:
+  tools/test_optimiser.mjs, the two "picked coach" tests.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
