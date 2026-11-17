@@ -64,3 +64,40 @@ test("leaves the data it was given alone", () => {
   project(copy);
   assert.equal(JSON.stringify(copy), before);
 });
+
+// "Count new signings' domestic games" (17 Nov: Kamenjaš, new at Baskonia, 22 PIR in 24 min in the ACB, projected 0).
+// A synthetic signing on the live data: no EuroLeague game, no FantaSheet xPTS, domestic games only.
+const signing = (more = {}) => {
+  const d = JSON.parse(JSON.stringify(D)), club = d.fixtures[0][1];
+  d.players.push({ id: 99999, name: "New Signing", short: "Signing", team: club, pos: "C", price: 4.8, status: null, gp: 0, fpt: null,
+    xpts: null, log: [], dom: [
+      { d: "2026-11-15", pir: 22, min: 23.8, dnp: false },
+      { d: "2026-11-11", pir: 30, min: 6, dnp: false },   // under 10 minutes: not counted
+      { d: "2026-11-08", pir: 14, min: 20, dnp: false },
+      { d: "2026-11-01", pir: 40, min: 30, dnp: false },  // a third game: only the last two count
+    ], ...more });
+  return d;
+};
+const sg = (d, opt) => project(d, opt).players.find(p => p.id === 99999);
+
+test("off: a player with no EuroLeague game and no xPTS projects 0, whatever his domestic games", () => {
+  const p = sg(signing());
+  assert.equal(p.own, 0);
+  assert.equal(p.src, "form");
+});
+
+test("on: he projects 70% of his PIR over his last two domestic games of 10+ minutes", () => {
+  const p = sg(signing(), { dom: true });
+  assert.equal(p.src, "domestic");
+  assert.equal(p.own, 12.6); // 0.7 × (22 + 14) / 2
+  assert.equal(p.x, Math.round((p.own + p.wa) * 10) / 10);
+});
+
+test("on: a player with a EuroLeague game, a FantaSheet xPTS or an Out status keeps the usual projection", () => {
+  const g = { d: "2026-11-13", fpt: 6, min: 12, opp: "X", ha: "H", res: "" };
+  assert.equal(sg(signing({ log: [g], fpt: 6 }), { dom: true }).src, "form");
+  assert.equal(sg(signing({ xpts: 9 }), { dom: true }).src, "FantaSheet");
+  assert.equal(sg(signing({ status: "Out" }), { dom: true }).x, 0);
+  // no domestic game of 10+ minutes: nothing to go on
+  assert.equal(sg(signing({ dom: [{ d: "2026-11-15", pir: 22, min: 5 }] }), { dom: true }).own, 0);
+});
