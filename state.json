@@ -12,12 +12,13 @@
  ],
  "starOnly": false,
  "coachPin": null,
- "budget": 104.1,
+ "budget": 109.4,
  "maxT": 4,
  "lam": 20,
  "noInj": true,
  "chase": false,
  "gems": true,
+ "newDom": false,
  "pos": "ALL",
  "day": "ALL",
  "sort": "exp",
@@ -44,7 +45,6 @@
   "k": "2026-10-28|BJK|OLY|",
   "t": "BJK"
  },
- "maxTAuto": "11:false",
- "newDom": false,
- "savedAt": "2026-11-19T12:09:40.389Z"
+ "maxTAuto": "13:false",
+ "savedAt": "2026-11-19T19:29:01.950Z"
 }
