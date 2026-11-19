@@ -22,7 +22,7 @@
  "day": "ALL",
  "sort": "exp",
  "only": false,
- "tag": "Buy low: back",
+ "tag": "Keep: gaining",
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -45,5 +45,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:29:54.061Z"
+ "savedAt": "2026-11-19T09:29:57.590Z"
 }
