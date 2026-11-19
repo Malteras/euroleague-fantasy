@@ -30,3 +30,29 @@ test("a player listed Out counts as playing last", () => {
   assert.ok(!names(L).includes("Silva"));
   assert.ok(names(L).includes("Davidovac"), "the next turn-1 player takes his place");
 });
+
+// Round 13, 19 Nov (#152): both centres play Thursday. A 2-2-1 with Valančiūnas the only centre on the court and Kamenjaš
+// as 6th man locks Valančiūnas in: once Thursday is played no legal swap takes him off. The 2-1-2 starts as many Thursday
+// players and keeps a way out for each of them.
+const R13 = ["2026-11-19", "2026-11-20"];
+const r13 = new Function("FORMS", "dayKeys", cut("// dayOne:begin", "// dayOne:end") + "\nreturn {dayOneLineup};")(FORMS, R13).dayOneLineup;
+const [TH, FR] = R13;
+const team13 = [P("Valančiūnas", "C", 22.2, TH), P("Kamenjaš", "C", 13.9, TH), P("Frisch", "F", 8.9, TH), P("Herrera", "G", 7.4, TH),
+  P("Vezenkov", "F", 28, FR), P("Maledon", "G", 20.5, FR), P("Robinson", "G", 17.4, FR), P("Feliz", "G", 16, FR),
+  P("Procida", "F", 9.5, FR), P("Abalde", "F", 8.9, FR)];
+
+test("both centres play turn 1: both start, so either can be benched after his game (#152)", () => {
+  const L = r13(team13);
+  const st = L.st.map(p => p.short);
+  assert.ok(st.includes("Valančiūnas") && st.includes("Kamenjaš"), `court: ${st}`);
+  assert.equal(L.st.filter(p => p.pos === "C").length, 2);
+  assert.deepEqual(names(L).filter(n => ["Valančiūnas", "Kamenjaš", "Frisch", "Herrera"].includes(n)).length, 4, "all four Thursday players count 100%");
+  assert.equal(L.six.day, FR, "the 6th man is a Friday player");
+});
+
+test("a lone centre is fine when a later centre can come on for him", () => {
+  const s = team13.map(p => p.short === "Kamenjaš" ? { ...p, day: FR } : p);
+  const L = r13(s);
+  assert.equal(L.st.filter(p => p.pos === "C").length, 1, "Kamenjaš plays Friday: one centre on the court, he can replace Valančiūnas");
+  assert.equal(L.st.find(p => p.pos === "C").short, "Valančiūnas");
+});

@@ -3148,19 +3148,28 @@ function planSteps(R,L){
 // The day-one lineup: as many players of the earliest turn as possible on the court and as 6th man, then the next turn's.
 // A later player on the bench can still come on after the earlier games; an early one on the bench is stuck at 50% once
 // he has played, whatever he scores. So turn first, projection second; a player listed Out counts as playing last.
+// Between the two: fewer locked starters (#152). A starter is locked when, once he has played, no later player (6th man or
+// bench) can take his place in one of the five formations: a lone centre whose only backup plays the same turn stays on the
+// court whatever he scores, because a player who has played never comes onto the court.
 function dayOneLineup(ps){
   const t=p=>{const k=dayKeys.indexOf(p.day);return p.out||k<0?dayKeys.length:k;};
   const ord=(a,b)=>t(a)-t(b)||b.x-a.x;
   const by={G:[],F:[],C:[]};ps.forEach(p=>by[p.pos].push(p));for(const k in by)by[k].sort(ord);
-  // how many of the six 100% places each turn fills, earliest turn first, then their projections
-  const key=six=>[...dayKeys.map((_,k)=>six.filter(p=>t(p)===k).length),six.reduce((a,p)=>a+p.x,0)];
+  const isForm=st=>{const n={G:0,F:0,C:0};st.forEach(p=>n[p.pos]++);return FORMS.some(([g,f,c])=>g===n.G&&f===n.F&&c===n.C);};
+  const later=(p,pool)=>pool.filter(q=>!q.out&&t(q)>t(p));
+  const locked=(st,six)=>{const off=ps.filter(p=>!st.includes(p)),bench=off.filter(p=>p!==six);
+    return st.filter(p=>t(p)<dayKeys.length-1&&!later(p,off).some(q=>isForm(st.map(x=>x===p?q:x)))).length
+      +(six&&t(six)<dayKeys.length-1&&!later(six,bench).length?1:0);};
+  // how many of the six 100% places each turn fills, earliest turn first, then fewer locked starters, then their projections
+  const key=(st,six)=>{const all=six?[...st,six]:st;
+    return [...dayKeys.map((_,k)=>all.filter(p=>t(p)===k).length),-locked(st,six),all.reduce((a,p)=>a+p.x,0)];};
   const better=(a,b)=>{for(let i=0;i<a.length;i++)if(Math.abs(a[i]-b[i])>1e-9)return a[i]>b[i];return false;};
   let best=null;
   for(const [g,f,c] of FORMS){
     if(by.G.length<g||by.F.length<f||by.C.length<c)continue;
     const st=[...by.G.slice(0,g),...by.F.slice(0,f),...by.C.slice(0,c)];
     const six=ps.filter(p=>!st.includes(p)).sort(ord)[0]||null;
-    const k=key(six?[...st,six]:st);
+    const k=key(st,six);
     if(!best||better(k,best.k))best={k,st,six};
   }
   return best;
