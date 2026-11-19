@@ -22,7 +22,7 @@
  "day": "ALL",
  "sort": "exp",
  "only": false,
- "tag": "Keep: price steady",
+ "tag": "Credit gainer",
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -45,5 +45,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:29:22.112Z"
+ "savedAt": "2026-11-19T09:29:24.332Z"
 }
