@@ -1,43 +1,43 @@
 {
- "updated": "2026-11-18",
+ "updated": "2026-11-19",
  "players": [
-  288,
-  131,
+  352,
+  23,
+  349,
   7,
   56,
-  26,
+  275,
+  288,
   38,
-  352,
-  67,
   27,
-  361
+  26
  ],
- "coach": "DUB",
- "bank": 0.5,
+ "coach": "EFS",
+ "bank": 0.6,
  "slots": [
-  288,
-  131,
+  352,
+  23,
+  349,
   7,
   56,
-  26,
+  275,
+  288,
   38,
-  352,
-  67,
   27,
-  361
+  26
  ],
  "cap": 56,
  "names": [
-  "Justin Robinson",
-  "Talen Horton-Tucker",
+  "Sebastian Herrera",
+  "Théo Maledon",
+  "Clement Frisch",
   "Sasha Vezenkov",
   "Jonas Valančiūnas",
-  "Alberto Abalde",
+  "Kenan Kamenjaš",
+  "Justin Robinson",
   "Andrés Feliz",
-  "Sebastian Herrera",
-  "Ousmane Diop",
   "Gabriele Procida",
-  "Dejan Davidovac"
+  "Alberto Abalde"
  ],
- "coachName": "Xavi Pascual"
+ "coachName": "Pablo Laso"
 }
