@@ -477,6 +477,7 @@ small,.note,.legend,.rb-legend,.sub,.warnbox,footer{max-width:60ch}
 .tp-pl li>span{display:flex;flex-direction:column;min-width:0;flex:1}
 .has-tip{cursor:help}
 .tbc{position:relative;color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
+.dom-tag{position:relative;font-size:.75em;color:var(--muted);cursor:help;text-decoration:underline dotted;text-underline-offset:3px;font-weight:400}
 /* a differential hint (#26): a quiet line with the site's tooltip; the underline says there is more */
 .diff{position:relative;cursor:help;text-decoration:underline dotted;text-underline-offset:3px}.tl-diff{margin:4px 0 0}
 /* the site's tooltip: a .tip inside a .has-tip parent (a TBC cell, the hit area over each Last 5 bar, a tag...) */
@@ -1082,7 +1083,7 @@ function pickBtn(k,p,on){
 }
 // add the id to a pick list, or take it out if it is there
 const toggleId=(a,id)=>a.includes(id)?a.filter(i=>i!==id):[...a,id];
-let state={pins:[],avoids:[],stars:[],starOnly:false,coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null,coachView:"round"};
+let state={pins:[],avoids:[],stars:[],starOnly:false,coachPin:null,budget:null,maxT:4,lam:20,noInj:false,chase:false,gems:false,newDom:false,pos:"ALL",day:"ALL",sort:"x",only:false,tag:null,q:"",open:null,dtab:"overview",allGames:false,collapsed:[],form:null,coachView:"round"};
 const stopIdx=()=>STOPS.reduce((b,l,i)=>Math.abs(l-state.lam)<Math.abs(STOPS[b]-state.lam)?i:b,0);
 const snapLam=()=>{state.lam=STOPS[stopIdx()];}; // older saves used 0–60 in steps of 5
 try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)Object.assign(state,s,{open:null,q:""});}catch(e){}
@@ -1216,8 +1217,15 @@ const stHtml=(s,cls="")=>s==="Day to day"?`<span class="${cls?cls+" ":""}dtd has
 // "Leave out injured" (day-to-day players too): nobody listed Out, Doubtful or Day to day is brought in by the proposal or
 // suggested as a replacement. Your own players stay where they are.
 const skipIn=p=>!!state.noInj&&p.status in PLAY_CHANCE&&!orig.players.includes(p.id);
+// "Count new signings' domestic games" (off by default): a player with no EuroLeague game this season and no FantaSheet
+// xPTS projects 0, so a new signing who plays (17 Nov: Kamenjaš, 22 PIR in 24 min for Baskonia, both its other centres
+// Out) was never proposed. With it on he projects DOM_K × his PIR over his last DOM_N domestic games of 10+ minutes:
+// a domestic PIR is not EuroLeague points, so it counts less.
+const DOM_K=.7,DOM_N=2,DOM_MIN=10;
+const domGames=p=>(p.dom||[]).filter(g=>!g.dnp&&g.pir!=null&&g.min>=DOM_MIN).slice(0,DOM_N);
 // The projections for one round's data: the live data.json, or a history/round-N.json snapshot. Touches no globals.
-function project(data){
+// opt.dom: count new signings' domestic games (the live page only, when the setting is on).
+function project(data,opt={}){
   const turnOf={},oppOf={};
   data.fixtures.forEach(([d,h,a])=>{turnOf[h]=d;turnOf[a]=d;oppOf[h]={opp:a,ha:"H"};oppOf[a]={opp:h,ha:"A"};});
   const dayKeys=[...new Set(data.fixtures.map(f=>f[0]))].sort();
@@ -1226,9 +1234,11 @@ function project(data){
   const players=data.players.map(p=>{
     const l=(p.log||[]).map(g=>g.fpt);
     const l3=l.length?l.slice(0,3).reduce((a,b)=>a+b,0)/Math.min(3,l.length):(p.fpt??0);
-    const own=r1(.6*l3+.4*(p.fpt??l3));
+    let own=r1(.6*l3+.4*(p.fpt??l3));
     const out=p.status==="Out";
-    const src=p.xpts!=null&&p.xpts>0?"FantaSheet":"form";
+    const dg=opt.dom&&!l.length&&!(p.xpts>0)?domGames(p):[];
+    const src=p.xpts!=null&&p.xpts>0?"FantaSheet":dg.length?"domestic":"form";
+    if(dg.length)own=r1(DOM_K*dg.reduce((a,g)=>a+g.pir,0)/dg.length);
     // chance he plays, from his injury status: a Doubtful or Day to day player only counts that share of his projection
     const play=PLAY_CHANCE[p.status]??1;
     const base=out?0:r1(play*(src==="FantaSheet"?r1(.5*p.xpts+.5*own):own));
@@ -1434,7 +1444,7 @@ function turnReview(snap,logs,saved){
 function init(data){
   D=data;
   document.getElementById("teamName").textContent=D.team;
-  const R=project(D);
+  const R=project(D,{dom:!!state.newDom});
   ({dayKeys,turnOf,oppOf,nextOf}=R);LOOK_ON=R.look;
   const TW=D.tradeWindow;
   // The daily report says whether this round is a free-trade window: follow it whenever that answer changes,
@@ -2374,7 +2384,7 @@ function prunePlan(S,coach,base,baseCoach,lim,lam){
 // Plans are cached per setting, so dragging the slider costs nothing after the first call.
 const planCache=new Map(),pickCache=new Map();
 function optimise(){
-  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,!!state.chase,!!state.gems,TRADES_CLOSED]);
+  const key=JSON.stringify([roundKey,curMode,orig.players,orig.coach,start,state.pins,state.avoids,state.coachPin,state.budget,state.maxT,state.noInj,!!state.chase,!!state.gems,!!state.newDom,TRADES_CLOSED]);
   const plan=l=>{const k=key+l;if(!planCache.has(k)){if(planCache.size>300)planCache.clear();planCache.set(k,searchPlan(l));}return planCache.get(k);};
   const pickAt=lam=>{const k=key+"|"+lam;if(pickCache.has(k))return pickCache.get(k);
     const own=plan(lam),score=p=>quickObj(p.S,p.coach,lam);
@@ -2649,7 +2659,7 @@ function drawer(){
   // Next game, right under the tags: the game, projection against break-even, expected price change and the matchup
   const nextGame=p.opp?`<div class="ng"><div class="ng-h"><span>${shown(p).played?"Played this round":"Next game"}</span><span>${facts(esc(dayLabel(p.day)),tipoff(p))}</span></div><div class="ng-s">
       <div class="ng-who">${badge(p.opp.opp)}<div><b>${p.opp.ha==="H"?"vs":"at"} ${tname(p.opp.opp)}</b><span>${p.opp.ha==="H"?"Home":"Away"}</span></div></div>
-      ${shown(p).played?`<div><small>Points</small><b class="tp">${shown(p).pts}</b><em>${shown(p).x!=null?`proj ${shown(p).x} at the deadline`:"played"}</em></div>`:`<div><small>Projection</small><b class="tp">${p.x}</b><em>break-even ${p.be}</em></div>`}
+      ${shown(p).played?`<div><small>Points</small><b class="tp">${shown(p).pts}</b><em>${shown(p).x!=null?`proj ${shown(p).x} at the deadline`:"played"}</em></div>`:`<div><small>Projection</small><b class="tp">${projCell(p)}</b><em>break-even ${p.be}</em></div>`}
       ${shown(p).played?`<div><small>Value</small><b class="${crShown(p)<0?"neg":"tc"}">${fmt(crShown(p))} cr</b><em>from this game</em></div>`:`<div><small>Exp. change</small><b class="${r1(p.exp)<0?"neg":"tc"}">${fmt(r1(p.exp))} cr</b><em>after this round</em></div>`}
       <div><small>Matchup</small>${mu!=null?`<b class="${mu<0?"neg":mu>0?"pos":""}">${mu>0?"+":""}${mu}%</b><em>PIR for ${POSN[p.pos].toLowerCase()}s</em>`:`<b class="muted">–</b><em>no data</em>`}</div></div></div>`
     :`<div class="ng-none">No EuroLeague game this round.</div>`;
@@ -2737,12 +2747,13 @@ function proposal(){
   const det=[["Trades this round",`A trade is only used if it adds 3+ points (1+ in an unlimited window, where trades are free). Unlimited = one of the 6 free-trade windows.${twNote()}`],
     ["Leave out injured",`Nobody listed Out, Doubtful or ${stHtml("Day to day")} in the latest injury news comes in. Your own players stay.`],
     ["Chase rank",`On a near-tie, pick the player few teams own. For a trade or the first captain, a player at most ${DIFF_PTS} projected points worse wins if far fewer teams own him (half the share or less, and ${DIFF_GAP}+ points of share less). Never more than ${DIFF_PTS} points per pick. Only before the deadline.`],
-    ["Include hidden gems",`On a near-tie, pick the cheap player on the rise. For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.`]];
+    ["Include hidden gems",`On a near-tie, pick the cheap player on the rise. For a trade, a hidden gem at most ${DIFF_PTS} projected points worse wins: under ${GEM_PRICE} cr, his last 3 games ${GEM_MIN}+ minutes over his season, and a soft matchup (+${GEM_MU}% or more for his position). Only before the deadline.`],
+    ["Count new signings' domestic games",`A player with no EuroLeague game this season and no FantaSheet projection projects 0, so he is never proposed. With this on, he projects ${Math.round(DOM_K*100)}% of his PIR over his last ${DOM_N} domestic games of ${DOM_MIN}+ minutes. His projection is marked "dom." everywhere it shows.`]];
   return `<section style="padding-top:18px"><div class="panel"><div class="ctrl">
     <div class="ps-top">
       <div class="field"><label for="budget">Team budget (credits)</label><input id="budget" class="num-input" type="number" step="0.1" min="80" max="120" value="${state.budget}"></div>
       <div class="field"><label>Trades this round</label><div class="seg" id="maxT">${[[4,"Up to 4"],[99,"Unlimited window"]].map(([n,l])=>`<button type="button" data-v="${n}" class="${state.maxT===n?"on":""}" aria-pressed="${state.maxT===n}">${l}</button>`).join("")}</div></div>
-      <div class="field"><label>How it picks</label><div class="ps-sw">${sw("noInj","Leave out injured")}${sw("chase","Chase rank")}${sw("gems","Include hidden gems")}</div></div>
+      <div class="field"><label>How it picks</label><div class="ps-sw">${sw("noInj","Leave out injured")}${sw("chase","Chase rank")}${sw("gems","Include hidden gems")}${sw("newDom","Count new signings' domestic games")}</div></div>
     </div>
     <button type="button" class="ps-more" id="setHelp" aria-expanded="${setHelp}" aria-controls="setDet">${setHelp?"Hide what each setting does":"What does each setting do?"}</button>
     <div class="ps-det" id="setDet"${setHelp?"":" hidden"}>${det.map(([t,x])=>`<div class="note"><b>${t}</b>${x}</div>`).join("")}</div>
@@ -2799,7 +2810,7 @@ function proposalParts(R){
     // price rise from the rounded values shown under it, so +0.3 → +0.3 reads 0.0, not a rounding leftover
     const dp=(b?b.x:0)-(a?a.x:0),dn=(b?b.nx:0)-(a?a.nx:0),dc=(b?r1(b.exp):0)-(a?r1(a.exp):0),fr=(a?a.price:0)-(b?b.price:0);
     tot.dp+=dp;tot.dn+=dn;tot.dc+=dc;tot.fr+=fr;
-    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}${side==="i"?tradeDiff(p):""}${madeNote(p,side)}</span></span>`:`<span class="tx-p ${side}">—</span>`;
+    const who=(p,side)=>p?`<span class="tx-p ${side}">${badge(p.team)}<span><b>${name(p)}${two(p)&&role?` <span class="tx-role">${role.toLowerCase()}</span>`:""}</b>${two(p)?gLine(p,p.opp,rN)+gLine(p,p.opp2,rN2):`<small>${facts(role,game(p))}</small>`}${side==="i"&&p.pop!=null?`<small class="tx-own">Owned by ${ownTxt(p)}</small>`:""}${side==="i"?tradeDiff(p):""}${side==="i"&&p.src==="domestic"&&!shown(p).played?`<small class="tx-own">Projected from his domestic games: no EuroLeague game yet</small>`:""}${madeNote(p,side)}</span></span>`:`<span class="tx-p ${side}">—</span>`;
     // Proposal 2: this round and half of next round as two bars. Proposal 1: one number; a coach's adds his next game.
     // grey out → in beside the bars: this round's projections, then next round's (the striped bar is half the difference)
     const ow=(f,p)=>p?f(p):"–",w1=`${ow(p=>p.x.toFixed(1),a)} → ${ow(p=>p.x.toFixed(1),b)}`,w2=`${ow(p=>(p.x2||0).toFixed(1),a)} → ${ow(p=>(p.x2||0).toFixed(1),b)}`;
@@ -3844,7 +3855,7 @@ function watchItems(){
 // deadline (history snapshot) if there is one. Before his game: today's projection. A coach is keyed "c:"+club in deadX.
 // pct: how far his points are above or under the deadline projection; cr: his credit change from the game.
 function projShown(p,{played,score,deadX,cr}){
-  if(!played(p))return {played:false,x:p.x};
+  if(!played(p))return p.src==="domestic"?{played:false,x:p.x,dom:true}:{played:false,x:p.x};
   const pts=score(p),x=deadX[p.id??"c:"+p.team]??null;
   return {played:true,pts,x,pct:pts!=null&&x>0?Math.round(100*(pts-x)/x):null,cr:cr?cr(p):null};
 }
@@ -3986,7 +3997,8 @@ function gemSwapHtml(pick,d,what){
 }
 // gems:end
 // Once he has played, next round's projection is not known until this round is finished: TBC, sorted last.
-const projCellHtml=s=>s.played?`<span class="tbc has-tip" tabindex="0">TBC${tipPick("Projection","TBC","To be calculated after the current round is finished.")}</span>`:`${s.x}`;
+const projCellHtml=s=>s.played?`<span class="tbc has-tip" tabindex="0">TBC${tipPick("Projection","TBC","To be calculated after the current round is finished.")}</span>`
+  :s.dom?`${s.x} <span class="dom-tag has-tip" tabindex="0">dom.${tipPick("Projection","From his domestic games","No EuroLeague game this season yet. \"Count new signings' domestic games\" is on, so this is "+Math.round(DOM_K*100)+"% of his PIR in his last domestic games.")}</span>`:`${s.x}`;
 const projKey=s=>s.played?-999:s.x??-999; // finite, so two TBC players compare equal
 // "Wed 21 Oct", the same in every browser (toLocaleDateString gives "Wed, 21 Oct" or "Sept" in some)
 const dayFmt=d=>{const t=new Date(d+"T12:00:00");return isNaN(t)?d:`${"Sun Mon Tue Wed Thu Fri Sat".split(" ")[t.getDay()]} ${t.getDate()} ${"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")[t.getMonth()]}`;};
@@ -4245,6 +4257,8 @@ function bind(){
   const ni=$("#noInj");if(ni)ni.onchange=()=>{state.noInj=ni.checked;rerender();};
   const ch=$("#chase");if(ch)ch.onchange=()=>{state.chase=ch.checked;rerender();};
   const gm=$("#gems");if(gm)gm.onchange=()=>{state.gems=gm.checked;rerender();};
+  // the projections themselves change, so the page is built again from the data
+  const nd=$("#newDom");if(nd)nd.onchange=()=>{state.newDom=nd.checked;save();init(D);};
   const sh=$("#setHelp");if(sh)sh.onclick=()=>{setHelp=!setHelp;sh.setAttribute("aria-expanded",setHelp);sh.textContent=setHelp?"Hide what each setting does":"What does each setting do?";$("#setDet").hidden=!setHelp;};
   document.querySelectorAll("#pos button").forEach(b=>b.onclick=()=>{state.pos=b.dataset.v;rerender();});
   document.querySelectorAll("#day button").forEach(b=>b.onclick=()=>{state.day=b.dataset.v;rerender();});

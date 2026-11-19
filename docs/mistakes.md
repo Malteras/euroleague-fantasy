@@ -151,6 +151,16 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   until the plan fits the limit; with nothing left to undo, the picked coach waits and a warning says why. Tests:
   tools/test_optimiser.mjs, the two "picked coach" tests.
 
+## 17 Nov 2026 · Kamenjaš never proposed: a new signing projects 0
+- **What:** Baskonia's new centre Kamenjas (4.8 cr) had 22 PIR in 24 min in the ACB, and Faried and Santos were both Out.
+  The planner never proposed him; he asked why.
+- **Why:** `project()` builds a projection from EuroLeague games and FantaSheet's xPTS only. A player with neither projects
+  0, whatever his domestic games say. The Report's "Domestic standouts" list was the only place he showed.
+- **Guard:** the setting "Count new signings' domestic games" (off by default, his choice): such a player projects
+  `DOM_K` (70%) of his PIR over his last 2 domestic games of 10+ minutes, and the projection says "dom." with a tooltip
+  wherever it shows. History snapshots are always projected without it, so past rounds score the same. Tests:
+  tools/test_project.mjs.
+
 ## General lessons
 - Before publishing, open the site with today's data and read what it tells him, card by card. Is each line possible today?
 - Ask "what day is it, and which games are already played?" before giving any advice.
