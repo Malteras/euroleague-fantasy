@@ -1,13 +1,13 @@
 {
  "updated": "2026-11-19",
  "players": [
-  23,
   352,
   349,
+  7,
   56,
   275,
+  23,
   288,
-  7,
   38,
   27,
   26
@@ -15,26 +15,26 @@
  "coach": "EFS",
  "bank": 0.6,
  "slots": [
-  23,
   352,
   349,
+  7,
   56,
   275,
+  23,
   288,
-  7,
   38,
   27,
   26
  ],
  "cap": 56,
  "names": [
-  "Théo Maledon",
   "Sebastian Herrera",
   "Clement Frisch",
+  "Sasha Vezenkov",
   "Jonas Valančiūnas",
   "Kenan Kamenjaš",
+  "Théo Maledon",
   "Justin Robinson",
-  "Sasha Vezenkov",
   "Andrés Feliz",
   "Gabriele Procida",
   "Alberto Abalde"
