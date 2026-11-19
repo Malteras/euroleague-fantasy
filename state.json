@@ -26,9 +26,30 @@
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
- "form": null,
+ "form": [
+  2,
+  1,
+  2
+ ],
  "coachView": "five",
- "team": null,
+ "team": {
+  "slots": [
+   23,
+   352,
+   7,
+   56,
+   275,
+   288,
+   349,
+   38,
+   27,
+   26
+  ],
+  "coach": "EFS",
+  "bank": 0.6,
+  "cap": 56,
+  "base": "2026-11-19"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -45,5 +66,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:41:09.869Z"
+ "savedAt": "2026-11-19T09:41:11.781Z"
 }
