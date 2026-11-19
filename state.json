@@ -22,7 +22,7 @@
  "day": "ALL",
  "sort": "exp",
  "only": false,
- "tag": "Must have",
+ "tag": null,
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -45,5 +45,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:30:04.005Z"
+ "savedAt": "2026-11-19T09:30:06.897Z"
 }
