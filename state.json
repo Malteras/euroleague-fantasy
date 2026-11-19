@@ -32,24 +32,7 @@
   2
  ],
  "coachView": "five",
- "team": {
-  "slots": [
-   23,
-   352,
-   349,
-   56,
-   275,
-   288,
-   7,
-   38,
-   27,
-   26
-  ],
-  "coach": "EFS",
-  "bank": 0.6,
-  "cap": 56,
-  "base": "2026-11-19"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -66,5 +49,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:41:16.830Z"
+ "savedAt": "2026-11-19T09:41:22.544Z"
 }
