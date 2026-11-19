@@ -315,3 +315,13 @@ Each entry: what went wrong, why, and the guard. Read this before changing the b
   someone else and is worth `CAP_SWITCH` (1 point) more, it says to move the armband now (call kind "switch"), and the
   Bottom line and the plan show it. A 6th man who becomes captain swaps with the lowest starter who has not played. Played
   turns are never re-picked. Tests in tools/test_capstrip.mjs.
+
+## 19 Nov 2026 · the day-one lineup locked Valančiūnas on the court (#152)
+- **What:** Round 13's proposed lineup was 2-2-1 with Valančiūnas the only centre on the court and Kamenjaš, the other
+  centre, as 6th man. Both play Thursday. Once Thursday is played no legal swap takes Valančiūnas off: every formation needs
+  a centre and Kamenjaš has played. A −10 would have counted 100%. He saw it himself and set a 2-1-2.
+- **Why:** `dayOneLineup()` ranked formations by how many first-turn players fill the six 100% places, then by their
+  projection sum. Two lineups tied on the first and the sum picked the one that left no way out.
+- **Guard:** `dayOneLineup()` counts locked starters (no later player can take his place in one of the five formations)
+  and prefers fewer, before the projection sum. tools/test_dayone.mjs has the Round 13 squad. When a lineup is proposed
+  for a round with turns, ask of every early starter: after his game, who can replace him?
