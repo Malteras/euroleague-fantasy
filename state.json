@@ -18,6 +18,7 @@
  "noInj": true,
  "chase": false,
  "gems": true,
+ "newDom": false,
  "pos": "ALL",
  "day": "ALL",
  "sort": "exp",
@@ -26,13 +27,26 @@
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
- "form": [
-  2,
-  1,
-  2
- ],
+ "form": null,
  "coachView": "five",
- "team": null,
+ "team": {
+  "slots": [
+   352,
+   349,
+   7,
+   56,
+   275,
+   23,
+   288,
+   38,
+   27,
+   26
+  ],
+  "coach": "EFS",
+  "bank": 0.6,
+  "cap": 56,
+  "base": "2026-11-19"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -49,5 +63,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:41:22.544Z"
+ "savedAt": "2026-11-19T10:08:38.833Z"
 }
