@@ -21,7 +21,7 @@
   3
  ],
  "starOnly": false,
- "coachPin": "DUB",
+ "coachPin": null,
  "budget": 109.4,
  "maxT": 4,
  "lam": 20,
@@ -55,5 +55,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-19T09:22:56.969Z"
+ "savedAt": "2026-11-19T09:22:58.720Z"
 }
