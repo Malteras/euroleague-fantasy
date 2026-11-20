@@ -12,7 +12,8 @@
   12,
   3,
   234,
-  275
+  275,
+  169
  ],
  "starOnly": false,
  "coachPin": null,
@@ -50,5 +51,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-20T19:05:59.460Z"
+ "savedAt": "2026-11-20T19:06:02.281Z"
 }
