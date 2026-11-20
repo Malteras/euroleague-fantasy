@@ -27,7 +27,7 @@
  "only": false,
  "tag": null,
  "dtab": "overview",
- "allGames": false,
+ "allGames": true,
  "collapsed": [],
  "form": null,
  "coachView": "five",
@@ -48,5 +48,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-20T19:03:49.110Z"
+ "savedAt": "2026-11-20T19:03:51.566Z"
 }
