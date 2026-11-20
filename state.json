@@ -31,8 +31,8 @@
  "sort": "exp",
  "only": false,
  "tag": null,
- "dtab": "overview",
- "allGames": true,
+ "dtab": "games",
+ "allGames": false,
  "collapsed": [],
  "form": null,
  "coachView": "five",
@@ -53,5 +53,5 @@
   "t": "BJK"
  },
  "maxTAuto": "13:false",
- "savedAt": "2026-11-20T19:06:35.690Z"
+ "savedAt": "2026-11-20T19:06:39.462Z"
 }
