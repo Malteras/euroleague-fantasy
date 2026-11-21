@@ -19,7 +19,7 @@
   361
  ],
  "starOnly": false,
- "coachPin": "RMB",
+ "coachPin": null,
  "budget": 109.4,
  "maxT": 99,
  "lam": 0,
@@ -58,5 +58,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:19:06.045Z"
+ "savedAt": "2026-11-21T11:25:08.141Z"
 }
