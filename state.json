@@ -29,7 +29,7 @@
  "newDom": true,
  "pos": "F",
  "day": "ALL",
- "sort": "exp",
+ "sort": "price",
  "only": false,
  "tag": "Domestic form",
  "dtab": "overview",
@@ -54,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:12:19.549Z"
+ "savedAt": "2026-11-21T11:12:25.749Z"
 }
