@@ -22,7 +22,7 @@
  "coachPin": "RMB",
  "budget": 109.4,
  "maxT": 99,
- "lam": 60,
+ "lam": 20,
  "noInj": true,
  "chase": false,
  "gems": true,
@@ -46,7 +46,7 @@
  "calOpen": true,
  "rf": "el",
  "rg": "2026-10-28|BJK|OLY|",
- "pmode": "q",
+ "pmode": "m",
  "blTicks": [
   "12:live:cap:2026-11-18:56",
   "12:live:swap:352>38",
@@ -58,5 +58,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:17:59.626Z"
+ "savedAt": "2026-11-21T11:18:09.224Z"
 }
