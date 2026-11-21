@@ -22,7 +22,7 @@
  "coachPin": "RMB",
  "budget": 109.4,
  "maxT": 99,
- "lam": 20,
+ "lam": 0,
  "noInj": true,
  "chase": false,
  "gems": true,
@@ -58,5 +58,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:18:09.224Z"
+ "savedAt": "2026-11-21T11:18:11.927Z"
 }
