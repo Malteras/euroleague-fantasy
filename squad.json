@@ -2,42 +2,42 @@
  "updated": "2026-11-21",
  "players": [
   160,
-  23,
-  7,
+  169,
+  176,
   361,
   66,
   275,
-  169,
+  23,
   103,
   27,
-  176
+  7
  ],
  "coach": "BAY",
  "bank": 0.7,
  "slots": [
   160,
-  23,
-  7,
+  169,
+  176,
   361,
   66,
   275,
-  169,
+  23,
   103,
   27,
-  176
+  7
  ],
  "cap": 66,
  "names": [
   "Tyson Carter",
-  "Théo Maledon",
-  "Sasha Vezenkov",
+  "Duane Washington Jr.",
+  "Oscar da Silva",
   "Dejan Davidovac",
   "Moses Wright",
   "Kenan Kamenjaš",
-  "Duane Washington Jr.",
+  "Théo Maledon",
   "Matthew Strazel",
   "Gabriele Procida",
-  "Oscar da Silva"
+  "Sasha Vezenkov"
  ],
  "coachName": "Anton Gavel"
 }
