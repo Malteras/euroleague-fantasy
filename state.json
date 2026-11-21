@@ -35,16 +35,20 @@
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
- "form": null,
+ "form": [
+  2,
+  2,
+  1
+ ],
  "coachView": "five",
  "team": {
   "slots": [
    352,
-   349,
+   23,
    7,
+   349,
    66,
    275,
-   23,
    288,
    38,
    27,
@@ -71,5 +75,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:15:33.822Z"
+ "savedAt": "2026-11-21T11:15:47.514Z"
 }
