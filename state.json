@@ -31,7 +31,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Status changed",
+ "tag": "Consider for next round",
  "dtab": "overview",
  "allGames": false,
  "collapsed": [],
@@ -54,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:12:50.070Z"
+ "savedAt": "2026-11-21T11:12:58.793Z"
 }
