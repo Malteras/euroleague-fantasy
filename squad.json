@@ -10,10 +10,10 @@
   169,
   103,
   27,
-  26
+  176
  ],
  "coach": "EFS",
- "bank": 1.2,
+ "bank": -1.4,
  "slots": [
   160,
   23,
@@ -24,7 +24,7 @@
   169,
   103,
   27,
-  26
+  176
  ],
  "cap": 66,
  "names": [
@@ -37,7 +37,7 @@
   "Duane Washington Jr.",
   "Matthew Strazel",
   "Gabriele Procida",
-  "Alberto Abalde"
+  "Oscar da Silva"
  ],
  "coachName": "Pablo Laso"
 }
