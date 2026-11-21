@@ -27,7 +27,7 @@
  "chase": false,
  "gems": true,
  "newDom": true,
- "pos": "F",
+ "pos": "ALL",
  "day": "ALL",
  "sort": "price",
  "only": false,
@@ -54,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-21T11:13:11.244Z"
+ "savedAt": "2026-11-21T11:13:13.310Z"
 }
