@@ -31,7 +31,7 @@
  "only": false,
  "tag": "Domestic form",
  "dtab": "overview",
- "allGames": false,
+ "allGames": true,
  "collapsed": [],
  "form": [
   2,
@@ -56,5 +56,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-23T23:50:15.311Z"
+ "savedAt": "2026-11-23T23:50:17.272Z"
 }
