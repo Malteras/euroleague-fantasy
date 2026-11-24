@@ -29,7 +29,7 @@
  "day": "ALL",
  "sort": "price",
  "only": false,
- "tag": "Domestic form",
+ "tag": null,
  "dtab": "overview",
  "allGames": true,
  "collapsed": [],
@@ -56,5 +56,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-24T21:27:17.131Z"
+ "savedAt": "2026-11-24T21:27:22.476Z"
 }
