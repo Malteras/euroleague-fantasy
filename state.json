@@ -32,7 +32,7 @@
  "sort": "price",
  "only": false,
  "tag": null,
- "dtab": "overview",
+ "dtab": "games",
  "allGames": false,
  "collapsed": [],
  "form": [
@@ -60,5 +60,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-25T10:12:23.036Z"
+ "savedAt": "2026-11-25T10:12:27.097Z"
 }
