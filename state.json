@@ -41,22 +41,41 @@
   1
  ],
  "coachView": "five",
- "team": null,
+ "team": {
+  "slots": [
+   7,
+   275,
+   103,
+   23,
+   66,
+   202,
+   361,
+   176,
+   169,
+   160
+  ],
+  "coach": "BAY",
+  "bank": 1.3,
+  "cap": 66,
+  "base": "2026-11-23"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
  "rg": "2026-10-28|BJK|OLY|",
  "pmode": "m",
  "blTicks": [
-  "12:live:cap:2026-11-18:56",
-  "12:live:swap:352>38",
-  "12:live:swap:67>26",
-  "12:live:lineup:2026-11-18:26"
+  "14:live:cap:2026-11-25:66",
+  "14:live:swap:160>7",
+  "14:live:swap:361>23",
+  "14:live:swap:176>103",
+  "14:live:swap:169>275",
+  "14:live:lineup:2026-11-25:7,275,103,23"
  ],
  "rgt": {
   "k": "2026-10-28|BJK|OLY|",
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-24T21:27:43.060Z"
+ "savedAt": "2026-11-25T10:02:01.968Z"
 }
