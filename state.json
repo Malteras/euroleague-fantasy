@@ -33,7 +33,7 @@
  "only": false,
  "tag": null,
  "dtab": "overview",
- "allGames": true,
+ "allGames": false,
  "collapsed": [],
  "form": [
   2,
@@ -60,5 +60,5 @@
   "t": "BJK"
  },
  "maxTAuto": "14:true",
- "savedAt": "2026-11-25T10:12:17.460Z"
+ "savedAt": "2026-11-25T10:12:23.036Z"
 }
