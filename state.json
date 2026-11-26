@@ -39,7 +39,24 @@
   1
  ],
  "coachView": "five",
- "team": null,
+ "team": {
+  "slots": [
+   7,
+   275,
+   103,
+   23,
+   118,
+   202,
+   361,
+   176,
+   169,
+   160
+  ],
+  "coach": "BAY",
+  "bank": 4.3,
+  "cap": 118,
+  "base": "2026-11-26"
+ },
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -58,5 +75,5 @@
   "t": "BJK"
  },
  "maxTAuto": "15:false",
- "savedAt": "2026-11-26T08:50:25.997Z"
+ "savedAt": "2026-11-26T08:50:29.202Z"
 }
