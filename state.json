@@ -35,24 +35,7 @@
  "collapsed": [],
  "form": null,
  "coachView": "five",
- "team": {
-  "slots": [
-   118,
-   176,
-   361,
-   23,
-   169,
-   275,
-   7,
-   17,
-   3,
-   202
-  ],
-  "coach": "OLY",
-  "bank": 0.5,
-  "cap": 118,
-  "base": "2026-11-26"
- },
+ "team": null,
  "budgetTouched": false,
  "calOpen": true,
  "rf": "el",
@@ -71,5 +54,5 @@
   "t": "BJK"
  },
  "maxTAuto": "15:false",
- "savedAt": "2026-11-26T18:06:41.681Z"
+ "savedAt": "2026-11-26T18:06:44.821Z"
 }
