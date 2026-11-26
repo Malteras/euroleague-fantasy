@@ -1,43 +1,43 @@
 {
  "updated": "2026-11-26",
  "players": [
-  7,
-  275,
-  3,
   23,
-  118,
-  202,
-  361,
   176,
+  361,
+  118,
+  275,
   169,
-  17
+  7,
+  17,
+  3,
+  202
  ],
  "coach": "OLY",
  "bank": 0.5,
  "slots": [
-  7,
-  275,
-  3,
   23,
-  118,
-  202,
-  361,
   176,
+  361,
+  118,
+  275,
   169,
-  17
+  7,
+  17,
+  3,
+  202
  ],
- "cap": 118,
+ "cap": 23,
  "names": [
-  "Sasha Vezenkov",
-  "Kenan Kamenjaš",
-  "Cory Joseph",
   "Théo Maledon",
-  "Aliou Diarra",
-  "Nikos Rogkavopoulos",
-  "Dejan Davidovac",
   "Oscar da Silva",
+  "Dejan Davidovac",
+  "Aliou Diarra",
+  "Kenan Kamenjaš",
   "Duane Washington Jr.",
-  "Evan Fournier"
+  "Sasha Vezenkov",
+  "Evan Fournier",
+  "Cory Joseph",
+  "Nikos Rogkavopoulos"
  ],
  "coachName": "Georgios Bartzokas"
 }
