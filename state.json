@@ -20,7 +20,7 @@
  ],
  "starOnly": false,
  "coachPin": null,
- "budget": 109.4,
+ "budget": 109.7,
  "maxT": 4,
  "lam": 60,
  "noInj": true,
@@ -59,6 +59,6 @@
   "k": "2026-10-28|BJK|OLY|",
   "t": "BJK"
  },
- "maxTAuto": "14:true",
- "savedAt": "2026-11-26T08:28:06.103Z"
+ "maxTAuto": "15:false",
+ "savedAt": "2026-11-26T08:39:47.926Z"
 }
