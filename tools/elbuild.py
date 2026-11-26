@@ -274,6 +274,19 @@ def el_next(official, n=5):
         out[club] = lst[:n]
     return out
 
+def official_dates(fixtures, elNext, rnd):
+    """FantaSheet's next-game date can lag a moved game (Round 15: KBA–MTA and VIR–PAR shown on Fri 4 Dec, official Thu 3 Dec
+    21:00), and then the game has no tip-off time and the wrong turn. Where the official schedule (el_next) has the same
+    home/away game in this round, its date and tip-off win. Changes `fixtures` in place; returns the games it changed."""
+    moved = []
+    for f in fixtures:
+        o = next((g for g in (elNext or {}).get(f[1], []) if g.get('r') == rnd and g.get('oc') == f[2] and g.get('ha') == 'H'), None)
+        if not o or not o.get('d'): continue
+        new = [o['d'], f[1], f[2]] + ([o['t']] if o.get('t') else f[3:4] if o['d'] == f[0] else [])
+        if o['d'] != f[0]: moved.append(f'{f[1]}-{f[2]}')
+        f[:] = new
+    return moved
+
 def el_season(games):
     """The whole season's EuroLeague schedule for the Teams tab's round arrows: one row a game, by round, then tip-off.
     r: round; d, t: date and tip-off in Banja Luka time (t None until the league confirms the hour); h, a: home and away
@@ -668,6 +681,8 @@ def main():
         if filled: print(f'WARNING: Sofascore gave no EuroLeague game for {len(filled)} clubs; used the official schedule:', ' '.join(sorted(filled)))
     except Exception as ex:
         print('WARNING: official schedule failed, next games and tip-off times may be missing', ex)
+    moved = official_dates(fixtures, elNext, nxt_round)
+    if moved: print('fixtures: date or time taken from the official schedule for', ' '.join(moved))
     for f_ in fixtures:
         t_ = times.get(f_[0] + '|' + f_[1]) or times.get(f_[0] + '|' + f_[2])
         if t_ and len(f_) == 3: f_.append(t_)

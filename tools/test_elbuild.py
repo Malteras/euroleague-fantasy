@@ -576,5 +576,20 @@ class PaceTest(unittest.TestCase):
         self.assertEqual(hist[9]['OLY'], 80.0)
 
 
+class OfficialDatesTest(unittest.TestCase):
+    def test_moved_game_takes_official_date_and_time(self):
+        # Round 15: FantaSheet still had KBA-MTA on Fri 4 Dec; the official schedule says Thu 3 Dec 21:00
+        fx = [['2026-12-04', 'KBA', 'MTA'], ['2026-12-03', 'EFS', 'VAL']]
+        en = {'KBA': [{'r': 15, 'd': '2026-12-03', 't': '21:00', 'oc': 'MTA', 'ha': 'H'}],
+              'EFS': [{'r': 15, 'd': '2026-12-03', 't': '18:30', 'oc': 'VAL', 'ha': 'H'}]}
+        self.assertEqual(elbuild.official_dates(fx, en, 15), ['KBA-MTA'])
+        self.assertEqual(fx, [['2026-12-03', 'KBA', 'MTA', '21:00'], ['2026-12-03', 'EFS', 'VAL', '18:30']])
+
+    def test_no_official_game_leaves_fixture(self):
+        fx = [['2026-12-04', 'KBA', 'MTA']]
+        self.assertEqual(elbuild.official_dates(fx, None, 15), [])
+        self.assertEqual(fx, [['2026-12-04', 'KBA', 'MTA']])
+
+
 if __name__ == '__main__':
     unittest.main()
